@@ -95,9 +95,16 @@ def _policy(observation) -> list:
 
 
 def rollout(search_id, first_select, your_index, search_step,
-            max_steps=ROLLOUT_MAX_STEPS) -> float:
-    """Play first_select from search_id, roll to terminal, return our value."""
+            max_steps=ROLLOUT_MAX_STEPS, value_depth=None) -> float:
+    """Play first_select from search_id, roll out, return our value.
+
+    With value_depth None the rollout runs to a terminal result (the heuristic
+    policy plus the real engine rules is a strong leaf evaluator). Set value_depth
+    to cut the rollout off after that many policy selections and trust the board
+    value function instead, trading rollout accuracy for more samples per decision.
+    """
     cur = search_step(search_id, first_select)
+    steps = 0
     for _ in range(max_steps):
         obs = cur.observation
         state = obs.current
@@ -105,10 +112,13 @@ def rollout(search_id, first_select, your_index, search_step,
             tv = ev.terminal_value(state.result, your_index)
             if tv is not None:
                 return tv
+            if value_depth is not None and steps >= value_depth:
+                return ev.shaped_value(asdict(state), your_index)
         sel = obs.select
         if sel is None:
             break
         cur = search_step(cur.searchId, _policy(obs))
+        steps += 1
     state = cur.observation.current
     if state is None:
         return ev.DRAW
@@ -117,7 +127,7 @@ def rollout(search_id, first_select, your_index, search_step,
 
 def search_decision(obs, your_full_deck, budget_seconds, rng, determinize,
                     opponent_prior=None, max_steps=ROLLOUT_MAX_STEPS,
-                    max_determinizations=None, clock=None):
+                    max_determinizations=None, clock=None, value_depth=None):
     """Score each candidate first move by determinized rollouts; return the best.
 
     Returns a single-element index list for the highest mean-value first move, or
@@ -160,7 +170,8 @@ def search_decision(obs, your_full_deck, budget_seconds, rng, determinize,
                     break
                 try:
                     value = rollout(
-                        root.searchId, [ci], your_index, search_step, max_steps
+                        root.searchId, [ci], your_index, search_step, max_steps,
+                        value_depth,
                     )
                 except Exception:
                     # A first move we cannot even simulate is not trustworthy, so

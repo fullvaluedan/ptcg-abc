@@ -56,6 +56,10 @@ _SOFT_CAP = float(os.environ.get("PTCG_SEARCH_BUDGET", "0.5"))
 # An optional hard cap on determinizations per decision; the gauntlet sets it to
 # trade depth for throughput. 0 means time-bounded only.
 _MAX_DETS = int(os.environ.get("PTCG_SEARCH_DETS", "0")) or None
+# Optional rollout depth cut-off. 0 (the default) rolls every line out to a
+# terminal result; a positive value stops early and trusts the board value
+# function, trading rollout accuracy for more samples per decision.
+_ROLLOUT_DEPTH = int(os.environ.get("PTCG_ROLLOUT_DEPTH", "0")) or None
 _BUDGET = TimeBudget(soft_cap=_SOFT_CAP)
 
 
@@ -94,7 +98,7 @@ def agent(obs):
                 start = time.perf_counter()
                 move = rollout.search_decision(
                     obs, _DECK, budget, _RNG, determinize,
-                    max_determinizations=_MAX_DETS,
+                    max_determinizations=_MAX_DETS, value_depth=_ROLLOUT_DEPTH,
                 )
                 _BUDGET.record(time.perf_counter() - start)
                 if move is not None and _is_legal(move, sel):
