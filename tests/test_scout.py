@@ -184,6 +184,143 @@ def test_fetch_episode_handles_unauthorized(monkeypatch, tmp_path):
     assert "403" in res["error"]
 
 
+def _replay_with_decks(rows, rewards, team_names=None):
+    """Like _replay but each row also carries (my_deck, opp_deck) and an info block.
+
+    rows: (player, turn, n_options, my_prize, opp_prize, my_deck, opp_deck, overage).
+    """
+    steps = [[_inactive(), _inactive()]]
+    for player, turn, n_opt, myp, oppp, mydeck, oppdeck, ov in rows:
+        rec = _decision(player, turn, n_opt, myp, oppp, ov)
+        players = rec["observation"]["current"]["players"]
+        players[0]["deckCount"] = mydeck if player == 0 else oppdeck
+        players[1]["deckCount"] = oppdeck if player == 0 else mydeck
+        step = [None, None]
+        step[player] = rec
+        step[1 - player] = _inactive()
+        steps.append(step)
+    replay = {"steps": steps, "rewards": rewards}
+    if team_names is not None:
+        replay["info"] = {"TeamNames": list(team_names)}
+    return replay
+
+
+def test_classify_deckout_when_deck_hits_zero():
+    # We lost with our deck emptied, even while ahead on prizes (3 left vs 6):
+    # the real ladder failure mode the prize heuristic used to hide.
+    rep = _replay_with_decks(
+        [(0, 20, 3, 4, 6, 5, 18, 600.0), (0, 27, 4, 3, 6, 0, 18, 599.0)],
+        rewards=[-1, 1],
+    )
+    dg = parse_replay(rep, our_index=0)
+    assert dg["my_deck_end"] == 0
+    assert classify_loss(dg) == "deckout"
+
+
+def test_classify_early_collapse_short_game_no_race():
+    # Turn 7 loss, neither side took a prize, decks still full: a setup or rule
+    # loss, not a prize blowout and not a deckout.
+    rep = _replay_with_decks(
+        [(0, 3, 3, 6, 6, 45, 44, 600.0), (0, 7, 4, 6, 6, 42, 41, 600.0)],
+        rewards=[-1, 1],
+    )
+    dg = parse_replay(rep, our_index=0)
+    assert classify_loss(dg) == "early_collapse"
+
+
+def test_six_six_loss_is_not_deck_matchup():
+    # A 6-6 loss is not a prize race blowout; with no deckout signal and not
+    # early it must fall through to bad_determinization, never deck_matchup.
+    rep = _replay_with_decks(
+        [(0, 12, 3, 6, 6, 30, 28, 600.0), (0, 20, 4, 6, 6, 20, 22, 599.0)],
+        rewards=[-1, 1],
+    )
+    assert classify_loss(parse_replay(rep, our_index=0)) == "bad_determinization"
+
+
+def test_deck_matchup_requires_opponent_prize_race():
+    # Opponent took every prize (0 remaining) while we took one: a true blowout.
+    rep = _replay_with_decks(
+        [(0, 5, 3, 5, 0, 40, 30, 600.0)],
+        rewards=[-1, 1],
+    )
+    assert classify_loss(parse_replay(rep, our_index=0)) == "deck_matchup"
+
+
+def test_is_self_play_detects_validation_episode():
+    same = {"info": {"TeamNames": ["Dan Arreola", "Dan Arreola"]}}
+    diff = {"info": {"TeamNames": ["Dan Arreola", "rival"]}}
+    assert scout.is_self_play(same) is True
+    assert scout.is_self_play(diff) is False
+    assert scout.is_self_play({}) is False
+
+
+def test_our_index_from_replay_matches_team_name():
+    rep = {"info": {"TeamNames": ["rival", "dan arreola"]}}
+    assert scout.our_index_from_replay(rep, "Dan Arreola") == 1  # case insensitive
+    assert scout.our_index_from_replay({"info": {"TeamNames": ["a", "b"]}}, "Dan Arreola") is None
+    assert scout.our_index_from_replay({}, "Dan Arreola") is None
+
+
+def test_report_skips_self_play(tmp_path):
+    # A self-play validation loss must not be counted as a ladder loss.
+    ladder = _replay_with_decks([(0, 5, 3, 5, 0, 40, 30, 600.0)], rewards=[-1, 1],
+                                team_names=["Dan Arreola", "rival"])
+    validation = _replay_with_decks([(0, 5, 3, 5, 0, 40, 30, 600.0)], rewards=[-1, 1],
+                                    team_names=["Dan Arreola", "Dan Arreola"])
+    json.dump(ladder, open(tmp_path / "ladder.json", "w"))
+    json.dump(validation, open(tmp_path / "validation.json", "w"))
+    rep = scout.report(tmp_path)
+    assert rep["games"] == 1  # validation episode excluded
+    assert rep["losses"] == 1 and rep["top_bucket"] == "deck_matchup"
+
+
+def test_list_episodes_parses_json(monkeypatch):
+    monkeypatch.setattr(
+        scout, "run_kaggle",
+        lambda *a, **k: {"ok": True, "stdout": '[{"id": 1, "state": "COMPLETED"}]',
+                         "stderr": "", "returncode": 0, "error": None},
+    )
+    res = scout.list_episodes(123)
+    assert res["ok"] and res["episodes"][0]["id"] == 1
+
+
+def test_list_episodes_handles_cli_failure(monkeypatch):
+    monkeypatch.setattr(
+        scout, "run_kaggle",
+        lambda *a, **k: {"ok": False, "stdout": "", "stderr": "403", "returncode": 1, "error": "403"},
+    )
+    res = scout.list_episodes(123)
+    assert res["ok"] is False and res["episodes"] == []
+
+
+def test_pull_submission_skips_existing(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        scout, "list_episodes",
+        lambda sid: {"ok": True, "episodes": [{"id": 1}, {"id": 2}]},
+    )
+    (tmp_path / "episode-1-replay.json").write_text("{}")  # already downloaded
+    fetched = []
+    monkeypatch.setattr(
+        scout, "fetch_episode",
+        lambda eid, dest_dir=None: fetched.append(eid) or {"ok": True, "episode": eid},
+    )
+    res = scout.pull_submission(99, dest_dir=tmp_path)
+    assert res["ok"] and res["fetched"] == [2] and res["skipped"] == [1]
+    assert fetched == [2]
+
+
+def test_parse_replay_tolerates_short_players_list():
+    # A malformed replay whose current.players has a single entry must not raise:
+    # parsing degrades, it never crashes a batch.
+    rec = _decision(0, 3, 2, 6, 6, 600.0)
+    rec["observation"]["current"]["players"] = [{"prize": [None] * 6, "deckCount": 30}]
+    rep = {"steps": [[_inactive(), _inactive()], [rec, _inactive()]], "rewards": [-1, 1]}
+    dg = parse_replay(rep, our_index=0)  # must not raise
+    assert dg["outcome"] == "loss"
+    assert dg["opp_prize_end"] is None  # the absent seat reads as unknown
+
+
 def test_parse_real_match():
     import sys
     from pathlib import Path

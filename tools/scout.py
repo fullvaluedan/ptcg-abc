@@ -7,6 +7,14 @@ a clear message instead of aborting a batch. The analysis half is fully offline:
 it loads saved replay JSON and runs the loss classifier to produce a ranked
 bucket report. Downloaded replays are competition data and stay gitignored under
 replays/; they are never redistributed.
+
+The CLI surface this wraps (confirmed against the kaggle CLI):
+  kaggle competitions submissions <slug>          list our submissions + refs
+  kaggle competitions episodes <submission_id>    list episode (game) ids for a ref
+  kaggle competitions replay <episode_id> -p DIR  download one replay JSON to DIR
+A replay file lands as episode-<id>-replay.json. Each replay carries an
+info.TeamNames pair, so the seat we played is detected per game rather than
+assumed: in a public episode we may sit in either seat.
 """
 from __future__ import annotations
 
@@ -25,6 +33,9 @@ from analysis.loss_classifier import classify_batch, parse_replay  # noqa: E402
 
 REPLAYS_DIR = _ROOT / "replays"
 SIMULATION_SLUG = "pokemon-tcg-ai-battle"
+# Our team name as it appears in a replay's info.TeamNames. Used to detect which
+# seat we played in each downloaded episode.
+OUR_TEAM = "Dan Arreola"
 
 
 def run_kaggle(args, timeout: int = 120) -> dict:
@@ -65,20 +76,109 @@ def run_kaggle(args, timeout: int = 120) -> dict:
     }
 
 
+def list_submissions() -> dict:
+    """List our submissions (ref, status, score) via the Kaggle CLI."""
+    res = run_kaggle(["competitions", "submissions", "-c", SIMULATION_SLUG, "--format", "json"])
+    if not res["ok"]:
+        return {"ok": False, "error": res["error"], "submissions": []}
+    try:
+        subs = json.loads(res["stdout"] or "[]")
+    except json.JSONDecodeError as exc:
+        return {"ok": False, "error": f"could not parse submissions json: {exc}", "submissions": []}
+    return {"ok": True, "submissions": subs}
+
+
+def list_episodes(submission_id) -> dict:
+    """List the episode (game) ids that a submission ref has played.
+
+    Degrades gracefully: any CLI or parse failure returns {"ok": False, ...}
+    with an empty list so a caller can skip a ref and continue.
+    """
+    res = run_kaggle(["competitions", "episodes", str(submission_id), "--format", "json"])
+    if not res["ok"]:
+        return {"ok": False, "submission": submission_id, "error": res["error"], "episodes": []}
+    try:
+        eps = json.loads(res["stdout"] or "[]")
+    except json.JSONDecodeError as exc:
+        return {
+            "ok": False,
+            "submission": submission_id,
+            "error": f"could not parse episodes json: {exc}",
+            "episodes": [],
+        }
+    return {"ok": True, "submission": submission_id, "episodes": eps}
+
+
 def fetch_episode(episode_id, dest_dir: Path | None = None) -> dict:
     """Download a single episode replay JSON via the Kaggle CLI.
 
-    Degrades gracefully: on any CLI failure returns {"ok": False, "error": ...}
-    rather than raising, so a batch can skip a bad id and continue.
+    Uses `kaggle competitions replay <id> -p DIR`, which writes
+    episode-<id>-replay.json into DIR. Degrades gracefully: on any CLI failure
+    returns {"ok": False, "error": ...} rather than raising, so a batch can skip
+    a bad id and continue.
     """
     dest_dir = Path(dest_dir) if dest_dir else REPLAYS_DIR
     dest_dir.mkdir(parents=True, exist_ok=True)
-    res = run_kaggle(
-        ["competitions", "episodes", "-c", SIMULATION_SLUG, "-e", str(episode_id), "-p", str(dest_dir)]
-    )
+    res = run_kaggle(["competitions", "replay", str(episode_id), "-p", str(dest_dir), "-q"])
     if not res["ok"]:
         return {"ok": False, "episode": episode_id, "error": res["error"]}
-    return {"ok": True, "episode": episode_id, "dir": str(dest_dir)}
+    path = dest_dir / f"episode-{episode_id}-replay.json"
+    return {"ok": True, "episode": episode_id, "path": str(path), "dir": str(dest_dir)}
+
+
+def pull_submission(submission_id, dest_dir: Path | None = None) -> dict:
+    """List a submission's episodes and download every replay we do not have.
+
+    Fault tolerant throughout: a failed listing returns early with the error, a
+    failed single download is recorded and the rest continue.
+    """
+    dest_dir = Path(dest_dir) if dest_dir else REPLAYS_DIR
+    listing = list_episodes(submission_id)
+    if not listing["ok"]:
+        return {"ok": False, "submission": submission_id, "error": listing["error"], "fetched": []}
+    fetched, failed, skipped = [], [], []
+    for ep in listing["episodes"]:
+        ep_id = ep.get("id") if isinstance(ep, dict) else ep
+        if ep_id is None:
+            continue
+        target = dest_dir / f"episode-{ep_id}-replay.json"
+        if target.exists():
+            skipped.append(ep_id)
+            continue
+        res = fetch_episode(ep_id, dest_dir=dest_dir)
+        (fetched if res["ok"] else failed).append(ep_id if res["ok"] else {"episode": ep_id, "error": res["error"]})
+    return {
+        "ok": True,
+        "submission": submission_id,
+        "fetched": fetched,
+        "skipped": skipped,
+        "failed": failed,
+    }
+
+
+def is_self_play(replay) -> bool:
+    """True when both seats are the same team (a validation episode).
+
+    Kaggle runs a submission against itself to validate it before laddering.
+    Those games are not ladder opponents, so they are noise for loss analysis.
+    """
+    info = replay.get("info") if isinstance(replay, dict) else None
+    names = (info or {}).get("TeamNames") or []
+    return len(names) == 2 and names[0] == names[1]
+
+
+def our_index_from_replay(replay, team_name: str = OUR_TEAM):
+    """Which seat we played, read from info.TeamNames; None if we are not in it.
+
+    Matches case insensitively so a small display-name variation still resolves.
+    """
+    info = replay.get("info") if isinstance(replay, dict) else None
+    names = (info or {}).get("TeamNames") or []
+    target = team_name.strip().lower()
+    for i, name in enumerate(names):
+        if isinstance(name, str) and name.strip().lower() == target:
+            return i
+    return None
 
 
 def load_replay(path) -> dict:
@@ -87,21 +187,33 @@ def load_replay(path) -> dict:
         return json.load(fh)
 
 
-def digest_dir(replay_dir, our_index: int = 0) -> list:
-    """Parse every *.json replay in a directory into digests."""
+def digest_dir(replay_dir, team_name: str = OUR_TEAM, our_index: int = 0,
+               skip_self_play: bool = True) -> list:
+    """Parse every *.json replay in a directory into digests.
+
+    Our seat is detected per replay from info.TeamNames; replays that do not name
+    our team (synthetic or old files) fall back to the our_index argument.
+    Self-play validation episodes are skipped by default since they are not
+    ladder opponents.
+    """
     digests = []
     for path in sorted(Path(replay_dir).glob("*.json")):
         try:
             replay = load_replay(path)
         except (OSError, json.JSONDecodeError):
             continue
-        digests.append(parse_replay(replay, our_index=our_index))
+        if skip_self_play and is_self_play(replay):
+            continue
+        seat = our_index_from_replay(replay, team_name)
+        digests.append(parse_replay(replay, our_index=seat if seat is not None else our_index))
     return digests
 
 
-def report(replay_dir, our_index: int = 0) -> dict:
-    """Build a ranked loss bucket report from saved replays in a directory."""
-    digests = digest_dir(replay_dir, our_index=our_index)
+def report(replay_dir, team_name: str = OUR_TEAM, our_index: int = 0,
+           skip_self_play: bool = True) -> dict:
+    """Build a ranked loss bucket report from saved ladder replays in a directory."""
+    digests = digest_dir(replay_dir, team_name=team_name, our_index=our_index,
+                         skip_self_play=skip_self_play)
     return classify_batch(digests)
 
 
@@ -125,23 +237,57 @@ def main():
 
     rp = sub.add_parser("report", help="classify saved replays in a directory")
     rp.add_argument("dir", nargs="?", default=str(REPLAYS_DIR))
-    rp.add_argument("--our-index", type=int, default=0)
+    rp.add_argument("--team", default=OUR_TEAM, help="our team name in info.TeamNames")
+    rp.add_argument("--our-index", type=int, default=0, help="fallback seat when team is absent")
 
-    fp = sub.add_parser("fetch", help="download an episode replay (needs Kaggle auth)")
+    sp = sub.add_parser("subs", help="list our submissions (ref, status, score)")
+
+    ep = sub.add_parser("episodes", help="list episode ids for a submission ref")
+    ep.add_argument("submission")
+
+    fp = sub.add_parser("fetch", help="download one episode replay (needs Kaggle auth)")
     fp.add_argument("episode")
     fp.add_argument("-p", "--dir", default=str(REPLAYS_DIR))
 
+    pp = sub.add_parser("pull", help="download every replay for a submission, then report")
+    pp.add_argument("submission")
+    pp.add_argument("-p", "--dir", default=str(REPLAYS_DIR))
+    pp.add_argument("--team", default=OUR_TEAM)
+
     args = ap.parse_args()
     if args.cmd == "report":
-        rep = report(args.dir, our_index=args.our_index)
+        rep = report(args.dir, team_name=args.team, our_index=args.our_index)
         _print_report(rep, args.dir)
+    elif args.cmd == "subs":
+        res = list_submissions()
+        if not res["ok"]:
+            print(f"list submissions failed: {res['error']}")
+            sys.exit(1)
+        for s in res["submissions"]:
+            print(f"  {s.get('ref')}  {s.get('status')}  score={s.get('publicScore')}  {s.get('description', '')[:60]}")
+    elif args.cmd == "episodes":
+        res = list_episodes(args.submission)
+        if not res["ok"]:
+            print(f"list episodes failed: {res['error']}")
+            sys.exit(1)
+        for e in res["episodes"]:
+            print(f"  {e.get('id')}  {e.get('state')}  {e.get('type')}")
     elif args.cmd == "fetch":
         res = fetch_episode(args.episode, dest_dir=args.dir)
         if res["ok"]:
-            print(f"episode {res['episode']} downloaded to {res['dir']}")
+            print(f"episode {res['episode']} downloaded to {res['path']}")
         else:
             print(f"fetch failed: {res['error']}")
             sys.exit(1)
+    elif args.cmd == "pull":
+        res = pull_submission(args.submission, dest_dir=args.dir)
+        if not res["ok"]:
+            print(f"pull failed: {res['error']}")
+            sys.exit(1)
+        print(f"pulled submission {res['submission']}: {len(res['fetched'])} new, "
+              f"{len(res['skipped'])} already had, {len(res['failed'])} failed")
+        rep = report(args.dir, team_name=args.team)
+        _print_report(rep, args.dir)
 
 
 if __name__ == "__main__":
