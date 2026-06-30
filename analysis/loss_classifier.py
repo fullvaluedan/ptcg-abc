@@ -35,6 +35,14 @@ CLOSE_REMAINING = 2
 # A loss this early, with no prize race, reads as a setup failure or rule loss
 # (could not field a Pokemon, illegal line) rather than anything search did.
 EARLY_TURN_LIMIT = 8
+# The deckout itself fires on a turn's forced draw, AFTER the last observation we
+# recorded, so the final observed deck count can sit one mandatory draw above
+# zero. A loss with at most this many cards left still reads as the same self
+# mill as an exact zero, provided the opponent has not won on prizes and our
+# bench is not empty (which would make it a prize loss or an empty-bench collapse
+# instead). Keep this at one: two stale draws would have recorded another
+# decision and dropped the count further.
+NEAR_DECKOUT_DECK = 1
 # Full prize bank each player starts with.
 START_PRIZES = 6
 # Cumulative thinking bank per player per match (cabt.json remainingOverageTime).
@@ -183,9 +191,11 @@ def classify_loss(digest: dict, thresholds: dict | None = None):
 
     Order matters and runs most decisive first:
       1. slow_search   a timing failure is board independent and overrides all.
-      2. deckout       our deck hit zero; we ran ourselves out of cards. The
-                       single biggest real ladder leak, true even when we led on
-                       prizes, so it ranks above any prize based reading.
+      2. deckout       our deck hit zero (or one card with a non-empty bench and
+                       an opponent who has not won on prizes, a forced-draw
+                       deckout caught one observation early); we ran ourselves out
+                       of cards. The single biggest real ladder leak, true even
+                       when we led on prizes, so it ranks above any prize reading.
       3. deck_matchup  a genuine prize race blowout: the opponent took almost
                        every prize while we took at most one.
       4. endgame_misplay  a near win that slipped (we needed one or two prizes).
@@ -212,6 +222,21 @@ def classify_loss(digest: dict, thresholds: dict | None = None):
 
     my_remaining = _final_my_remaining(digest, ours)
     opp_remaining = _final_opp_remaining(digest, ours)
+    # Near-deckout caught one mandatory draw early. A loss with a single card
+    # left, a non-empty bench, and an opponent who has not taken the prizes to
+    # win can only be the next turn's forced-draw deckout: it is not a prize loss
+    # (opp still needs prizes) and not an empty-bench collapse (bench is not
+    # empty). Without this, a self-mill that ends on an odd card count hides
+    # inside bad_determinization and invents a phantom developed-board race.
+    my_deck_end = digest.get("my_deck_end")
+    if (
+        my_deck_end is not None
+        and my_deck_end <= NEAR_DECKOUT_DECK
+        and digest.get("my_bench_end") not in (0, None)
+        and opp_remaining is not None
+        and opp_remaining > th["close_remaining"]
+    ):
+        return "deckout"
     if my_remaining is None:
         return "bad_determinization"
 

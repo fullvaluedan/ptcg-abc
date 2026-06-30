@@ -217,6 +217,53 @@ def test_classify_deckout_when_deck_hits_zero():
     assert classify_loss(dg) == "deckout"
 
 
+def test_classify_one_card_ahead_on_prizes_is_deckout():
+    # ep 82885022 signature: a self-mill ending with one card left, a non-empty
+    # bench, and the opponent yet to take a prize (six remaining) is the next
+    # turn's forced-draw deckout caught one observation early, not a developed
+    # board race. The final observed deck is one, not zero.
+    rec = _decision(0, 11, 4, 3, 6, 599.0)   # we took three prizes, opp took none
+    players = rec["observation"]["current"]["players"]
+    players[0]["deckCount"] = 1
+    players[1]["deckCount"] = 20
+    players[0]["bench"] = [{}, {}, {}]
+    players[1]["bench"] = [{}]
+    rep = {"steps": [[_inactive(), _inactive()], [rec, _inactive()]], "rewards": [-1, 1]}
+    dg = parse_replay(rep, our_index=0)
+    assert dg["my_deck_end"] == 1 and dg["my_bench_end"] == 3
+    assert classify_loss(dg) == "deckout"
+
+
+def test_classify_one_card_but_prize_blowout_stays_deck_matchup():
+    # One card left is not a deckout when the opponent has actually won the prize
+    # race (took five, one remaining): the near-deckout relaxation must not steal
+    # a genuine blowout that merely ended on an odd card count.
+    rec = _decision(0, 9, 4, 5, 1, 599.0)    # we took one, opp took five
+    players = rec["observation"]["current"]["players"]
+    players[0]["deckCount"] = 1
+    players[1]["deckCount"] = 15
+    players[0]["bench"] = [{}, {}]
+    rep = {"steps": [[_inactive(), _inactive()], [rec, _inactive()]], "rewards": [-1, 1]}
+    dg = parse_replay(rep, our_index=0)
+    assert classify_loss(dg) == "deck_matchup"
+
+
+def test_classify_one_card_empty_bench_stays_early_collapse():
+    # A near-empty deck with an EMPTY bench is the empty-bench collapse (lone
+    # active knocked out, nothing to promote), not a deckout: bench depletion is
+    # the proximate cause, so the near-deckout relaxation must not fire.
+    rec = _decision(0, 6, 4, 4, 6, 599.0)
+    players = rec["observation"]["current"]["players"]
+    players[0]["deckCount"] = 1
+    players[1]["deckCount"] = 30
+    players[0]["bench"] = []
+    players[1]["bench"] = [{}]
+    rep = {"steps": [[_inactive(), _inactive()], [rec, _inactive()]], "rewards": [-1, 1]}
+    dg = parse_replay(rep, our_index=0)
+    assert dg["my_bench_end"] == 0
+    assert classify_loss(dg) == "early_collapse"
+
+
 def test_classify_early_collapse_short_game_no_race():
     # Turn 7 loss, neither side took a prize, decks still full: a setup or rule
     # loss, not a prize blowout and not a deckout.
