@@ -70,6 +70,44 @@ def _cg():
     return search_begin, search_step, search_end, search_release, to_observation_class
 
 
+# The forward-model functions the determinized search needs on top of the card
+# data (all_card_data, all_attack) the heuristic already uses.
+_SEARCH_FUNCS = (
+    "search_begin",
+    "search_step",
+    "search_end",
+    "search_release",
+    "to_observation_class",
+)
+
+
+@lru_cache(maxsize=1)
+def search_api_available() -> bool:
+    """True only when the resolved cg.api exposes the search forward model.
+
+    The heuristic needs only card data (all_card_data, all_attack), which the
+    match-time engine provides, so the agent always loads and plays. Determinized
+    search additionally needs the search_* forward model. On the Kaggle grader the
+    resolved cg.api carries card data but NOT those search functions (confirmed
+    from ladder replays: with actTimeout 0 every search decision drew about 0.02s
+    from the 600s overage bank, the heuristic-fallback cost, never the per-move
+    search budget). Probing this once lets the agent skip the search attempt
+    cleanly rather than pay a swallowed ImportError on every decision, and makes
+    the inert-search condition a first-class, testable fact. Never raises.
+    """
+    try:
+        _ensure_cg_on_path()
+        import importlib
+
+        # Resolve the same module object `from cg.api import ...` would use (the
+        # sys.modules entry), so the probe matches what _cg actually imports even
+        # when a different cg.api was loaded first.
+        api = importlib.import_module("cg.api")
+        return all(hasattr(api, name) for name in _SEARCH_FUNCS)
+    except Exception:
+        return False
+
+
 def _legal(move, sel) -> bool:
     if sel is None or not isinstance(move, list):
         return False

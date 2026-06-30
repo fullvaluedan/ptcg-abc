@@ -119,7 +119,17 @@ def agent(obs):
     try:
         # Safety 2 (KTD2): once the thinking bank is at risk, skip search and
         # answer instantly from the heuristic so we never approach a timeout.
-        if _searchable(sel) and obs.get("search_begin_input") and not _BUDGET.at_risk:
+        # Also skip when the match-time engine does not expose the search forward
+        # model (the Kaggle grader provides card data but not search_*, so search
+        # is inert on the ladder; see rollout.search_api_available). The heuristic
+        # is then our policy, which is exactly the fallback below, so this only
+        # avoids paying a swallowed ImportError on every searchable decision.
+        if (
+            _searchable(sel)
+            and obs.get("search_begin_input")
+            and not _BUDGET.at_risk
+            and rollout.search_api_available()
+        ):
             # In the endgame, raise the per-move soft cap and widen the
             # determinization budget so the pivotal decision is searched harder;
             # both stay bounded by the hard time guard inside allot.

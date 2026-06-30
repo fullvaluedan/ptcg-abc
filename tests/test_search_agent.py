@@ -82,7 +82,7 @@ def test_legal_rejects_out_of_range_and_duplicates():
 
 # --- integration: capture a real MAIN observation ----------------------------
 
-def _capture_main_obs():
+def _capture_main_obs(attempts=8):
     from ptcg_agent.engine import make_env
 
     captured = {}
@@ -101,7 +101,15 @@ def _capture_main_obs():
             captured["obs"] = obs
         return baseline.agent(obs)
 
-    make_env().run([capturing, "random"])
+    # The engine and the random opponent are stochastic, so an occasional game
+    # never reaches a turn>=3 MAIN decision with more than one option (a quick
+    # mulligan-heavy or short game). Replay fresh games until one yields a
+    # capturable observation, so the capture does not flake under a shuffled
+    # global RNG seed (pytest-randomly).
+    for _ in range(attempts):
+        make_env().run([capturing, "random"])
+        if "obs" in captured:
+            break
     return captured.get("obs")
 
 
@@ -148,6 +156,53 @@ def test_agent_falls_back_to_heuristic_on_search_error(monkeypatch):
 def test_agent_returns_deck_at_selection():
     move = agent_search.agent({"select": None})
     assert len(move) == 60
+
+
+# --- forward-model availability probe ----------------------------------------
+# The Kaggle grader resolves a cg.api that carries card data (so the heuristic
+# plays) but NOT the search_* forward model, so determinized search is inert on
+# the ladder. search_api_available reports that condition; the agent gates search
+# on it so it does not pay a swallowed ImportError on every searchable decision.
+
+def test_search_api_available_true_with_full_cg():
+    rollout.search_api_available.cache_clear()
+    # The repo's bundled cg.api exposes the full forward model.
+    assert rollout.search_api_available() is True
+    rollout.search_api_available.cache_clear()
+
+
+def test_search_api_available_false_when_search_funcs_missing(monkeypatch):
+    import sys
+    import types
+
+    # Mimic the grader's cg.api: card data present, forward model absent.
+    stub = types.ModuleType("cg.api")
+    stub.all_card_data = lambda: []
+    stub.all_attack = lambda: []
+    monkeypatch.setitem(sys.modules, "cg.api", stub)
+
+    rollout.search_api_available.cache_clear()
+    assert rollout.search_api_available() is False
+    rollout.search_api_available.cache_clear()
+
+
+def test_agent_skips_search_when_forward_model_absent(monkeypatch):
+    obs = _capture_main_obs()
+    assert obs is not None
+
+    # Force the inert-ladder condition and prove search_decision is never reached,
+    # yet the agent still returns a legal heuristic move (no swallowed error path).
+    monkeypatch.setattr(rollout, "search_api_available", lambda: False)
+    called = {"n": 0}
+
+    def tracker(*a, **k):
+        called["n"] += 1
+        raise AssertionError("search_decision must not run when the API is absent")
+
+    monkeypatch.setattr(agent_search.rollout, "search_decision", tracker)
+    move = agent_search.agent(obs)
+    assert called["n"] == 0
+    assert agent_search._is_legal(move, obs["select"])
 
 
 # Test scenario: the agent never returns an illegal move across a full match and
