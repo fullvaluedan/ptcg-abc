@@ -228,6 +228,29 @@ def test_classify_early_collapse_short_game_no_race():
     assert classify_loss(dg) == "early_collapse"
 
 
+def test_parse_tracks_final_bench_count():
+    # Bench size is recovered for the end of game board, like deck and prize, so
+    # an empty-bench collapse (lone active knocked out, nothing to promote) is
+    # distinguishable from a deckout. Our last record shows an empty bench; the
+    # opponent's shows two benched Pokemon.
+    rec = _decision(0, 3, 3, 6, 6, 600.0)
+    players = rec["observation"]["current"]["players"]
+    players[0]["bench"] = []          # our seat: empty bench
+    players[1]["bench"] = [{}, {}]    # opponent: two benched
+    rep = {"steps": [[_inactive(), _inactive()], [rec, _inactive()]], "rewards": [-1, 1]}
+    dg = parse_replay(rep, our_index=0)
+    assert dg["my_bench_end"] == 0
+    assert dg["opp_bench_end"] == 2
+
+
+def test_parse_bench_absent_is_none():
+    # Records without a bench field (older synthetic replays) leave bench None
+    # rather than guessing, so the classifier never reads a fabricated zero.
+    rep = _replay([(0, 3, 3, 6, 6, 600.0)], rewards=[-1, 1])
+    dg = parse_replay(rep, our_index=0)
+    assert dg["my_bench_end"] is None
+
+
 def test_six_six_loss_is_not_deck_matchup():
     # A 6-6 loss is not a prize race blowout; with no deckout signal and not
     # early it must fall through to bad_determinization, never deck_matchup.

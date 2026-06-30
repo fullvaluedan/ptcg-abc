@@ -14,6 +14,7 @@ submission/
 *.tar.gz
 results/
 replays/
+replays_*/
 
 # Unattended autoloop runtime logs
 autoloop.log

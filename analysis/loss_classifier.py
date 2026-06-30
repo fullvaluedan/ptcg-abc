@@ -89,10 +89,12 @@ def parse_replay(replay, our_index: int = 0) -> dict:
 
     our_index selects which seat is us (0 or 1). Records cover every real
     decision (select is not None) by either player; decision_time is the drop in
-    that player's overage bank since their previous decision. final_prize and
-    final_deck track the last observed count for each absolute seat, read from
-    whichever seat was active, so the end of game board is recovered even though
-    only the acting seat's observation is recorded each step.
+    that player's overage bank since their previous decision. final_prize,
+    final_deck, and final_bench track the last observed count for each absolute
+    seat, read from whichever seat was active, so the end of game board is
+    recovered even though only the acting seat's observation is recorded each
+    step. The bench count distinguishes an empty-bench board collapse (our lone
+    active knocked out with nothing to promote) from a deckout or prize blowout.
     """
     steps = replay.get("steps") or []
     rewards = replay.get("rewards")
@@ -105,6 +107,7 @@ def parse_replay(replay, our_index: int = 0) -> dict:
     last_overage = {}  # player index -> overage at their previous decision
     final_prize = [None, None]
     final_deck = [None, None]
+    final_bench = [None, None]
     max_turn = 0
     for t, step in enumerate(steps):
         for p, entry in enumerate(step):
@@ -123,11 +126,14 @@ def parse_replay(replay, our_index: int = 0) -> dict:
             last_overage[player] = overage
             prizes = _counts(current, "prize")
             decks = _deck_counts(current)
+            benches = _counts(current, "bench")
             for seat in (0, 1):
                 if prizes[seat] is not None:
                     final_prize[seat] = prizes[seat]
                 if decks[seat] is not None:
                     final_deck[seat] = decks[seat]
+                if benches[seat] is not None:
+                    final_bench[seat] = benches[seat]
             turn = current.get("turn", 0) or 0
             max_turn = max(max_turn, turn)
             decisions.append(
@@ -167,6 +173,8 @@ def parse_replay(replay, our_index: int = 0) -> dict:
         "opp_prize_end": final_prize[1 - our_index],
         "my_deck_end": final_deck[our_index],
         "opp_deck_end": final_deck[1 - our_index],
+        "my_bench_end": final_bench[our_index],
+        "opp_bench_end": final_bench[1 - our_index],
     }
 
 
