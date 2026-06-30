@@ -252,13 +252,49 @@ def test_parse_bench_absent_is_none():
 
 
 def test_six_six_loss_is_not_deck_matchup():
-    # A 6-6 loss is not a prize race blowout; with no deckout signal and not
-    # early it must fall through to bad_determinization, never deck_matchup.
+    # A 6-6 loss is not a prize race blowout; with no deckout signal, not early,
+    # and no observed empty bench it must fall through to bad_determinization,
+    # never deck_matchup.
     rep = _replay_with_decks(
         [(0, 12, 3, 6, 6, 30, 28, 600.0), (0, 20, 4, 6, 6, 20, 22, 599.0)],
         rewards=[-1, 1],
     )
     assert classify_loss(parse_replay(rep, our_index=0)) == "bad_determinization"
+
+
+def test_empty_bench_late_loss_is_early_collapse():
+    # A turn 12 loss after we had already taken three prizes, deck still full,
+    # opponent not steamrolling: the early-turn gate and the took-at-most-one
+    # gate both exclude it, so it used to land in bad_determinization. But our
+    # bench ended empty (lone active knocked out, nothing to promote), which is
+    # the same deck-thinness collapse as the early version, so it is now
+    # early_collapse. This is the late/partial collapse real ladder replays
+    # showed slipping past the gate.
+    rec = _decision(0, 12, 4, 3, 2, 599.0)
+    players = rec["observation"]["current"]["players"]
+    players[0]["deckCount"] = 33
+    players[1]["deckCount"] = 8
+    players[0]["bench"] = []        # our seat: empty bench
+    players[1]["bench"] = [{}]      # opponent still has a bench
+    rep = {"steps": [[_inactive(), _inactive()], [rec, _inactive()]], "rewards": [-1, 1]}
+    dg = parse_replay(rep, our_index=0)
+    assert dg["my_bench_end"] == 0 and dg["my_deck_end"] == 33
+    assert classify_loss(dg) == "early_collapse"
+
+
+def test_developed_board_midgame_loss_stays_bad_determinization():
+    # The empty-bench rule must not swallow genuine middlegame race losses: here
+    # we kept a three Pokemon bench but still lost the prize race after turn 8,
+    # so it stays bad_determinization (the real residual lever, not a collapse).
+    rec = _decision(0, 10, 4, 4, 2, 599.0)
+    players = rec["observation"]["current"]["players"]
+    players[0]["deckCount"] = 21
+    players[1]["deckCount"] = 20
+    players[0]["bench"] = [{}, {}, {}]   # our seat: still has a bench
+    rep = {"steps": [[_inactive(), _inactive()], [rec, _inactive()]], "rewards": [-1, 1]}
+    dg = parse_replay(rep, our_index=0)
+    assert dg["my_bench_end"] == 3
+    assert classify_loss(dg) == "bad_determinization"
 
 
 def test_deck_matchup_requires_opponent_prize_race():

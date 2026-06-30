@@ -189,9 +189,13 @@ def classify_loss(digest: dict, thresholds: dict | None = None):
       3. deck_matchup  a genuine prize race blowout: the opponent took almost
                        every prize while we took at most one.
       4. endgame_misplay  a near win that slipped (we needed one or two prizes).
-      5. early_collapse   the game ended very early with no prize race, pointing
-                          at a setup failure or rule loss, not search.
-      6. bad_determinization  a middling loss where search judgement is suspect.
+      5. early_collapse   our bench emptied (lone active knocked out, nothing to
+                          promote), or the game ended very early with no prize
+                          race: a deck-thinness or setup failure, not search.
+                          The empty-bench signature catches late and partial
+                          collapses the early-turn gate alone would miss.
+      6. bad_determinization  a middling loss with a developed board where the
+                          prize race was simply lost (not bench depletion).
     """
     if digest.get("outcome") != "loss":
         return None
@@ -220,6 +224,17 @@ def classify_loss(digest: dict, thresholds: dict | None = None):
         return "deck_matchup"
     if my_remaining <= th["close_remaining"]:
         return "endgame_misplay"
+    # An empty bench on a loss is the same structural failure no matter the turn
+    # or how many prizes we had already traded: our lone active was knocked out
+    # with nothing to promote. The deck is not exhausted (deckout handled above)
+    # and the opponent had not steamrolled the prize race (deck_matchup handled
+    # above), so the proximate cause is bench depletion, not search judgement.
+    # This catches the late or partial empty-bench collapses that the early-turn
+    # gate below misses (real ladder replays land many of these at turn 9 to 12,
+    # or after we had taken two or three prizes, which the gate excludes). bench
+    # is None when the field was never observed, so this never fires on a guess.
+    if digest.get("my_bench_end") == 0:
+        return "early_collapse"
     if took_at_most_one and digest.get("n_turns", 0) <= th["early_turn_limit"]:
         return "early_collapse"
     return "bad_determinization"
