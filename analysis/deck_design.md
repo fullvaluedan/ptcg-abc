@@ -184,3 +184,21 @@ touching energy), not a ladder replacement. The honest negative result is record
 future iterations do not re-walk the Ultra Ball lever expecting a self-play gain; its
 real value, if any, would be in reducing early_collapse against the DIVERSE LADDER
 field, which only a live ladder slot can measure once one is available to spend.
+
+### Staged for the ladder, awaiting the next quota reset (2026-07-01)
+
+The deckout-guarded heuristic kept climbing and is now the clear best at ladder
+758.4 (search and plain heuristic sit near 590, the bare floor near 460), so the
+loss-data approach is paying off and the next worthwhile data point is exactly the
+one self-play cannot give: ultraball against the diverse field. Fresh replays still
+rank early_collapse the top leak (7 of 18 classified losses), so the experiment is
+worth a slot. submission_ultraball.tar.gz was built (agent_heuristic + heuristics.py,
+deck ultraball.csv), confirmed legal, and passed the grader-style smoke test
+(extracts to cg/deck.csv/heuristics.py/main.py, loads under exec without __file__,
+returns the 60-card ultraball deck: 2 Ultra Ball, 2 Mega Signal, 35 energy). It is
+the same deckout-guarded agent as best ref 54211499, so it cannot regress that
+rating. A submit was attempted and the API returned 400 (daily limit still in
+effect: the five 2026-06-30 submissions have not rolled over in UTC yet), and the
+submissions list confirms no slot was consumed. So ultraball is the queued, ready
+candidate for the first available slot on the next quota reset; submit it then after
+the mandatory submissions check, before spending the slot on anything else.

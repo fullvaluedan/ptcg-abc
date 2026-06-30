@@ -113,6 +113,13 @@ dominant real loss was self-deckout: we milled ourselves to death, once while ah
 on prizes. The deckout guard, which had only lived in the search layer, was extracted
 into shared heuristic logic so it now protects every scored match; it is inert in
 normal play and only caps a voluntary over-draw when the deck runs critically low.
+This is the change that actually moved the public score: the search and plain
+heuristic builds sit clustered around 590 because they run the same heuristic, and
+the bare heuristic floor rates near 460, but the deckout-guarded heuristic climbed
+well clear of both as its ladder rating settled. That gap is the strongest evidence
+in the whole project that the levers which execute every match, the heuristic and
+its guards, are what raise the rating, not the determinized search that is dormant
+on the scored engine.
 
 Second, with deckouts fixed, the next leak was early collapse: about half the
 remaining losses ended by turn seven with us still holding all six prizes, a lone
