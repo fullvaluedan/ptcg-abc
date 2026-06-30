@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -38,6 +39,21 @@ SIMULATION_SLUG = "pokemon-tcg-ai-battle"
 OUR_TEAM = "Dan Arreola"
 
 
+def kaggle_base() -> list:
+    """Resolve how to invoke the Kaggle CLI in this environment.
+
+    Prefers a real `kaggle` on PATH; otherwise falls back to running it as a
+    module under the current interpreter (`python -m kaggle`), which is reliable
+    inside a venv where the console script lives in Scripts/ rather than on PATH.
+    The autoloop runs from .venv/Scripts/python.exe, so this fallback is what
+    lets unattended scout pulls work without kaggle being on the system PATH.
+    """
+    found = shutil.which("kaggle")
+    if found:
+        return [found]
+    return [sys.executable, "-m", "kaggle"]
+
+
 def run_kaggle(args, timeout: int = 120) -> dict:
     """Run a kaggle CLI subcommand, capturing output without ever raising.
 
@@ -45,7 +61,7 @@ def run_kaggle(args, timeout: int = 120) -> dict:
     the binary is missing, the call times out, or it exits nonzero (unauthorized,
     missing episode), with a human readable error string.
     """
-    cmd = ["kaggle", *[str(a) for a in args]]
+    cmd = [*kaggle_base(), *[str(a) for a in args]]
     try:
         proc = subprocess.run(
             cmd, capture_output=True, text=True, timeout=timeout, check=False
@@ -76,13 +92,27 @@ def run_kaggle(args, timeout: int = 120) -> dict:
     }
 
 
+def parse_cli_json(text: str):
+    """Parse the leading JSON value out of Kaggle CLI stdout.
+
+    The CLI prints valid JSON and then appends a human readable usage tip on a
+    trailing line, so plain json.loads raises "Extra data". raw_decode reads the
+    first JSON value and ignores anything after it.
+    """
+    stripped = (text or "").lstrip()
+    if not stripped:
+        return []
+    value, _ = json.JSONDecoder().raw_decode(stripped)
+    return value
+
+
 def list_submissions() -> dict:
     """List our submissions (ref, status, score) via the Kaggle CLI."""
     res = run_kaggle(["competitions", "submissions", "-c", SIMULATION_SLUG, "--format", "json"])
     if not res["ok"]:
         return {"ok": False, "error": res["error"], "submissions": []}
     try:
-        subs = json.loads(res["stdout"] or "[]")
+        subs = parse_cli_json(res["stdout"])
     except json.JSONDecodeError as exc:
         return {"ok": False, "error": f"could not parse submissions json: {exc}", "submissions": []}
     return {"ok": True, "submissions": subs}
@@ -98,7 +128,7 @@ def list_episodes(submission_id) -> dict:
     if not res["ok"]:
         return {"ok": False, "submission": submission_id, "error": res["error"], "episodes": []}
     try:
-        eps = json.loads(res["stdout"] or "[]")
+        eps = parse_cli_json(res["stdout"])
     except json.JSONDecodeError as exc:
         return {
             "ok": False,

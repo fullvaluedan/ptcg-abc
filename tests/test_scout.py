@@ -275,6 +275,41 @@ def test_report_skips_self_play(tmp_path):
     assert rep["losses"] == 1 and rep["top_bucket"] == "deck_matchup"
 
 
+def test_parse_cli_json_ignores_trailing_usage_tip():
+    # The real Kaggle CLI prints valid JSON then appends a usage hint line, which
+    # makes plain json.loads raise "Extra data". parse_cli_json must read just the
+    # leading value and ignore the trailing text.
+    out = (
+        '[\n  {"id": 82874243, "state": "EpisodeState.COMPLETED"}\n]\n'
+        'Use "kaggle competitions replay <episode_id>" to download a replay.\n'
+    )
+    parsed = scout.parse_cli_json(out)
+    assert parsed == [{"id": 82874243, "state": "EpisodeState.COMPLETED"}]
+    assert scout.parse_cli_json("") == []
+
+
+def test_list_episodes_tolerates_trailing_tip(monkeypatch):
+    # End to end through list_episodes: the appended tip must not break parsing.
+    monkeypatch.setattr(
+        scout, "run_kaggle",
+        lambda *a, **k: {"ok": True, "error": None, "returncode": 0, "stderr": "",
+                         "stdout": '[{"id": 7}]\nUse "kaggle competitions replay" to download.\n'},
+    )
+    res = scout.list_episodes(7)
+    assert res["ok"] and res["episodes"] == [{"id": 7}]
+
+
+def test_kaggle_base_prefers_path_then_module(monkeypatch):
+    # When a real kaggle is on PATH, use it directly.
+    monkeypatch.setattr(scout.shutil, "which", lambda name: "/usr/bin/kaggle")
+    assert scout.kaggle_base() == ["/usr/bin/kaggle"]
+    # When it is not, fall back to running it under this interpreter so a venv
+    # without kaggle on PATH still works for the unattended autoloop.
+    monkeypatch.setattr(scout.shutil, "which", lambda name: None)
+    base = scout.kaggle_base()
+    assert base == [scout.sys.executable, "-m", "kaggle"]
+
+
 def test_list_episodes_parses_json(monkeypatch):
     monkeypatch.setattr(
         scout, "run_kaggle",
