@@ -24,6 +24,7 @@ from pathlib import Path
 OPT_NUMBER = 0
 OPT_YES = 1
 OPT_NO = 2
+OPT_CARD = 3
 OPT_PLAY = 7
 OPT_ATTACH = 8
 OPT_EVOLVE = 9
@@ -35,14 +36,40 @@ OPT_END = 14
 
 # SelectType values (api.py SelectType enum).
 SEL_MAIN = 0
+SEL_CARD = 1
 SEL_COUNT = 8
 SEL_YES_NO = 9
 
-# AreaType: the Active Spot.
+# CardType values (api.py CardType enum).
+CARD_POKEMON = 0
+CARD_BASIC_ENERGY = 5
+CARD_SPECIAL_ENERGY = 6
+
+# AreaType values (api.py AreaType enum).
+AREA_DECK = 1
+AREA_HAND = 2
+AREA_DISCARD = 3
 AREA_ACTIVE = 4
+AREA_BENCH = 5
 
 # SelectContext: would you like to go first?
 CTX_IS_FIRST = 41
+
+# SelectContext values where picking a card brings a Pokemon into play or hand
+# (a deck search, a put-into-play, a setup placement). When our bench is thin a
+# Basic Pokemon is the useful fetch: a lone active with an empty bench getting
+# knocked out is the dominant early-collapse loss (see analysis/loss_classifier).
+GAIN_POKEMON_CONTEXTS = frozenset({
+    2,  # SETUP_BENCH_POKEMON
+    5,  # TO_BENCH
+    6,  # TO_FIELD
+    7,  # TO_HAND
+})
+CTX_DISCARD = 8
+
+# Fetch a Basic to develop only when our bench holds fewer than this many
+# Pokemon, so a healthy board is never steered away from its normal fetch.
+THIN_BENCH = 2
 
 # Standard damage modifiers. cabt uses x2 weakness and a flat resistance cut.
 WEAKNESS_MULT = 2
@@ -96,6 +123,88 @@ def options_by_type(options) -> dict:
     for i, op in enumerate(options):
         groups.setdefault(op.get("type"), []).append((i, op))
     return groups
+
+
+def _card_type(card_id):
+    """The CardType of a card id, or None when the id is unknown. Never raises."""
+    try:
+        c = card_index().get(card_id)
+    except Exception:
+        return None
+    return getattr(c, "cardType", None) if c is not None else None
+
+
+def is_basic_pokemon(card_id) -> bool:
+    """True only for a known Basic Pokemon card id. Defensive over missing data."""
+    c = card_index().get(card_id) if card_id else None
+    return bool(
+        c is not None
+        and getattr(c, "cardType", None) == CARD_POKEMON
+        and getattr(c, "basic", False)
+    )
+
+
+def _area_zone(player, area):
+    """The card list of a player's area, or None for areas without a card list."""
+    if area == AREA_HAND:
+        return player.get("hand")
+    if area == AREA_BENCH:
+        return player.get("bench")
+    if area == AREA_ACTIVE:
+        return player.get("active")
+    if area == AREA_DISCARD:
+        return player.get("discard")
+    return None
+
+
+def option_card_id(opt, sel, obs):
+    """Resolve the cardId a CARD option refers to, or None when not determinable.
+
+    A CARD option carries area + index, not the cardId itself. Deck-search
+    options index into select.deck (the only time the deck is revealed); hand and
+    board options index into the matching area of our own visible state. Pure and
+    defensive: any missing piece yields None rather than raising.
+    """
+    try:
+        cid = opt.get("cardId")
+        if cid:
+            return cid
+        area = opt.get("area")
+        idx = opt.get("index")
+        if idx is None:
+            return None
+        deck = sel.get("deck")
+        if area == AREA_DECK and deck is not None:
+            return deck[idx].get("id") if 0 <= idx < len(deck) else None
+        state = obs.get("current") or {}
+        players = state.get("players") or []
+        pi = opt.get("playerIndex")
+        if pi is None:
+            pi = state.get("yourIndex", 0)
+        if not (0 <= pi < len(players)):
+            return None
+        zone = _area_zone(players[pi], area)
+        if zone is not None and 0 <= idx < len(zone):
+            entry = zone[idx]
+            return entry.get("id") if entry else None
+    except Exception:
+        return None
+    return None
+
+
+def my_bench_count(obs):
+    """Number of Pokemon on our bench (excluding the active), or None.
+
+    The early-collapse signal: when this is low our lone active has no backup, so
+    one knockout ends the game with prizes untouched.
+    """
+    state = obs.get("current") or {}
+    yi = state.get("yourIndex", 0)
+    players = state.get("players") or []
+    if len(players) <= yi:
+        return None
+    bench = players[yi].get("bench") or []
+    return sum(1 for b in bench if b)
 
 
 def effective_damage(attacker_id, attack, defender_id) -> int:
@@ -257,6 +366,64 @@ def cap_count_for_deckout(move, sel, obs) -> list:
     return move
 
 
+# Discard desirability: higher is discarded sooner. Energy is the surplus a
+# water-discard or consistency deck runs in bulk, so it pays a discard cost
+# before any Pokemon. Pokemon (basics and the evolution combo line) are kept.
+def _discard_rank(card_id) -> int:
+    ct = _card_type(card_id)
+    if ct == CARD_BASIC_ENERGY:
+        return 3
+    if ct == CARD_SPECIAL_ENERGY:
+        return 2
+    if ct == CARD_POKEMON:
+        return 0  # keep: board development and combo pieces
+    return 1  # items, supporters, stadiums, tools, or unknown
+
+
+def _choose_discard(sel, obs, mn) -> list:
+    """Pay a discard cost with the least valuable cards, sparing Pokemon.
+
+    Discards minCount cards (the cheapest a cost allows, capped by how many
+    options exist), choosing the most expendable first so the last basic and the
+    evolution combo line survive.
+    """
+    if mn <= 0:
+        return []
+    opts = sel.get("option", [])
+    ranked = sorted(
+        range(len(opts)),
+        key=lambda i: (-_discard_rank(option_card_id(opts[i], sel, obs)), i),
+    )
+    return sorted(ranked[:mn])
+
+
+def _choose_card_select(sel, obs) -> list:
+    """A CARD selection: fetch a Basic when thin, spare combo pieces on discard.
+
+    On a context that puts a Pokemon into play or hand, when our bench is thin we
+    pick a Basic Pokemon so a knocked-out lone active always has a backup. On a
+    discard cost we shed surplus energy and keep Pokemon. Every other CARD
+    selection keeps the prior first-legal behavior, so a healthy board is never
+    steered off its normal play.
+    """
+    ctx = sel.get("context")
+    mn = sel.get("minCount", 1)
+    mx = sel.get("maxCount", 1)
+    if ctx == CTX_DISCARD and mx >= 1:
+        return _choose_discard(sel, obs, mn)
+    if ctx in GAIN_POKEMON_CONTEXTS and mn <= 1 <= mx:
+        bench = my_bench_count(obs)
+        if bench is not None and bench < THIN_BENCH:
+            basic = next(
+                (i for i, o in enumerate(sel.get("option", []))
+                 if is_basic_pokemon(option_card_id(o, sel, obs))),
+                None,
+            )
+            if basic is not None:
+                return [basic]
+    return _first_legal(sel)
+
+
 def _choose_subselect(sel, obs) -> list:
     st = sel.get("type")
     opts = sel.get("option", [])
@@ -276,6 +443,8 @@ def _choose_subselect(sel, obs) -> list:
         if numbered:
             # Prefer the maximum count, but never draw ourselves out when low.
             return cap_count_for_deckout([max(numbered)[1]], sel, obs)
+    elif st == SEL_CARD:
+        return _choose_card_select(sel, obs)
     return _first_legal(sel)
 
 

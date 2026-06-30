@@ -187,6 +187,135 @@ def test_count_least_draw_when_every_count_overdraws():
     assert obs["select"]["option"][move[0]]["number"] == 2
 
 
+# --- CARD sub-select support (loss-data driven: early_collapse from a thin bench
+# and self-deckout from over-discarding combo pieces) ---
+
+# Real card ids, classified from live card data:
+#   722 Snover (Basic Pokemon), 723 Mega Abomasnow ex (evolution), 3 Basic Energy.
+BASIC_POKEMON = 722
+EVOLUTION = 723
+BASIC_ENERGY = 3
+
+
+def _card(card_id, owner=0):
+    return {"id": card_id, "serial": card_id, "playerIndex": owner}
+
+
+def _deck_search_obs(option_indices, deck_ids, *, bench=None, context=7,
+                     your_index=0):
+    me = {"active": [None], "bench": bench or [], "hand": []}
+    opp = {"active": [None], "bench": []}
+    players = [me, opp] if your_index == 0 else [opp, me]
+    sel = {
+        "type": heuristics.SEL_CARD,
+        "context": context,
+        "minCount": 0,
+        "maxCount": 1,
+        "deck": [_card(c, your_index) for c in deck_ids],
+        "option": [
+            {"type": heuristics.OPT_CARD, "area": heuristics.AREA_DECK,
+             "index": idx, "playerIndex": your_index}
+            for idx in option_indices
+        ],
+    }
+    return {"select": sel, "current": {"yourIndex": your_index, "players": players}}
+
+
+def _discard_obs(hand_ids, option_indices, *, mn=2, mx=2, your_index=0):
+    hand = [_card(c, your_index) for c in hand_ids]
+    me = {"active": [None], "bench": [], "hand": hand}
+    opp = {"active": [None], "bench": []}
+    players = [me, opp] if your_index == 0 else [opp, me]
+    sel = {
+        "type": heuristics.SEL_CARD,
+        "context": heuristics.CTX_DISCARD,
+        "minCount": mn,
+        "maxCount": mx,
+        "option": [
+            {"type": heuristics.OPT_CARD, "area": heuristics.AREA_HAND,
+             "index": idx, "playerIndex": your_index}
+            for idx in option_indices
+        ],
+    }
+    return {"select": sel, "current": {"yourIndex": your_index, "players": players}}
+
+
+# Test scenario: option_card_id resolves a deck-search option through select.deck.
+def test_option_card_id_from_deck():
+    obs = _deck_search_obs([0, 1], [BASIC_POKEMON, EVOLUTION])
+    sel = obs["select"]
+    assert heuristics.option_card_id(sel["option"][0], sel, obs) == BASIC_POKEMON
+    assert heuristics.option_card_id(sel["option"][1], sel, obs) == EVOLUTION
+
+
+# Test scenario: option_card_id resolves a hand option through our visible state.
+def test_option_card_id_from_hand():
+    obs = _discard_obs([BASIC_ENERGY, BASIC_POKEMON], [0, 1])
+    sel = obs["select"]
+    assert heuristics.option_card_id(sel["option"][1], sel, obs) == BASIC_POKEMON
+
+
+def test_is_basic_pokemon_classification():
+    assert heuristics.is_basic_pokemon(BASIC_POKEMON) is True
+    assert heuristics.is_basic_pokemon(EVOLUTION) is False
+    assert heuristics.is_basic_pokemon(BASIC_ENERGY) is False
+    assert heuristics.is_basic_pokemon(None) is False
+
+
+def test_my_bench_count_excludes_active():
+    obs = _deck_search_obs([0], [BASIC_POKEMON],
+                           bench=[_pokemon(BASIC_POKEMON, 90), None])
+    assert heuristics.my_bench_count(obs) == 1
+
+
+# Test scenario: with a thin bench the deck search fetches a Basic Pokemon over an
+# evolution, so the lone active gains a backup (attacks the early-collapse loss).
+def test_deck_search_fetches_basic_when_bench_thin():
+    obs = _deck_search_obs([0, 1], [EVOLUTION, BASIC_POKEMON], bench=[])
+    assert heuristic_agent(obs) == [1]  # option 1 -> deck[1] -> Snover (Basic)
+
+
+# Test scenario: with a healthy bench the search keeps the prior first-legal pick,
+# so a developed board is never steered off its normal fetch (no regression).
+def test_deck_search_inert_when_bench_healthy():
+    bench = [_pokemon(BASIC_POKEMON, 90), _pokemon(BASIC_POKEMON, 90)]
+    obs = _deck_search_obs([0, 1], [EVOLUTION, BASIC_POKEMON], bench=bench)
+    assert heuristic_agent(obs) == [0]  # first legal, unchanged behavior
+
+
+# Test scenario: thin bench but no Basic among the options falls back to first legal.
+def test_deck_search_no_basic_option_falls_back():
+    obs = _deck_search_obs([0, 1], [EVOLUTION, EVOLUTION], bench=[])
+    assert heuristic_agent(obs) == [0]
+
+
+# Test scenario: a discard cost sheds surplus energy and spares the Pokemon.
+def test_discard_sheds_energy_spares_pokemon():
+    # hand: [energy, basic pokemon, energy, evolution]; discard exactly 2.
+    obs = _discard_obs([BASIC_ENERGY, BASIC_POKEMON, BASIC_ENERGY, EVOLUTION],
+                       [0, 1, 2, 3], mn=2, mx=2)
+    move = heuristic_agent(obs)
+    assert move == [0, 2]  # the two energy, not either Pokemon
+
+
+# Test scenario: when energy is scarce, items go before any Pokemon is discarded.
+def test_discard_prefers_item_over_pokemon():
+    # hand: [basic pokemon, item (Mega Signal 1145), evolution]; discard exactly 1.
+    obs = _discard_obs([BASIC_POKEMON, 1145, EVOLUTION], [0, 1, 2], mn=1, mx=1)
+    move = heuristic_agent(obs)
+    assert move == [1]  # the item, sparing both Pokemon
+
+
+# Test scenario: a discard returns exactly minCount distinct legal indices.
+def test_discard_returns_exact_count():
+    obs = _discard_obs([BASIC_ENERGY, BASIC_ENERGY, BASIC_ENERGY], [0, 1, 2],
+                       mn=2, mx=2)
+    move = heuristic_agent(obs)
+    assert len(move) == 2
+    assert len(set(move)) == 2
+    assert all(0 <= i < 3 for i in move)
+
+
 def test_deck_selection_returns_60_cards():
     deck = heuristic_agent({"select": None})
     assert len(deck) == 60
