@@ -202,3 +202,82 @@ effect: the five 2026-06-30 submissions have not rolled over in UTC yet), and th
 submissions list confirms no slot was consumed. So ultraball is the queued, ready
 candidate for the first available slot on the next quota reset; submit it then after
 the mandatory submissions check, before spending the slot on anything else.
+
+### Full fetch-card survey and the card-level root cause (2026-07-01)
+
+Before committing a future slot to a basic-finder I surveyed the whole 1267-card
+pool and traced the early_collapse loss at the card level on fresh ladder replays,
+to be sure Ultra Ball is the right card and not a guess. Findings, all from the
+shipped card data (cg.api):
+
+Card-level root cause, confirmed on a real 6-6 full-deck loss (episode 82869409,
+us vs akay): our hand the whole game was Kyogre (active, 150 HP), a stack of Basic
+Water Energy, two Mega Abomasnow ex (723), Mega Signal, and Waitress; our bench
+stayed at 0 the entire game and the lone Kyogre was chipped down and knocked out.
+The two 723 in hand were dead because Mega Abomasnow ex is a Stage 1 that evolves
+from Snover, and we never drew a Snover. Mega Signal's literal text is "Search your
+deck for a Mega Evolution Pokemon ex" so it can ONLY fetch the Mega, never a basic;
+Waitress only attaches a Basic Energy from the top 6. The baseline deck therefore
+has ZERO basic-Pokemon search. With only 6 basics in 60 cards (4 Snover, 2 Kyogre),
+a lone-basic opener that draws into the Mega line bricks: the search just hands you
+more uncastable Mega ex. The 6-6 final prize reading is the engine's win-by-no-
+Pokemon (the opponent took no prize because the win condition is "no Pokemon to
+promote," not a 6th prize). This is deck construction, not a heuristic misplay.
+
+The basic-fetch options in the pool, and why each is or is not usable here:
+- Ultra Ball (1121, Item, NOT ACE SPEC): discard 2, search deck for any Pokemon to
+  hand. The ONLY any-Pokemon fetch that is not ACE SPEC, so the only one that adds
+  basic search WITHOUT giving up the deck's existing ACE SPEC (Maximum Belt, 1158).
+  This is what ultraball.csv uses, and the survey confirms it is the correct choice
+  among non-ACE-SPEC cards.
+- Master Ball (1125, Item, ACE SPEC): identical "search deck for a Pokemon to hand"
+  effect with NO discard cost, but ACE SPEC means at most one copy and it would
+  consume the single ACE SPEC slot already held by Maximum Belt. Not a free upgrade.
+- Precious Trolley (1126, Item, ACE SPEC): "Search your deck for any number of Basic
+  Pokemon and put them onto your Bench," free, direct to the bench. The most targeted
+  early_collapse fix, but also ACE SPEC, so it competes with Maximum Belt.
+- Buddy-Buddy Poffin (1086, Item, NOT ACE SPEC): benches up to 2 Basic Pokemon with
+  70 HP or less. Ruled OUT: Snover is 90 HP and Kyogre 150 HP, so neither of our
+  basics is eligible.
+
+Ultra Ball's discard cost is also NOT synergistic with the combo, which I had to
+check before ranking the cards: Mega Abomasnow's Hammer-lanche discards the top 6
+of the DECK (100 damage per Basic Water Energy found there), so a hand discard does
+nothing for it. The discard is a genuine cost, not hidden upside.
+
+### Built and measured: trolley.csv (swap the ACE SPEC to Precious Trolley) (2026-07-01)
+
+Given the survey, the strongest theoretical early_collapse fix is to spend the one
+ACE SPEC slot on Precious Trolley instead of Maximum Belt: a free, direct bench-fill
+beats a damage tool the combo does not need (Hammer-lanche already averages 300+ off
+a 350 HP body). decks/trolley.csv is ultraball.csv with the single card 1158 (Maximum
+Belt) swapped to 1126 (Precious Trolley): 60 cards, exactly one ACE SPEC, validated
+LEGAL by the rule layer plus the engine battle_start check and locked by
+test_portfolio_decks_are_legal.
+
+Heuristic support was VERIFIED, not assumed. Precious Trolley is a deck search
+(select.deck is present), so the d9db958 basic-fetch sub-select already handles it:
+in a captured self-play game the agent played Trolley and its bench grew from 1 to 2
+on the resolving sub-select, confirming it benches a basic for free (my first
+detector missed this because the bench updates on the step AFTER the sub-select, not
+on the play step). It benches one basic per play, not the whole bench, because the
+sub-select grabs a single index; still enough to give a Pokemon to promote when the
+active is knocked out, which is exactly the early_collapse loss.
+
+Measured even, like ultraball: trolley vs baseline under the heuristic, n=120, is
+52.5% (95% CI 43.6 to 61.2, spans 50), 63/0/57. Dropping Maximum Belt's damage is
+offset by the free bench-fill, so it does NOT regress. As with ultraball, self-play
+cannot show the upside: early_collapse from a lone-basic knockout is rare in the
+mirror field, so the diverse ladder is the only test.
+
+Verdict and next-slot recommendation: trolley and ultraball are both legal, non-
+regressing, heuristic-supported early_collapse fixes that only the ladder can rank.
+trolley attacks the leak more directly and cheaply (free, one decision, straight to
+the bench) but gives up the proven Maximum Belt damage tool and an ACE SPEC slot;
+ultraball is the lower-risk choice (keeps Maximum Belt, keeps a non-ACE-SPEC fetch)
+and is already built as a ready submission tarball. On the next quota reset, after
+the mandatory submissions check, ultraball remains the queued first submit (it is the
+lower-risk early_collapse test and is already packaged); trolley is the stronger-but-
+riskier follow-up candidate for a later slot if ultraball's ladder data shows
+early_collapse persists. Master Ball and Buddy-Buddy Poffin are ruled out for the
+reasons above and should not be re-walked.
