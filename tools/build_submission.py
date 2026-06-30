@@ -20,7 +20,14 @@ AGENTS = REPO / "agents"
 BUILD = REPO / "submission"
 
 
-def build(agent_file, deck_file, out_name="submission.tar.gz"):
+def build(agent_file, deck_file, out_name="submission.tar.gz", extras=None):
+    """Stage a submission tarball.
+
+    agent_file becomes main.py, deck_file becomes deck.csv, the official cg/
+    package is bundled, and each path in extras is copied to the top level under
+    its own basename. extras carries support modules the agent imports at top
+    level inside the submission (for example heuristics.py).
+    """
     if not (CG_SRC / "api.py").exists():
         sys.exit(f"Official cg/ package not found at {CG_SRC}. Download it first.")
     if BUILD.exists():
@@ -29,9 +36,14 @@ def build(agent_file, deck_file, out_name="submission.tar.gz"):
     shutil.copy(agent_file, BUILD / "main.py")
     shutil.copy(deck_file, BUILD / "deck.csv")
     shutil.copytree(CG_SRC, BUILD / "cg", ignore=shutil.ignore_patterns("__pycache__"))
+    extra_names = []
+    for src in extras or []:
+        name = Path(src).name
+        shutil.copy(src, BUILD / name)
+        extra_names.append(name)
     out = REPO / out_name
     with tarfile.open(out, "w:gz") as tar:
-        for item in ("main.py", "deck.csv", "cg"):
+        for item in ("main.py", "deck.csv", "cg", *extra_names):
             tar.add(BUILD / item, arcname=item)
     return out
 
@@ -41,8 +53,10 @@ def main():
     ap.add_argument("--agent", default=str(AGENTS / "agent_baseline.py"))
     ap.add_argument("--deck", default=str(DECKS / "baseline.csv"))
     ap.add_argument("--out", default="submission.tar.gz")
+    ap.add_argument("--extra", action="append", default=[],
+                    help="support module copied to the top level (repeatable)")
     args = ap.parse_args()
-    out = build(args.agent, args.deck, args.out)
+    out = build(args.agent, args.deck, args.out, extras=args.extra)
     with tarfile.open(out) as tar:
         names = tar.getnames()
     top = sorted({n.split("/")[0] for n in names})

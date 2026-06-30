@@ -165,3 +165,22 @@ def test_no_invalid_moves_in_short_gauntlet():
     stats = run_gauntlet("heuristic", ["random"], 6)
     assert stats["invalid_moves"] == 0
     assert stats["matches"] == 6
+
+
+# The heuristic submission must bundle heuristics.py at the top level so main.py
+# can import it inside the grader sandbox.
+def test_build_submission_bundles_extra_module():
+    import tarfile
+    from pathlib import Path
+    from tools import build_submission as bs
+
+    root = Path(__file__).resolve().parents[1]
+    out = bs.build(
+        agent_file=str(root / "agents" / "agent_heuristic.py"),
+        deck_file=str(root / "decks" / "baseline.csv"),
+        out_name="submission_heuristic_test.tar.gz",
+        extras=[str(root / "agents" / "heuristics.py")],
+    )
+    with tarfile.open(out) as tar:
+        top = {n.split("/")[0] for n in tar.getnames()}
+    assert {"main.py", "deck.csv", "cg", "heuristics.py"} <= top
