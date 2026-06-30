@@ -15,6 +15,10 @@ submission/
 results/
 replays/
 
+# Unattended autoloop runtime logs
+autoloop.log
+autoloop_status.md
+
 # OS
 Thumbs.db
 .DS_Store
