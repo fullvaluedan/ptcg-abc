@@ -191,11 +191,18 @@ def test_count_least_draw_when_every_count_overdraws():
 # self-mill to zero by replaying draw Supporters and Items, twice while not behind
 # on prizes; the COUNT guard never fired because the mill was all PLAY actions) ---
 
-# Real card ids from live card data: 722 Snover (Basic Pokemon, type 0),
-# 1235 Waitress and 1227 Lillie's Determination (draw Supporters, type 3),
-# 1145 Mega Signal (draw Item, type 1).
-SUPPORTER_DRAW = 1235
+# Real card ids from live card data, classified by their effect text:
+#   722  Snover            Basic Pokemon (type 0)
+#   1205 Cyrano           Supporter that searches deck Pokemon "into your hand"
+#   1145 Mega Signal      Item that searches a Mega ex "into your hand"
+#   1235 Waitress         Supporter that attaches a Basic Energy (no deck drill)
+#   1126 Precious Trolley Item that benches Basics (develops, no deck drill)
+# Only the first two drill the deck for card advantage, so only those are
+# declined near a self-deckout; Waitress and Precious Trolley develop the board.
+SUPPORTER_DRAW = 1205
 ITEM_DRAW = 1145
+SUPPORTER_ENERGY = 1235
+ITEM_DEVELOP = 1126
 POKEMON_PLAY = 722
 
 
@@ -260,6 +267,81 @@ def test_play_unchanged_when_deck_count_missing():
     obs["current"]["players"][0].pop("deckCount")
     move = heuristic_agent(obs)
     assert move == [0]                  # first play option, guard inert
+
+
+# Near deckout a trainer that develops the board rather than drilling the deck is
+# still played: Waitress attaches an Energy (no deck drill) and powers an attack,
+# so declining it would forfeit board development to save nothing. This is the
+# refinement over the blunt "skip every Item and Supporter" rule.
+def test_play_keeps_energy_attach_trainer_near_deckout():
+    obs = _play_main_obs([SUPPORTER_ENERGY], deck_n=4)
+    move = heuristic_agent(obs)
+    assert move == [0]                  # Waitress played, not declined
+
+
+# Near deckout a bench-developing trainer (Precious Trolley puts a Basic onto the
+# Bench) is likewise played: it develops rather than drilling the deck for hand
+# advantage.
+def test_play_keeps_bench_develop_trainer_near_deckout():
+    obs = _play_main_obs([ITEM_DEVELOP], deck_n=4)
+    move = heuristic_agent(obs)
+    assert move == [0]                  # Precious Trolley played, not declined
+
+
+# Near deckout a real deck-drilling trainer is preferred over none, but a
+# non-drilling develop play beats it: Waitress (attach) is chosen over Cyrano
+# (search into hand) even when the search trainer is the first option.
+def test_play_prefers_develop_over_drill_near_deckout():
+    obs = _play_main_obs([SUPPORTER_DRAW, SUPPORTER_ENERGY], deck_n=4)
+    move = heuristic_agent(obs)
+    assert move == [1]                  # Waitress, not the searching Supporter
+
+
+# The drill predicate reads the effect text: search/draw-into-hand trainers drill,
+# develop trainers and non-trainers do not. Conservative when text is missing.
+def test_drills_deck_predicate_by_effect_text():
+    assert heuristics._drills_deck(SUPPORTER_DRAW)    # Cyrano: into your hand
+    assert heuristics._drills_deck(ITEM_DRAW)         # Mega Signal: into your hand
+    assert heuristics._drills_deck(1227)              # Lillie's: draw 6
+    assert heuristics._drills_deck(1121)              # Ultra Ball: into your hand
+    assert not heuristics._drills_deck(SUPPORTER_ENERGY)  # Waitress: attaches
+    assert not heuristics._drills_deck(ITEM_DEVELOP)      # Trolley: to the Bench
+    assert not heuristics._drills_deck(POKEMON_PLAY)      # a Pokemon never drills
+    assert not heuristics._drills_deck(-1)            # unknown id: not a trainer
+
+
+# Deck-destruction items discard cards sourced from the deck with no board gain,
+# so they mill us and must be declined near deckout even though they neither draw
+# nor put cards "into your hand". (1078 Hole-Digging Shovel discards the top 2 of
+# the deck; 1128 Brilliant Blender searches the deck for up to 5 and discards.)
+def test_drills_deck_catches_deck_discard_mills():
+    assert heuristics._drills_deck(1078)              # discard top 2 of your deck
+    assert heuristics._drills_deck(1128)              # search deck for 5, discard
+
+
+# Discard-pile recyclers shuffle cards back INTO the deck, growing it, so they are
+# the opposite of a mill and must stay playable near deckout. (1129 Sacred Ash,
+# 1139 Energy Recycler.)
+def test_drills_deck_keeps_deck_recyclers():
+    assert not heuristics._drills_deck(1129)          # discard pile -> deck
+    assert not heuristics._drills_deck(1139)          # basic energy -> deck
+
+
+# An Item or Supporter whose effect text is unavailable stays conservative and is
+# treated as a driller, preserving the prior safe skip-every-trainer behavior.
+def test_drills_deck_conservative_when_text_missing(monkeypatch):
+    monkeypatch.setattr(heuristics, "_card_text", lambda cid: None)
+    assert heuristics._drills_deck(ITEM_DRAW)         # Item, text gone -> conserve
+    assert heuristics._drills_deck(SUPPORTER_DRAW)    # Supporter, text gone
+    assert not heuristics._drills_deck(POKEMON_PLAY)  # type gate still excludes it
+
+
+# A switch trainer whose text says "withdraw" must not be mistaken for a draw
+# (the \bdraw boundary excludes it); it develops/repositions, it does not drill.
+def test_drills_deck_ignores_withdraw(monkeypatch):
+    monkeypatch.setattr(heuristics, "_card_text",
+                        lambda cid: "Withdraw your Active Pokemon to your Bench.")
+    assert not heuristics._drills_deck(ITEM_DRAW)     # Item, but no real draw
 
 
 # A PLAY option carries a hand index, not an area; play_card_id resolves it.

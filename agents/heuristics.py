@@ -12,13 +12,15 @@ Design choices, all aimed at a never crash agent that beats the random baseline:
 - Abilities are intentionally not prioritized: a stateless agent that prefers a
   repeatable ability over ending the turn could loop forever. PLAY, ATTACH, and
   EVOLVE each consume a resource, so the turn always makes progress and ends.
-- Near self-deckout the agent stops replaying draw trainers (see
-  CONSERVED_TRAINER_TYPES and DRAW_CONSERVE_THRESHOLD) so the deck survives long
-  enough to close on prizes instead of milling itself to zero.
+- Near self-deckout the agent stops replaying deck-drilling trainers (the
+  draw/search-into-hand engine; see _drills_deck and DRAW_CONSERVE_THRESHOLD) so
+  the deck survives to close on prizes instead of milling itself to zero. Board
+  development (benching a Basic, attaching an Energy) still plays.
 - Every path falls through to a guaranteed legal selection.
 """
 from __future__ import annotations
 
+import re
 import sys
 from functools import lru_cache
 from pathlib import Path
@@ -139,6 +141,23 @@ def _card_type(card_id):
     except Exception:
         return None
     return getattr(c, "cardType", None) if c is not None else None
+
+
+def _card_text(card_id):
+    """The card's effect text (skills concatenated), or None when unknown.
+
+    Card data ships the skill text offline, so the effect is inspectable. Pure
+    and defensive: any missing piece yields None rather than raising.
+    """
+    try:
+        c = card_index().get(card_id)
+    except Exception:
+        return None
+    if c is None:
+        return None
+    skills = getattr(c, "skills", None) or []
+    parts = [s.text for s in skills if getattr(s, "text", None)]
+    return " ".join(parts) if parts else None
 
 
 def is_basic_pokemon(card_id) -> bool:
@@ -346,13 +365,47 @@ def own_deck_count(obs):
 # we still develop Pokemon and attack; only the card-advantage trainer is skipped
 # so the deck survives long enough to close on prizes.
 DRAW_CONSERVE_THRESHOLD = 8
-# Trainer card types we conservatively decline to play near deckout. Card data
-# exposes no "draws cards" flag, so rather than guess we skip every Item and
-# Supporter once the deck is critically low: most that matter in the endgame are
-# the draw/search engine that mills us, and forgoing the rest (a switch, a heal)
-# costs little next to losing the game to an empty deck. Pokemon, energy attaches,
-# Tools, and Stadiums are unaffected.
+# Only Item and Supporter trainers can drill the deck for card advantage; a
+# Pokemon, energy attach, Tool, or Stadium never does. The narrower _drills_deck
+# predicate below decides which of these to actually decline near deckout.
 CONSERVED_TRAINER_TYPES = frozenset({CARD_ITEM, CARD_SUPPORTER})
+
+
+def _drills_deck(card_id) -> bool:
+    """True when playing this trainer net-depletes our deck for no board gain.
+
+    These are the engines that mill us toward a self-deckout: draw/search cards
+    that move deck cards into hand (Mega Signal, Cyrano, Lillie's Determination,
+    Ultra Ball) and deck-destruction items that discard from the deck (Hole-
+    Digging Shovel, Brilliant Blender). A trainer that turns deck cards into board
+    development (Precious Trolley benches a Basic, Waitress attaches an Energy) is
+    kept: it is the "develop, do not hoard" play the deckout guard means to allow.
+    Cards that move the discard pile back into the deck (Sacred Ash, Energy
+    Recycler) grow the deck and are kept too. Card data ships the effect text
+    offline so this reads the text rather than guessing by type. Conservative on
+    missing data: an Item or Supporter whose text is unavailable is treated as a
+    driller, preserving the prior safe skip-every-trainer behavior. Pure, never
+    raises.
+    """
+    if _card_type(card_id) not in CONSERVED_TRAINER_TYPES:
+        return False
+    text = _card_text(card_id)
+    if text is None:
+        return True
+    t = text.lower()
+    # \bdraw matches "draw"/"draws" but not "withdraw" (a switch effect, no deck
+    # drill). "into your hand" catches search-to-hand. A discard that names the
+    # deck as the source ("of your deck", "your deck for ... discard") destroys
+    # deck cards; a discard-pile recycler ("into your deck") only grows it, so it
+    # is left out by requiring the deck-source phrasing rather than bare "deck".
+    discards_from_deck = "discard" in t and (
+        "of your deck" in t or "your deck for" in t
+    )
+    return (
+        bool(re.search(r"\bdraw", t))
+        or "into your hand" in t
+        or discards_from_deck
+    )
 
 
 def play_card_id(opt, me):
@@ -377,8 +430,9 @@ def choose_play(play_opts, me, obs):
     play_opts is the list of (option_index, option) PLAY pairs. In normal play it
     keeps the prior behavior (the first play option). When our deck is critically
     low it refuses to mill: it develops a Pokemon if one can be played, otherwise
-    a non-draw card, and returns None when only draw trainers remain so the caller
-    ends the turn instead of drawing us out. Never raises.
+    any play that does not drill the deck (an energy attach, a bench-develop
+    trainer), and returns None when only deck-drilling trainers remain so the
+    caller ends the turn instead of drawing us out. Never raises.
     """
     if not play_opts:
         return None
@@ -387,14 +441,14 @@ def choose_play(play_opts, me, obs):
         return play_opts[0][0]
     pokemon_play = non_draw_play = None
     for oi, opt in play_opts:
-        ct = _card_type(play_card_id(opt, me))
-        if ct == CARD_POKEMON and pokemon_play is None:
+        cid = play_card_id(opt, me)
+        if _card_type(cid) == CARD_POKEMON and pokemon_play is None:
             pokemon_play = oi
-        if ct not in CONSERVED_TRAINER_TYPES and non_draw_play is None:
+        if not _drills_deck(cid) and non_draw_play is None:
             non_draw_play = oi
     if pokemon_play is not None:
         return pokemon_play
-    return non_draw_play  # None when only draw trainers remain -> skip the play
+    return non_draw_play  # None when only deck-drilling trainers remain -> skip
 
 
 def cap_count_for_deckout(move, sel, obs) -> list:
