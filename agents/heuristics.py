@@ -142,6 +142,40 @@ def _active(player):
     return act[0] if act and act[0] is not None else None
 
 
+def lethal_move(obs, sel=None):
+    """Index list for a guaranteed-knockout MAIN attack, or None.
+
+    The search agent's safety override calls this to take a knockout before it
+    ever runs search (KTD5: never miss a lethal, even when search would pick
+    something else). It mirrors the first priority inside choose(), which keeps
+    its own best_attack result because it also needs it for the retreat and
+    non-lethal attack steps. Pure, never raises.
+    """
+    if sel is None:
+        sel = obs.get("select") or {}
+    if sel.get("type") != SEL_MAIN:
+        return None
+    options = sel.get("option", [])
+    state = obs.get("current") or {}
+    yi = state.get("yourIndex", 0)
+    players = state.get("players") or []
+    if len(players) < 2:
+        return None
+    me = players[yi]
+    opp = players[1 - yi]
+    my_active = _active(me)
+    opp_active = _active(opp)
+    ba = best_attack(
+        options_by_type(options),
+        my_active.get("id") if my_active else None,
+        opp_active.get("id") if opp_active else None,
+        opp_active.get("hp") if opp_active else None,
+    )
+    if ba is not None and ba[2]:  # (index, eff_damage, is_lethal)
+        return [ba[0]]
+    return None
+
+
 def should_retreat(my_active, bench, lethal_available) -> bool:
     """Retreat only when the active is endangered and a healthier bench exists.
 

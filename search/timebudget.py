@@ -19,6 +19,12 @@ SOFT_CAP = 0.5
 # Never commit more than this fraction of the remaining bank to one decision, so
 # the agent always keeps time in reserve for the rest of the match.
 RESERVE_FRACTION = 0.25
+# Hard safety guard (U10): once the bank is this close to the hard ceiling, stop
+# searching entirely and answer instantly from the heuristic. With the default
+# HARD_BANK this trips at 480s spent, leaving 60s under the 540 guard plus the
+# 60s gap to the real 600s ceiling, so cumulative thinking time never approaches
+# a timeout (an automatic loss).
+SAFETY_RESERVE = 60.0
 
 
 class TimeBudget:
@@ -42,3 +48,12 @@ class TimeBudget:
     @property
     def exhausted(self) -> bool:
         return self.spent >= self.hard_bank
+
+    @property
+    def at_risk(self) -> bool:
+        """True once too little bank remains to safely afford another search.
+
+        The agent checks this before searching and answers instantly from the
+        heuristic when it trips, so cumulative time stays clear of the ceiling.
+        """
+        return self.spent >= self.hard_bank - SAFETY_RESERVE
