@@ -158,17 +158,24 @@ def _multiset_remove(pool, to_remove) -> list:
     return remaining
 
 
-def _fit(cards, n, rng) -> list:
+def _fit(cards, n, rng, pad_pool=None) -> list:
     """Shuffle cards and force the list to exactly n entries.
 
-    Pads a short list with basic energy (always a legal card ID) and trims a long
-    one. The engine validates count and legality, not provenance, so this keeps
-    search_begin happy even when the prior and the truth disagree.
+    Pads a short list and trims a long one. When a pad_pool is given (the
+    opponent prior) a short list is topped up from it first, so padding stays
+    consistent with the believed archetype rather than diluting the hidden zones
+    with off prior basic energy; basic energy is the final fallback. The engine
+    validates count and legality, not provenance, so this keeps search_begin happy
+    even when the prior and the truth disagree.
     """
     out = list(cards)
     rng.shuffle(out)
     if len(out) > n:
         return out[:n]
+    if len(out) < n and pad_pool:
+        pad = list(pad_pool)
+        rng.shuffle(pad)
+        out.extend(pad[: n - len(out)])
     if len(out) < n:
         out.extend([_filler_energy_id()] * (n - len(out)))
     return out
@@ -205,7 +212,8 @@ def determinize(obs, your_full_deck, rng, opponent_prior=None) -> Determinizatio
     opp_deck_n = opp["deckCount"]
     opp_prize_n = len(opp["prize"])
     opp_hand_n = opp["handCount"]
-    opp_hidden = _fit(opp_hidden, opp_deck_n + opp_prize_n + opp_hand_n, rng)
+    opp_hidden = _fit(opp_hidden, opp_deck_n + opp_prize_n + opp_hand_n, rng,
+                      pad_pool=prior)
     opponent_deck = opp_hidden[:opp_deck_n]
     opponent_prize = opp_hidden[opp_deck_n:opp_deck_n + opp_prize_n]
     opponent_hand = opp_hidden[opp_deck_n + opp_prize_n:opp_deck_n + opp_prize_n + opp_hand_n]

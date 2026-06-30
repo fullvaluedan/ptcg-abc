@@ -30,6 +30,11 @@ except ImportError:
     from determinize import determinize
     from timebudget import TimeBudget
 
+try:
+    from analysis import archetype
+except ImportError:
+    import archetype
+
 
 def _read_deck():
     candidates = [
@@ -96,8 +101,15 @@ def agent(obs):
             budget = _BUDGET.allot()
             if budget > 0:
                 start = time.perf_counter()
+                # Bias the determinization prior toward the opponent's likely
+                # archetype, falling back to the mirror prior (with revealed cards
+                # merged in) when nothing is recognized.
+                try:
+                    prior = archetype.opponent_prior(obs, _DECK)
+                except Exception:
+                    prior = None
                 move = rollout.search_decision(
-                    obs, _DECK, budget, _RNG, determinize,
+                    obs, _DECK, budget, _RNG, determinize, opponent_prior=prior,
                     max_determinizations=_MAX_DETS, value_depth=_ROLLOUT_DEPTH,
                 )
                 _BUDGET.record(time.perf_counter() - start)
