@@ -14,7 +14,7 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
 
 
 def names() -> list:
-    return ["random", "first", "baseline", "heuristic"]
+    return ["random", "first", "baseline", "heuristic", "search"]
 
 
 def get(name):
@@ -29,6 +29,10 @@ def get(name):
         return agent
     if name == "heuristic":
         from agents.agent_heuristic import agent
+
+        return agent
+    if name == "search":
+        from agents.agent_search import agent
 
         return agent
     raise KeyError(f"Unknown agent '{name}'. Known: {names()}")
