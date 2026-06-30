@@ -1,0 +1,1 @@
+﻿Isolated workspace for the Kaggle Pokemon TCG AI Battle Challenge (cabt Engine). Do not mix with other Pokemon projects. Do not redistribute competition data. Kept outside OneDrive to avoid cloud sync of competition data.

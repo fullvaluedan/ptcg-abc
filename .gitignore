@@ -1,0 +1,20 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# Isolated competition data and engine binaries (never commit or redistribute)
+data/
+vendor/cg/
+
+# Build and run artifacts
+submission/
+*.tar.gz
+results/
+replays/
+
+# OS
+Thumbs.db
+.DS_Store
