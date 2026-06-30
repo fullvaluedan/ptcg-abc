@@ -203,7 +203,61 @@ def _first_legal(sel) -> list:
     return list(range(min(k, n)))
 
 
-def _choose_subselect(sel) -> list:
+# Self-deck-out guard: only engages when our deck is at or below this many cards,
+# so normal play is never touched. Decking ourselves out was the dominant real
+# ladder loss (see analysis/loss_classifier.py: two of three live losses were
+# deckouts, one while ahead on prizes), so a voluntary over-draw on a COUNT
+# selection is capped to what the deck can still support once it runs low.
+DECKOUT_THRESHOLD = 5
+
+
+def own_deck_count(obs):
+    """Our remaining deck count from the observation, or None when unavailable."""
+    state = obs.get("current") or {}
+    yi = state.get("yourIndex", 0)
+    players = state.get("players") or []
+    if len(players) <= yi:
+        return None
+    return players[yi].get("deckCount")
+
+
+def cap_count_for_deckout(move, sel, obs) -> list:
+    """Cap a voluntary over-draw so we never request more cards than the deck holds.
+
+    Acts only on a COUNT selection when our deck is critically low; reduces the
+    chosen number to the largest legal count the deck can still support and never
+    enlarges it, so the result stays legal and strictly safer. Inert in normal
+    play (deck above the threshold) and never raises. Shared by the heuristic and
+    the search agent so neither mills itself to death in the endgame.
+    """
+    try:
+        if sel.get("type") != SEL_COUNT or len(move) != 1:
+            return move
+        deck_n = own_deck_count(obs)
+        if deck_n is None or deck_n > DECKOUT_THRESHOLD:
+            return move
+        opts = sel.get("option", [])
+        chosen = opts[move[0]].get("number")
+        if chosen is None or chosen <= deck_n:
+            return move
+        numbered = [
+            (o.get("number", 0), i)
+            for i, o in enumerate(opts)
+            if o.get("type") == OPT_NUMBER
+        ]
+        safe = [t for t in numbered if t[0] <= deck_n]
+        if safe:
+            # Largest count that does not over-draw; lowest index breaks ties.
+            return [max(safe, key=lambda t: (t[0], -t[1]))[1]]
+        if numbered:
+            # Every count over-draws, so take the smallest to lose the least deck.
+            return [min(numbered, key=lambda t: (t[0], t[1]))[1]]
+    except Exception:
+        pass
+    return move
+
+
+def _choose_subselect(sel, obs) -> list:
     st = sel.get("type")
     opts = sel.get("option", [])
     if st == SEL_YES_NO:
@@ -220,7 +274,8 @@ def _choose_subselect(sel) -> list:
         numbered = [(o.get("number", 0), i) for i, o in enumerate(opts)
                     if o.get("type") == OPT_NUMBER]
         if numbered:
-            return [max(numbered)[1]]
+            # Prefer the maximum count, but never draw ourselves out when low.
+            return cap_count_for_deckout([max(numbered)[1]], sel, obs)
     return _first_legal(sel)
 
 
@@ -230,7 +285,7 @@ def choose(obs) -> list:
     if sel is None:
         return []  # deck selection is handled by the agent, not here
     if sel.get("type") != SEL_MAIN:
-        return _choose_subselect(sel)
+        return _choose_subselect(sel, obs)
 
     options = sel.get("option", [])
     groups = options_by_type(options)

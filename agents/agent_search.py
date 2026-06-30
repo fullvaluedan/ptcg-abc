@@ -81,11 +81,6 @@ _ENDGAME = os.environ.get("PTCG_ENDGAME", "1") != "0"
 _BUDGET = TimeBudget(soft_cap=_SOFT_CAP)
 
 
-# Self-deck-out veto only engages when our deck is at or below this many cards,
-# so normal play is never touched; it caps a voluntary over-draw in the endgame.
-_DECKOUT_THRESHOLD = 5
-
-
 def _is_legal(move, sel) -> bool:
     n = len(sel.get("option", []))
     if not isinstance(move, list) or len(set(move)) != len(move):
@@ -93,49 +88,6 @@ def _is_legal(move, sel) -> bool:
     if not (sel.get("minCount", 1) <= len(move) <= sel.get("maxCount", 1)):
         return False
     return all(isinstance(i, int) and 0 <= i < n for i in move)
-
-
-def _own_deck_count(obs):
-    state = obs.get("current") or {}
-    yi = state.get("yourIndex", 0)
-    players = state.get("players") or []
-    if len(players) <= yi:
-        return None
-    return players[yi].get("deckCount")
-
-
-def _avoid_self_deckout(move, sel, obs):
-    """Cap a voluntary over-draw so we never request more cards than the deck holds.
-
-    Only acts on a COUNT selection when our deck is critically low; reduces the
-    chosen number to the largest legal count the deck can support and never
-    enlarges it, so the result is always a legal, safer move. Inert in normal play.
-    """
-    try:
-        if sel.get("type") != heuristics.SEL_COUNT or len(move) != 1:
-            return move
-        deck_n = _own_deck_count(obs)
-        if deck_n is None or deck_n > _DECKOUT_THRESHOLD:
-            return move
-        opts = sel.get("option", [])
-        chosen = opts[move[0]].get("number")
-        if chosen is None or chosen <= deck_n:
-            return move
-        numbered = [
-            (o.get("number", 0), i)
-            for i, o in enumerate(opts)
-            if o.get("type") == heuristics.OPT_NUMBER
-        ]
-        safe = [t for t in numbered if t[0] <= deck_n]
-        if safe:
-            # Largest count that does not over-draw; lowest index breaks ties.
-            return [max(safe, key=lambda t: (t[0], -t[1]))[1]]
-        if numbered:
-            # Every count over-draws, so take the smallest to lose the least deck.
-            return [min(numbered, key=lambda t: (t[0], t[1]))[1]]
-    except Exception:
-        pass
-    return move
 
 
 def _searchable(sel) -> bool:
@@ -190,14 +142,14 @@ def agent(obs):
                 )
                 _BUDGET.record(time.perf_counter() - start)
                 if move is not None and _is_legal(move, sel):
-                    return _avoid_self_deckout(move, sel, obs)
+                    return heuristics.cap_count_for_deckout(move, sel, obs)
     except Exception:
         pass
     # Fallback: the heuristic, then any guaranteed legal selection.
     try:
         move = heuristics.choose(obs)
         if _is_legal(move, sel):
-            return _avoid_self_deckout(move, sel, obs)
+            return heuristics.cap_count_for_deckout(move, sel, obs)
     except Exception:
         pass
     try:

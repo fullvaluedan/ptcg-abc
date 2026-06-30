@@ -147,6 +147,46 @@ def test_count_picks_max_number():
     assert heuristic_agent({"select": sel}) == [1]
 
 
+# --- Self-deck-out guard (loss-data driven: deckout was the dominant real loss) ---
+
+def _count_obs(deck_n, numbers):
+    sel = {
+        "type": heuristics.SEL_COUNT,
+        "minCount": 1,
+        "maxCount": 1,
+        "option": [{"type": heuristics.OPT_NUMBER, "number": n} for n in numbers],
+    }
+    state = {"yourIndex": 0, "players": [
+        {"active": [None], "bench": [], "deckCount": deck_n, "prize": [None] * 4, "hand": []},
+        {"active": [None], "bench": []},
+    ]}
+    return {"select": sel, "current": state}
+
+
+# Test scenario: when the deck is low, the heuristic no longer draws the max; it
+# caps the count to what the deck can support so it does not deck itself out.
+def test_count_capped_to_deck_when_low():
+    obs = _count_obs(deck_n=3, numbers=[0, 2, 5])
+    move = heuristic_agent(obs)
+    chosen = obs["select"]["option"][move[0]]["number"]
+    assert chosen == 2            # largest count that does not over-draw a 3 card deck
+    assert chosen <= 3
+
+
+# Test scenario: with a healthy deck the guard is inert and the max still wins.
+def test_count_uncapped_when_deck_healthy():
+    obs = _count_obs(deck_n=30, numbers=[0, 2, 5])
+    move = heuristic_agent(obs)
+    assert obs["select"]["option"][move[0]]["number"] == 5
+
+
+# Test scenario: every count over-draws, so take the smallest to lose the least.
+def test_count_least_draw_when_every_count_overdraws():
+    obs = _count_obs(deck_n=0, numbers=[2, 5])
+    move = heuristic_agent(obs)
+    assert obs["select"]["option"][move[0]]["number"] == 2
+
+
 def test_deck_selection_returns_60_cards():
     deck = heuristic_agent({"select": None})
     assert len(deck) == 60
