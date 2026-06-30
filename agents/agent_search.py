@@ -37,11 +37,18 @@ except ImportError:
 
 
 def _read_deck():
+    # The grader loads main.py with exec() and does NOT define __file__, so the
+    # repo-relative candidate is only built when __file__ exists (local import).
+    # Referencing __file__ unconditionally raised NameError at module load under
+    # the grader and marked the whole agent ERROR.
     candidates = [
         "deck.csv",
         "/kaggle_simulations/agent/deck.csv",
-        str(Path(__file__).resolve().parents[1] / "decks" / "baseline.csv"),
     ]
+    if "__file__" in globals():
+        candidates.append(
+            str(Path(__file__).resolve().parents[1] / "decks" / "baseline.csv")
+        )
     for path in candidates:
         if os.path.exists(path):
             with open(path) as f:

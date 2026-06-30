@@ -60,7 +60,10 @@ def _ensure_cg_on_path() -> None:
     except ImportError:
         pass
     # Local runs: the official package lives under data/ or vendor/ at the repo
-    # root. Walk up from this file to find it.
+    # root. Walk up from this file to find it. The grader has no __file__, but it
+    # also bundles cg/ at the top level, so the import above already returned.
+    if "__file__" not in globals():
+        return
     here = Path(__file__).resolve()
     for parent in here.parents:
         for sub in ("data", "vendor"):

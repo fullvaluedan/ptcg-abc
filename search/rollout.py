@@ -41,6 +41,10 @@ def _ensure_cg_on_path() -> None:
         return
     except ImportError:
         pass
+    # The grader has no __file__ but bundles cg/ at the top level, so the import
+    # above already returned; guard the fallback so it never raises NameError.
+    if "__file__" not in globals():
+        return
     here = Path(__file__).resolve()
     for parent in here.parents:
         for sub in ("data", "vendor"):
