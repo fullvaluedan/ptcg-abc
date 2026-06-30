@@ -39,17 +39,27 @@ _SEARCH_EXTRAS = [
     str(ANALYSIS / "archetype.py"),
 ]
 
-# Each shipped entrypoint and the top-level support modules it imports inside a
-# submission. Every one of these is loaded by the grader via exec without
-# __file__, so every one must survive that path.
+# Each shipped entrypoint, the deck it ships, and the top-level support modules
+# it imports inside a submission. Every one of these is loaded by the grader via
+# exec without __file__, so every one must survive that path. The deck is also
+# read and played by the engine in env.run, so a deck the engine rejects (or that
+# the agent cannot pilot to a terminal reward) fails here too. The trolley case
+# locks the exact queued early_collapse climb (heuristic + Precious Trolley deck).
 SHIPPED_AGENTS = [
-    pytest.param(str(AGENTS / "agent_baseline.py"), [], id="baseline"),
+    pytest.param(str(AGENTS / "agent_baseline.py"), str(DECKS / "baseline.csv"), [], id="baseline"),
     pytest.param(
         str(AGENTS / "agent_heuristic.py"),
+        str(DECKS / "baseline.csv"),
         [str(AGENTS / "heuristics.py")],
         id="heuristic",
     ),
-    pytest.param(str(AGENTS / "agent_search.py"), _SEARCH_EXTRAS, id="search"),
+    pytest.param(
+        str(AGENTS / "agent_heuristic.py"),
+        str(DECKS / "trolley.csv"),
+        [str(AGENTS / "heuristics.py")],
+        id="heuristic-trolley",
+    ),
+    pytest.param(str(AGENTS / "agent_search.py"), str(DECKS / "baseline.csv"), _SEARCH_EXTRAS, id="search"),
 ]
 
 
@@ -58,8 +68,8 @@ def _extract(tar_path: Path, dest: Path) -> None:
         tar.extractall(dest)
 
 
-@pytest.mark.parametrize("agent_file, extras", SHIPPED_AGENTS)
-def test_extracted_submission_loads_under_grader(agent_file, extras, tmp_path):
+@pytest.mark.parametrize("agent_file, deck_file, extras", SHIPPED_AGENTS)
+def test_extracted_submission_loads_under_grader(agent_file, deck_file, extras, tmp_path):
     """A built, extracted submission loads and finishes a match via env.run.
 
     Mirrors the grader: file-path agent string -> exec without __file__, agent
@@ -68,7 +78,7 @@ def test_extracted_submission_loads_under_grader(agent_file, extras, tmp_path):
     """
     tar_path = bs.build(
         agent_file=agent_file,
-        deck_file=str(DECKS / "baseline.csv"),
+        deck_file=deck_file,
         out_name=str(tmp_path / "submission_grader_test.tar.gz"),
         extras=extras,
     )
