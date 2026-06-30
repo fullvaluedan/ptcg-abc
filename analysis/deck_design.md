@@ -147,3 +147,40 @@ last basic or a key combo piece. Adding the card without that support risks
 mis-piloting and regressing the current 600.0 ladder best, so it must be built with
 tests and measured against the diverse field (not the mirror) before it earns a
 ladder slot. That is the next concrete deck unit.
+
+### Built and measured: ultraball.csv is even with baseline, not a beat (2026-07-01)
+
+The heuristic CARD sub-select support landed first (the deck-search fetches a basic
+when bench < 2; discard sheds energy before Pokemon and combo pieces). With it in
+place, decks/ultraball.csv was built as documented: Mega Signal 4 to 2, plus 2 Ultra
+Ball (id 1121), energy held at 35. Legal by both the rule layer and the engine check,
+and now locked by test_portfolio_decks_are_legal.
+
+Measured under the heuristic, alternating first player:
+
+| matchup                          | win rate | W/D/L     |
+|----------------------------------|---------:|-----------|
+| ultraball vs baseline (mirror, n=120) |   52.5% | 63/0/57 |
+| ultraball vs aggro    (n=120)    |    67.5% | 81/0/39 |
+| baseline  vs aggro    (n=120)    |    67.5% | 81/0/39 |
+| ultraball vs control  (n=60)     |    83.3% | 50/0/10 |
+| baseline  vs control  (n=60)     |    88.3% | 53/0/7  |
+
+The verdict: ultraball is EVEN with baseline, not a measurable beat. The mirror is
+52.5% with a 95% CI of 43.6 to 61.2 (spans 50, no significant edge), and against the
+diverse aggro field it is identical to baseline (67.5% each at n=120). A first n=60
+matrix had suggested ultraball was much better vs aggro (65% vs 50%), but that was
+sampling noise: the n=120 confirmation collapsed it to a tie. Unlike baseline_v2
+(which was measurably WORSE vs the field because it cut energy), ultraball preserves
+the 35-energy combo and so does not regress; the consistency engine simply does not
+move the self-play win rate, because early_collapse from a lone-basic knockout is a
+minority of games and cutting 2 Mega Signal slightly offsets the Ultra Ball gain.
+
+Conclusion: ultraball is NOT today's submission candidate. The heuristic + deckout
+guard (ladder 601.7) stays the best agent, and per policy a deck that does not beat
+the current best is not uploaded. ultraball is kept as the consistency hedge and a
+Strategy-writeup story (the legal, non-regressing way to add basic search without
+touching energy), not a ladder replacement. The honest negative result is recorded so
+future iterations do not re-walk the Ultra Ball lever expecting a self-play gain; its
+real value, if any, would be in reducing early_collapse against the DIVERSE LADDER
+field, which only a live ladder slot can measure once one is available to spend.

@@ -11,7 +11,7 @@ _BASELINE = deck_validate.read_deck(_DECKS / "baseline.csv")
 
 
 def test_portfolio_decks_are_legal():
-    for name in ("baseline", "aggro", "control"):
+    for name in ("baseline", "aggro", "control", "ultraball"):
         verdict = deck_validate.validate(deck_validate.read_deck(_DECKS / f"{name}.csv"))
         assert verdict["ok"], (name, verdict)
 
