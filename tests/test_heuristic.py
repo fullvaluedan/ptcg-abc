@@ -187,6 +187,90 @@ def test_count_least_draw_when_every_count_overdraws():
     assert obs["select"]["option"][move[0]]["number"] == 2
 
 
+# --- Draw-conservation near self-deckout (loss-data driven: real ladder replays
+# self-mill to zero by replaying draw Supporters and Items, twice while not behind
+# on prizes; the COUNT guard never fired because the mill was all PLAY actions) ---
+
+# Real card ids from live card data: 722 Snover (Basic Pokemon, type 0),
+# 1235 Waitress and 1227 Lillie's Determination (draw Supporters, type 3),
+# 1145 Mega Signal (draw Item, type 1).
+SUPPORTER_DRAW = 1235
+ITEM_DRAW = 1145
+POKEMON_PLAY = 722
+
+
+def _play_main_obs(hand_ids, deck_n, *, your_index=0):
+    """A MAIN observation whose PLAY options index a hand of the given cards."""
+    hand = [_card(c, your_index) for c in hand_ids]
+    me = {"active": [None], "bench": [], "hand": hand, "deckCount": deck_n}
+    opp = {"active": [None], "bench": []}
+    players = [me, opp] if your_index == 0 else [opp, me]
+    opts = [
+        {"type": heuristics.OPT_PLAY, "index": i} for i in range(len(hand_ids))
+    ] + [{"type": heuristics.OPT_END}]
+    return {
+        "select": {
+            "type": heuristics.SEL_MAIN, "context": 0,
+            "minCount": 1, "maxCount": 1, "option": opts,
+        },
+        "current": {"yourIndex": your_index, "energyAttached": True,
+                    "players": players},
+    }
+
+
+# Near deckout, a hand of only draw trainers is not played; the turn ends instead
+# of milling us to zero.
+def test_play_skips_draw_trainers_near_deckout():
+    obs = _play_main_obs([SUPPORTER_DRAW, ITEM_DRAW], deck_n=4)
+    move = heuristic_agent(obs)
+    end_idx = len(obs["select"]["option"]) - 1
+    assert move == [end_idx]            # END, not either draw trainer
+
+
+# Near deckout, develop a Pokemon rather than draw, even when a draw trainer is
+# the first play option.
+def test_play_prefers_pokemon_over_draw_trainer_near_deckout():
+    obs = _play_main_obs([SUPPORTER_DRAW, POKEMON_PLAY], deck_n=4)
+    move = heuristic_agent(obs)
+    assert move == [1]                  # the Pokemon play, not the supporter
+
+
+# With a healthy deck the conservation is inert and the first play option wins,
+# preserving the prior develop-the-hand behavior.
+def test_play_unchanged_when_deck_healthy():
+    obs = _play_main_obs([SUPPORTER_DRAW, POKEMON_PLAY], deck_n=30)
+    move = heuristic_agent(obs)
+    assert move == [0]                  # first play option, as before
+
+
+# Boundary: at exactly the threshold the guard is active (<=, not <), so a draw
+# trainer is still declined in favor of developing a Pokemon.
+def test_play_conserves_at_threshold_boundary():
+    obs = _play_main_obs([SUPPORTER_DRAW, POKEMON_PLAY],
+                         deck_n=heuristics.DRAW_CONSERVE_THRESHOLD)
+    move = heuristic_agent(obs)
+    assert move == [1]                  # the Pokemon, not the supporter
+
+
+# When deckCount is absent the guard cannot judge the deck size, so it stays
+# inert and the prior first-play behavior holds.
+def test_play_unchanged_when_deck_count_missing():
+    obs = _play_main_obs([SUPPORTER_DRAW, POKEMON_PLAY], deck_n=30)
+    # Drop deckCount so own_deck_count returns None.
+    obs["current"]["players"][0].pop("deckCount")
+    move = heuristic_agent(obs)
+    assert move == [0]                  # first play option, guard inert
+
+
+# A PLAY option carries a hand index, not an area; play_card_id resolves it.
+def test_play_card_id_resolves_from_hand():
+    me = {"hand": [_card(POKEMON_PLAY), _card(SUPPORTER_DRAW)]}
+    assert heuristics.play_card_id({"type": heuristics.OPT_PLAY, "index": 1}, me) \
+        == SUPPORTER_DRAW
+    assert heuristics.play_card_id({"type": heuristics.OPT_PLAY, "index": 9}, me) \
+        is None
+
+
 # --- CARD sub-select support (loss-data driven: early_collapse from a thin bench
 # and self-deckout from over-discarding combo pieces) ---
 

@@ -12,6 +12,9 @@ Design choices, all aimed at a never crash agent that beats the random baseline:
 - Abilities are intentionally not prioritized: a stateless agent that prefers a
   repeatable ability over ending the turn could loop forever. PLAY, ATTACH, and
   EVOLVE each consume a resource, so the turn always makes progress and ends.
+- Near self-deckout the agent stops replaying draw trainers (see
+  CONSERVED_TRAINER_TYPES and DRAW_CONSERVE_THRESHOLD) so the deck survives long
+  enough to close on prizes instead of milling itself to zero.
 - Every path falls through to a guaranteed legal selection.
 """
 from __future__ import annotations
@@ -42,6 +45,10 @@ SEL_YES_NO = 9
 
 # CardType values (api.py CardType enum).
 CARD_POKEMON = 0
+CARD_ITEM = 1
+CARD_TOOL = 2
+CARD_SUPPORTER = 3
+CARD_STADIUM = 4
 CARD_BASIC_ENERGY = 5
 CARD_SPECIAL_ENERGY = 6
 
@@ -330,6 +337,66 @@ def own_deck_count(obs):
     return players[yi].get("deckCount")
 
 
+# When our deck is at or below this, stop voluntarily drilling it down with draw
+# trainers. Real ladder replays (Phase 4 scout) show the deckout losses come not
+# from a single over-draw COUNT but from replaying draw Supporters and Items turn
+# after turn (Mega Signal, Waitress, Lillie's Determination, Cyrano) until the
+# deck hits zero, twice while not behind on prizes. The COUNT guard above never
+# fired in any of those games because the mill was all PLAY actions. Near deckout
+# we still develop Pokemon and attack; only the card-advantage trainer is skipped
+# so the deck survives long enough to close on prizes.
+DRAW_CONSERVE_THRESHOLD = 8
+# Trainer card types we conservatively decline to play near deckout. Card data
+# exposes no "draws cards" flag, so rather than guess we skip every Item and
+# Supporter once the deck is critically low: most that matter in the endgame are
+# the draw/search engine that mills us, and forgoing the rest (a switch, a heal)
+# costs little next to losing the game to an empty deck. Pokemon, energy attaches,
+# Tools, and Stadiums are unaffected.
+CONSERVED_TRAINER_TYPES = frozenset({CARD_ITEM, CARD_SUPPORTER})
+
+
+def play_card_id(opt, me):
+    """The cardId a PLAY option refers to, read from our hand. None if unknown.
+
+    A PLAY option carries a hand index (and no area), so the generic
+    option_card_id, which keys off area, cannot resolve it. Pure, never raises.
+    """
+    cid = opt.get("cardId")
+    if cid:
+        return cid
+    idx = opt.get("index")
+    hand = (me or {}).get("hand") or []
+    if isinstance(idx, int) and 0 <= idx < len(hand) and hand[idx]:
+        return hand[idx].get("id")
+    return None
+
+
+def choose_play(play_opts, me, obs):
+    """Pick which card to PLAY, conserving deck near a self-deckout.
+
+    play_opts is the list of (option_index, option) PLAY pairs. In normal play it
+    keeps the prior behavior (the first play option). When our deck is critically
+    low it refuses to mill: it develops a Pokemon if one can be played, otherwise
+    a non-draw card, and returns None when only draw trainers remain so the caller
+    ends the turn instead of drawing us out. Never raises.
+    """
+    if not play_opts:
+        return None
+    deck_n = own_deck_count(obs)
+    if deck_n is None or deck_n > DRAW_CONSERVE_THRESHOLD:
+        return play_opts[0][0]
+    pokemon_play = non_draw_play = None
+    for oi, opt in play_opts:
+        ct = _card_type(play_card_id(opt, me))
+        if ct == CARD_POKEMON and pokemon_play is None:
+            pokemon_play = oi
+        if ct not in CONSERVED_TRAINER_TYPES and non_draw_play is None:
+            non_draw_play = oi
+    if pokemon_play is not None:
+        return pokemon_play
+    return non_draw_play  # None when only draw trainers remain -> skip the play
+
+
 def cap_count_for_deckout(move, sel, obs) -> list:
     """Cap a voluntary over-draw so we never request more cards than the deck holds.
 
@@ -480,7 +547,9 @@ def choose(obs) -> list:
     if OPT_EVOLVE in groups:
         return [groups[OPT_EVOLVE][0][0]]
     if OPT_PLAY in groups:
-        return [groups[OPT_PLAY][0][0]]
+        play_idx = choose_play(groups[OPT_PLAY], me, obs)
+        if play_idx is not None:
+            return [play_idx]
     if OPT_ATTACH in groups:
         attach = groups[OPT_ATTACH]
         active_attach = next(
