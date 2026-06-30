@@ -281,3 +281,40 @@ lower-risk early_collapse test and is already packaged); trolley is the stronger
 riskier follow-up candidate for a later slot if ultraball's ladder data shows
 early_collapse persists. Master Ball and Buddy-Buddy Poffin are ruled out for the
 reasons above and should not be re-walked.
+
+### Falsified fix: more literal basics instead of a fetcher (morebasics) (2026-07-01)
+
+Every adopted early_collapse fix so far adds a fetcher (Ultra Ball, Precious Trolley)
+rather than literal basics, on the theory that a fetcher pulls a basic on demand. The
+obvious alternative, never tested in isolation, is to just run MORE basic Pokemon. The
+one prior basics test (baseline_v2, Kyogre 2 to 4 with energy 35 to 33) was falsified
+by its ENERGY cut, not by the extra basics, so the clean question stayed open: hold
+energy at 35, keep Maximum Belt, and add basics by cutting a redundant Mega-finder
+instead. Built decks/morebasics.csv = baseline with Mega Signal (1145) 4 to 2 and
+Kyogre (721) 2 to 4: 8 basics instead of 6, energy still 35, Maximum Belt kept. Legal
+by the rule layer plus the engine battle_start check.
+
+Measured both ways (heuristic, alternating first):
+
+| metric                              | baseline | trolley | morebasics |
+|-------------------------------------|---------:|--------:|-----------:|
+| empty-bench collapse rate (n=80)    |    80.0% |   60.0% |      63.7% |
+| overall win rate vs field (n=80)    |    58.8% |   62.5% |      54.6% |
+
+Two findings, both against the hypothesis. (1) On collapse, morebasics (63.7%) is
+EVEN with the fetcher trolley (60.0%), CIs overlapping heavily (52.8 to 73.4% vs 49.0
+to 70.0%): adding two literal basics does not cut empty-bench collapse any more than a
+fetcher does. (2) On win rate, morebasics is the WORST of the three competitive decks
+(54.6% overall vs trolley 62.5%, baseline 58.8%); it loses to trolley head to head
+both ways (morebasics vs trolley 46.2%, trolley vs morebasics 60.0%) and regresses
+versus baseline. Mechanism: the two extra Kyogre are weaker than the Mega Abomasnow
+combo, and cutting two Mega Signal dilutes the combo WITHOUT adding the deck-thinning
+fetch that trolley's Ultra Ball provides (Ultra Ball can still pull Snover to continue
+the combo, a literal Kyogre cannot). So the fetcher approach dominates: same collapse
+reduction, higher win rate.
+
+Verdict: morebasics is NOT a ladder candidate and is deleted (the negative result is
+the artifact, like baseline_v2). This closes the "more literal basics" lever so future
+iterations do not re-walk it, and it RECONFIRMS trolley as the queued next-slot
+submission with fresh head-to-head data: trolley beats both the basics build and the
+incumbent baseline while cutting collapse the most.
