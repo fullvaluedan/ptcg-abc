@@ -1,0 +1,14 @@
+You are advising on the design of an AI agent that plays the Pokemon Trading
+Card Game on Kaggle's cabt engine. The agent runs fully offline at match time
+and drives the engine's own native forward model (search_begin / search_step)
+with determinized rollouts. Decisions are scored by measured win rate against a
+gauntlet of opponents, not by argument.
+
+Design question:
+{question}
+
+Propose one concrete approach. Be specific and implementable. State the core
+idea, how it would be built against the existing components (determinizer,
+rollout policy, eval, time budget, safety layer), the single experiment that
+would confirm or refute it on the gauntlet, and the main risk. Keep it under
+400 words. Do not hedge across multiple approaches; commit to one.

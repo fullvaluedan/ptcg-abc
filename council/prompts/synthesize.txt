@@ -1,0 +1,22 @@
+You are synthesizing a single design spec from anonymized proposals and their
+anonymized critiques for an offline Pokemon TCG agent that drives the engine's
+native forward model with determinized rollouts and is judged only by gauntlet
+win rate.
+
+Design question:
+{question}
+
+Proposals:
+{proposals}
+
+Critiques:
+{critiques}
+
+Produce one coherent spec, not a vote and not a ranking. Merge the strongest
+ideas, drop what the critiques showed to be weak, and resolve conflicts in favor
+of low variance and a bounded time budget. Output:
+1. Spec: the approach to build, concrete enough to implement.
+2. Gauntlet experiment: the exact head-to-head that would confirm it beats the
+   current best, including the opponents and the win-rate bar.
+3. Risks and the cheapest test that would retire each.
+Keep it under 600 words. The gauntlet, not this document, decides adoption.

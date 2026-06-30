@@ -1,0 +1,16 @@
+Below are anonymized proposals answering the same design question for an offline
+Pokemon TCG agent that drives the engine's native forward model with
+determinized rollouts and is judged only by gauntlet win rate.
+
+Design question:
+{question}
+
+Proposals:
+{proposals}
+
+Critique these proposals on the merits only. For each, name its strongest idea
+and its most likely failure mode under measurement (cost in the time bank,
+variance, determinization validity, or legality risk). Do not pick a winner and
+do not rank them. Surface concrete ideas worth keeping or combining, and any
+hidden assumption that a gauntlet experiment should test first. Keep it under
+400 words.
