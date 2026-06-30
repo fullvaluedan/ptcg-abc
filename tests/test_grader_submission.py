@@ -35,6 +35,7 @@ _SEARCH_EXTRAS = [
     str(SEARCH / "eval.py"),
     str(SEARCH / "determinize.py"),
     str(SEARCH / "timebudget.py"),
+    str(SEARCH / "endgame.py"),
     str(ANALYSIS / "archetype.py"),
 ]
 

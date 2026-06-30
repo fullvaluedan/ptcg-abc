@@ -23,10 +23,12 @@ except ImportError:  # inside a submission, support modules sit at the top level
 
 try:
     from search import rollout
+    from search import endgame as endgame_solver
     from search.determinize import determinize
     from search.timebudget import TimeBudget
 except ImportError:
     import rollout
+    import endgame as endgame_solver
     from determinize import determinize
     from timebudget import TimeBudget
 
@@ -72,6 +74,10 @@ _MAX_DETS = int(os.environ.get("PTCG_SEARCH_DETS", "0")) or None
 # terminal result; a positive value stops early and trusts the board value
 # function, trading rollout accuracy for more samples per decision.
 _ROLLOUT_DEPTH = int(os.environ.get("PTCG_ROLLOUT_DEPTH", "0")) or None
+# Endgame solver (U9): in a small, near-decided position, spend a larger slice of
+# the bank and more determinizations on the pivotal decision. On by default; the
+# gauntlet can disable it (PTCG_ENDGAME=0) to A/B the effect.
+_ENDGAME = os.environ.get("PTCG_ENDGAME", "1") != "0"
 _BUDGET = TimeBudget(soft_cap=_SOFT_CAP)
 
 
@@ -162,7 +168,13 @@ def agent(obs):
         # Safety 2 (KTD2): once the thinking bank is at risk, skip search and
         # answer instantly from the heuristic so we never approach a timeout.
         if _searchable(sel) and obs.get("search_begin_input") and not _BUDGET.at_risk:
-            budget = _BUDGET.allot()
+            # In the endgame, raise the per-move soft cap and widen the
+            # determinization budget so the pivotal decision is searched harder;
+            # both stay bounded by the hard time guard inside allot.
+            endgame = _ENDGAME and endgame_solver.is_endgame(obs)
+            cap = endgame_solver.endgame_soft_cap(_SOFT_CAP) if endgame else None
+            dets = endgame_solver.endgame_dets(_MAX_DETS) if endgame else _MAX_DETS
+            budget = _BUDGET.allot(cap)
             if budget > 0:
                 start = time.perf_counter()
                 # Bias the determinization prior toward the opponent's likely
@@ -174,7 +186,7 @@ def agent(obs):
                     prior = None
                 move = rollout.search_decision(
                     obs, _DECK, budget, _RNG, determinize, opponent_prior=prior,
-                    max_determinizations=_MAX_DETS, value_depth=_ROLLOUT_DEPTH,
+                    max_determinizations=dets, value_depth=_ROLLOUT_DEPTH,
                 )
                 _BUDGET.record(time.perf_counter() - start)
                 if move is not None and _is_legal(move, sel):

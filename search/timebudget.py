@@ -35,12 +35,19 @@ class TimeBudget:
         self.soft_cap = soft_cap
         self.spent = 0.0
 
-    def allot(self) -> float:
-        """Seconds to spend on the current decision (0 once the bank is at risk)."""
+    def allot(self, soft_cap=None) -> float:
+        """Seconds to spend on the current decision (0 once the bank is at risk).
+
+        A per-decision soft_cap override raises the ceiling for a pivotal decision
+        (the endgame solver passes a larger cap), but the result is still bounded
+        by the remaining-bank reserve fraction, so the hard time guard always holds
+        and a single boosted decision can never approach a timeout.
+        """
+        cap = self.soft_cap if soft_cap is None else soft_cap
         remaining = self.hard_bank - self.spent
         if remaining <= 0:
             return 0.0
-        return max(0.0, min(self.soft_cap, remaining * RESERVE_FRACTION))
+        return max(0.0, min(cap, remaining * RESERVE_FRACTION))
 
     def record(self, seconds: float) -> None:
         self.spent += max(0.0, seconds)
