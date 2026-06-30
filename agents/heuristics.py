@@ -430,9 +430,15 @@ def choose_play(play_opts, me, obs):
     play_opts is the list of (option_index, option) PLAY pairs. In normal play it
     keeps the prior behavior (the first play option). When our deck is critically
     low it refuses to mill: it develops a Pokemon if one can be played, otherwise
-    any play that does not drill the deck (an energy attach, a bench-develop
-    trainer), and returns None when only deck-drilling trainers remain so the
-    caller ends the turn instead of drawing us out. Never raises.
+    any play it can confirm does not drill the deck (an energy attach, a
+    bench-develop trainer), and returns None when only deck-drilling or
+    unidentifiable plays remain so the caller ends the turn instead of drawing us
+    out. A play whose card id cannot be resolved from the observation is treated
+    as a potential driller near deckout: the guard cannot confirm it is safe, so
+    it must not fail open and mill us (this matches _drills_deck staying
+    conservative when a trainer's text is missing). In real play your own hand
+    carries card ids, so this branch is inert; it only bites a degenerate
+    observation, never a normal develop play. Never raises.
     """
     if not play_opts:
         return None
@@ -444,11 +450,11 @@ def choose_play(play_opts, me, obs):
         cid = play_card_id(opt, me)
         if _card_type(cid) == CARD_POKEMON and pokemon_play is None:
             pokemon_play = oi
-        if not _drills_deck(cid) and non_draw_play is None:
+        if cid is not None and not _drills_deck(cid) and non_draw_play is None:
             non_draw_play = oi
     if pokemon_play is not None:
         return pokemon_play
-    return non_draw_play  # None when only deck-drilling trainers remain -> skip
+    return non_draw_play  # None when only drilling/unknown plays remain -> skip
 
 
 def cap_count_for_deckout(move, sel, obs) -> list:

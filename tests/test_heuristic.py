@@ -297,6 +297,30 @@ def test_play_prefers_develop_over_drill_near_deckout():
     assert move == [1]                  # Waitress, not the searching Supporter
 
 
+# Near deckout a PLAY option whose card id cannot be resolved must not fail open:
+# the guard cannot prove it is safe, so it is treated as a potential driller and
+# the turn ends rather than milling us. (Card data ships our own hand with ids, so
+# this only bites a degenerate observation; it closes the one path by which a
+# drilling trainer could slip the guard.) The option points at an empty hand slot
+# so play_card_id returns None.
+def test_play_skips_unidentifiable_play_near_deckout():
+    obs = _play_main_obs([SUPPORTER_DRAW], deck_n=4)
+    obs["current"]["players"][0]["hand"] = []   # option index no longer resolves
+    move = heuristic_agent(obs)
+    end_idx = len(obs["select"]["option"]) - 1
+    assert move == [end_idx]            # END, not the unidentifiable play
+
+
+# The same unidentifiable play with a healthy deck is still played: the guard is
+# inert above the threshold, so normal develop-the-hand behavior is preserved and
+# this hardening cannot regress ordinary play.
+def test_play_keeps_unidentifiable_play_when_deck_healthy():
+    obs = _play_main_obs([SUPPORTER_DRAW], deck_n=30)
+    obs["current"]["players"][0]["hand"] = []
+    move = heuristic_agent(obs)
+    assert move == [0]                  # first play option, guard inert
+
+
 # The drill predicate reads the effect text: search/draw-into-hand trainers drill,
 # develop trainers and non-trainers do not. Conservative when text is missing.
 def test_drills_deck_predicate_by_effect_text():
