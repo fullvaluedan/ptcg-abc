@@ -60,6 +60,15 @@ SHIPPED_AGENTS = [
         id="heuristic-trolley",
     ),
     pytest.param(str(AGENTS / "agent_search.py"), str(DECKS / "baseline.csv"), _SEARCH_EXTRAS, id="search"),
+    # The exact build queued for the next free ladder slot: the search agent
+    # piloting the Precious Trolley deck. search+baseline proves the search stack
+    # loads and plays; heuristic+trolley proves the trolley deck loads and plays;
+    # but the deployed batch is search PILOTING trolley, a distinct integration
+    # (determinize, rollout, and the heuristic rollout policy all run over the
+    # trolley deck's card composition to a terminal reward). Lock it so a build or
+    # pilot regression is caught here instead of erroring the submission and
+    # burning a hard-won daily slot.
+    pytest.param(str(AGENTS / "agent_search.py"), str(DECKS / "trolley.csv"), _SEARCH_EXTRAS, id="search-trolley"),
 ]
 
 
