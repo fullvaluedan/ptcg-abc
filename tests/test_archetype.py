@@ -66,7 +66,11 @@ def _obs(opp, your_index=0):
 
 
 @pytest.fixture(autouse=True)
-def _clean_registry():
+def _clean_registry(monkeypatch):
+    # Isolate the belief-mechanism tests from the shipped builtin field decks: with
+    # PTCG_FIELD_PRIOR=0 the registry holds only what a test registers, so a shipped
+    # archetype whose Pokemon happen to overlap a test signature cannot skew belief.
+    monkeypatch.setenv("PTCG_FIELD_PRIOR", "0")
     archetype.clear_archetypes()
     yield
     archetype.clear_archetypes()
@@ -176,3 +180,61 @@ def test_fit_pads_from_pool_then_energy():
     # With no pool, padding falls back to basic energy.
     out2 = _fit([], 2, random.Random(0))
     assert out2 == [_filler_energy_id(), _filler_energy_id()]
+
+
+# --- Builtin field prior (the shipped registry models the real ladder field) ---
+
+
+# Test scenario: the shipped builtin field decks are active by default, so a card
+# distinctive to a meta archetype (here Archaludon ex, id 169) moves the belief to
+# that archetype and makes its decklist the prior, with no manual registration.
+def test_builtin_field_prior_recognizes_meta_deck(monkeypatch):
+    monkeypatch.delenv("PTCG_FIELD_PRIOR", raising=False)  # default on
+    deck = _deck()
+    opp = _player(active=[_slot(169)])  # Archaludon ex, unique to the metal deck
+    report = archetype.belief_report(_obs(opp), deck)
+    assert report["map"] == "meta_archaludon"
+    prior = archetype.opponent_prior(_obs(opp), deck)
+    assert len(prior) == 60
+    # The prior is now the field deck, not our mirror deck.
+    assert Counter(prior) == Counter(archetype._BUILTIN_DECKLISTS["meta_archaludon"])
+    assert Counter(prior) != Counter(deck)
+
+
+# Test scenario: PTCG_FIELD_PRIOR=0 disables the builtin field decks, so the same
+# reveal produces no belief and the prior falls back to the mirror deck. This is
+# the A/B control the gauntlet uses to isolate the field prior's ladder effect.
+def test_field_prior_disabled_falls_back_to_mirror(monkeypatch):
+    monkeypatch.setenv("PTCG_FIELD_PRIOR", "0")
+    deck = _deck()
+    opp = _player(active=[_slot(169)])
+    assert archetype.belief_report(_obs(opp), deck)["map"] is None
+    prior = archetype.opponent_prior(_obs(opp), deck)
+    # Base is the mirror deck (the reveal 169 is merged in over one basic energy),
+    # NOT the Archaludon field deck: disabling the field prior removes it as a base.
+    assert Counter(prior) != Counter(archetype._BUILTIN_DECKLISTS["meta_archaludon"])
+    assert Counter(deck)[169] == 0 and Counter(prior)[169] == 1  # reveal forced in
+    # Every non-revealed card still comes from the mirror deck.
+    assert sum((Counter(prior) - Counter({169: 1})).values()) == 59
+
+
+# Test scenario: the two Grimmsnarl variants stay distinct. A tell unique to the
+# tonakaiiii list (Snorunt, id 860) picks it over the kazuki list even though a
+# shared Grimmsnarl card (id 646) matches both, because tonakaiiii explains more.
+def test_field_prior_distinguishes_grimmsnarl_variants(monkeypatch):
+    monkeypatch.delenv("PTCG_FIELD_PRIOR", raising=False)
+    deck = _deck()
+    opp = _player(active=[_slot(646)], bench=[_slot(860)])
+    report = archetype.belief_report(_obs(opp), deck)
+    assert report["map"] == "meta_grimmsnarl_tonakaiiii"
+    assert (report["belief"]["meta_grimmsnarl_tonakaiiii"]
+            > report["belief"].get("meta_grimmsnarl", 0.0))
+
+
+# Test scenario: signatures drop basic energy, so a bare basic-energy reveal is not
+# a tell for any field deck (every deck runs energy) and the prior stays the mirror.
+def test_field_prior_ignores_basic_energy_reveal(monkeypatch):
+    monkeypatch.delenv("PTCG_FIELD_PRIOR", raising=False)
+    deck = _deck()
+    opp = _player(active=[_slot(8, energies=[8])])  # id 8 is a basic energy
+    assert archetype.belief_report(_obs(opp), deck)["map"] is None

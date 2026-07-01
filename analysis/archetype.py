@@ -21,14 +21,20 @@ Two layers sit here:
 The submitted agent calls opponent_prior() each decision and hands the result to
 the determinizer. This module is self contained over cg.api (it reuses the
 determinizer's card index, which locates cg lazily), so it ships next to main.py
-inside a submission. With no archetypes registered the practical effect is the
-mirror prior guaranteed to contain the revealed cards; the archetype layer
-activates once scouted decklists are registered.
+inside a submission. The builtin registry now carries the real field: the three
+highest-adoption ladder archetypes harvested from the 2026-06-30 dataset (Metal /
+Archaludon ex and the two top-players' Dark / Grimmsnarl ex variants). So the
+determinization prior models the actual opponents we face instead of assuming the
+opponent mirrors our own deck, which is the mirror-prior bias the search variance
+penalty could only defend against, not fix. Setting PTCG_FIELD_PRIOR=0 disables
+the builtin field decks (mirror-only prior) so the effect can be A/B tested.
 """
 from __future__ import annotations
 
+import os
 from collections import Counter
 from dataclasses import dataclass
+from functools import lru_cache
 
 try:  # package layout in the repo
     from search.determinize import (
@@ -65,17 +71,69 @@ class Archetype:
     signature: frozenset
 
 
-# Built in archetypes ship with the submission. Empty until scouted decklists are
-# embedded here (a U6 follow up); register_archetype/load_decks_dir feed the
-# registry at development and test time without touching this list.
-_BUILTIN_ARCHETYPES: list = []
+# Built in field archetypes that ship with the submission: the highest-adoption
+# ladder decks harvested from the 2026-06-30 episode dataset (analysis/meta.md).
+# These are the exact 60 card lists in decks/meta_*.csv, embedded here so the prior
+# ships self contained (the decks directory is not bundled). Registering them by
+# their decks-directory stem matches what load_decks_dir would produce, so tie
+# breaks on name stay deterministic. Metal / Archaludon ex is the widest-adopted
+# pillar; the two Grimmsnarl variants are the top-two players' signatures, kept
+# distinct so a tell unique to one (Froslass line, Petrel) can pick it over the
+# other. register_archetype/load_decks_dir still feed _REGISTERED on top.
+_BUILTIN_DECKLISTS: dict = {
+    "meta_archaludon": (
+        169, 169, 169, 169, 190, 190, 190, 190, 666, 666, 666, 666, 1244, 57,
+        1152, 1152, 1152, 1152, 1121, 1121, 1121, 1121, 1122, 1122, 1122, 1122,
+        1097, 1097, 1097, 1147, 1147, 1147, 1147, 1159, 1182, 1182, 1182, 1182,
+        1185, 1185, 1185, 1185, 1227, 1227, 1227, 1227, 1244, 1244, 1244,
+        8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    ),
+    "meta_grimmsnarl": (
+        646, 646, 646, 646, 647, 647, 647, 648, 648, 648, 112, 112, 112, 112,
+        305, 305, 305, 66, 66, 649, 1086, 1086, 1086, 1086, 1152, 1152, 1152,
+        1152, 1079, 1079, 1079, 1097, 1097, 1119, 1139, 1159, 1227, 1227, 1227,
+        1227, 1231, 1231, 1231, 1231, 1197, 1197, 1259, 1259, 1259, 1259,
+        7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+    ),
+    "meta_grimmsnarl_tonakaiiii": (
+        648, 648, 648, 647, 647, 647, 646, 646, 646, 646, 104, 104, 860, 860,
+        112, 112, 112, 112, 1086, 1086, 1086, 1086, 1152, 1152, 1152, 1152,
+        1079, 1079, 1079, 1097, 1097, 1097, 1080, 1227, 1227, 1227, 1227, 1219,
+        1219, 1219, 1219, 1182, 1182, 1231, 1161, 1161, 1259, 1259, 1259, 1259,
+        7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+    ),
+}
 _REGISTERED: list = []
+
+
+@lru_cache(maxsize=1)
+def _builtin_archetypes() -> tuple:
+    """The embedded field archetypes as Archetype objects, built once.
+
+    Signatures need the card index (to drop basic energy), which locates cg
+    lazily, so building is deferred to the first belief inference at decision time
+    rather than forced at import. Cached because the signatures never change.
+    """
+    return tuple(
+        Archetype(name=name, decklist=deck, signature=signature_of(deck))
+        for name, deck in _BUILTIN_DECKLISTS.items()
+    )
+
+
+def _field_prior_enabled() -> bool:
+    """Whether the builtin field archetypes are active (PTCG_FIELD_PRIOR!=0).
+
+    Read at call time (not import) so a gauntlet can A/B the field prior against
+    the mirror-only prior within one process by toggling the environment.
+    """
+    return os.environ.get("PTCG_FIELD_PRIOR", "1") != "0"
 
 
 def _archetypes(explicit=None) -> list:
     if explicit is not None:
         return list(explicit)
-    return list(_BUILTIN_ARCHETYPES) + list(_REGISTERED)
+    builtin = list(_builtin_archetypes()) if _field_prior_enabled() else []
+    return builtin + list(_REGISTERED)
 
 
 def register_archetype(name: str, decklist) -> Archetype:
