@@ -19,7 +19,11 @@ def _state(my_prizes, opp_prizes, deck_n, hand_n=0):
         "yourIndex": 0,
         "players": [
             {
-                "active": [None], "bench": [], "deckCount": deck_n,
+                # A healthy bench (>= THIN_BENCH) so the agent's early_collapse
+                # deferral does not fire and search runs: these tests exercise the
+                # endgame/prize-race budget tiers, not the thin-bench guard. The
+                # triggers read prizes/deck/hand only, so the bench is inert here.
+                "active": [None], "bench": [{"id": 1}, {"id": 2}], "deckCount": deck_n,
                 "prize": [None] * my_prizes, "hand": [None] * hand_n,
             },
             {"active": [None], "bench": [], "prize": [None] * opp_prizes},

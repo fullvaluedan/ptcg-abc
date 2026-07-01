@@ -147,7 +147,10 @@ def test_agent_passes_robust_coef_to_search(monkeypatch):
     state = {
         "yourIndex": 0,
         "players": [
-            {"active": [None], "bench": [], "deckCount": 40,
+            # A healthy bench (>= THIN_BENCH) so the early_collapse deferral does
+            # not fire and search actually runs; this test is about the robust
+            # coefficient reaching the driver, not the bench guard.
+            {"active": [None], "bench": [{"id": 1}, {"id": 2}], "deckCount": 40,
              "prize": [None] * 5, "hand": []},
             {"active": [None], "bench": [], "prize": [None] * 5},
         ],
@@ -165,6 +168,42 @@ def test_agent_passes_robust_coef_to_search(monkeypatch):
     monkeypatch.setattr(agent_search.rollout, "search_decision", spy)
     agent_search.agent(obs)
     assert captured.get("robust_coef") == agent_search._ROBUST_COEF
+
+
+def test_agent_defers_to_heuristic_when_bench_is_thin(monkeypatch):
+    """A thin bench skips search: the proven bench-development guard drives the turn.
+
+    Recovered on-ladder search (ref 54218335) still lost 9 of 11 games to
+    early_collapse because a searched MAIN move bypasses the heuristic's bench
+    guard. On a thin bench the agent must NOT reach search_decision and must
+    return a legal heuristic move instead, transplanting the guard into search.
+    """
+    from agents import heuristics
+
+    sel = {
+        "type": heuristics.SEL_MAIN, "minCount": 1, "maxCount": 1,
+        "option": [{"type": heuristics.OPT_END}, {"type": heuristics.OPT_PLAY}],
+    }
+    state = {
+        "yourIndex": 0,
+        "players": [
+            # Lone active, empty bench: the early_collapse danger zone.
+            {"active": [None], "bench": [], "deckCount": 40,
+             "prize": [None] * 5, "hand": []},
+            {"active": [None], "bench": [], "prize": [None] * 5},
+        ],
+    }
+    obs = {"select": sel, "current": state, "search_begin_input": "x"}
+    assert heuristics._bench_is_thin(obs) is True
+
+    def tracker(*a, **k):
+        raise AssertionError("search must not run on a thin bench")
+
+    monkeypatch.setattr(agent_search, "_BUDGET", TimeBudget(soft_cap=0.5))
+    monkeypatch.setattr(agent_search.rollout, "search_api_available", lambda: True)
+    monkeypatch.setattr(agent_search.rollout, "search_decision", tracker)
+    move = agent_search.agent(obs)
+    assert agent_search._is_legal(move, sel)
 
 
 # --- integration: capture a real MAIN observation ----------------------------

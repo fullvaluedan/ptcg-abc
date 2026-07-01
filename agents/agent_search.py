@@ -131,11 +131,22 @@ def agent(obs):
         # is inert on the ladder; see rollout.search_api_available). The heuristic
         # is then our policy, which is exactly the fallback below, so this only
         # avoids paying a swallowed ImportError on every searchable decision.
+        # Safety 3 (early_collapse): when our bench is thin, defer the whole MAIN
+        # decision to the heuristic instead of searching. Recovered on-ladder
+        # replays (ref 54218335, verified search_ran with ~6.5s bank draws) still
+        # lost 9 of 11 games to early_collapse: search returns a legal move, which
+        # bypasses the heuristic's bench-development guard, so the search agent
+        # boards itself out exactly the way the pre-guard heuristic did. The guard
+        # (bench a Basic first when the bench is thin) is the proven fix for the
+        # #1 loss bucket; running it on thin-bench turns transplants it into the
+        # search agent's hot path, and search still runs on healthy-bench turns
+        # where its lookahead pays off.
         if (
             _searchable(sel)
             and obs.get("search_begin_input")
             and not _BUDGET.at_risk
             and rollout.search_api_available()
+            and not heuristics._bench_is_thin(obs)
         ):
             # Escalate the per-move soft cap and determinization budget on pivotal
             # decisions so they are searched harder; both stay bounded by the hard
