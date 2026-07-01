@@ -18,10 +18,9 @@ TCG search agent: any divergence from the real rules silently poisons every roll
 Using the engine's own model removes that risk, so in self-play our rollouts are not an
 approximation of the game, they are the game.
 
-That decision built a genuinely strong self-play agent. But the central honest finding
+That decision built a strong self-play agent. But the central honest finding
 is that the *scored* engine withholds the forward model at match time, so search is
-dormant on the ladder and the heuristic underneath is what actually plays. How we
-proved that, and what we did about it, is the spine of the story below. The search
+dormant on the ladder and the heuristic underneath is what actually plays. The search
 machinery remains real and measured: the crucible the laddering agent was forged in,
 not a claim about what runs on Kaggle.
 
@@ -110,28 +109,29 @@ The proof it worked lives in the loss buckets, not the leaderboard number. Acros
 fresh ladder pulls of every heuristic-family submission, self-deckout fell from the
 single most common loss to near zero, and the deck-thinness collapse it had masked
 surfaced as the new top leak. The TrueSkill point scores are too noisy to trust here:
-over small, unequal opponent samples the heuristic builds cluster between roughly 460
-and 590 and reorder between pulls, and an early pull that showed the guarded build far
-ahead did not hold up, so we trust the measured bucket shift over the leaderboard
+over small, unequal samples the heuristic builds cluster between roughly 460 and 590
+and reorder between pulls, so we trust the measured bucket shift over the leaderboard
 wobble. A guard living inside the heuristic, the layer that executes every match,
-erased a real loss mode the dormant search could never have touched: the project's
-clearest evidence about which levers actually move the scored outcome.
+erased a real loss mode the dormant search could never have touched.
 
 Second, with deckouts fixed, the next leak was early collapse: about half the
 remaining losses ended by turn seven with all six prizes still ours, a lone basic
 attacker knocked out while the bench was empty. This is deck thinness, not misplay,
 and the heuristic cannot reach it: it already benches every Basic it draws, so an
 empty bench means the hand held no second Basic. The fix has to be in the deck. The
-honest part is the falsified first attempt: trading energy for an extra basic was
-rejected because cutting energy cost more games to lost damage than the extra basic
-saved. An Ultra Ball package that adds a basic-search item without touching the energy
-count came next and measured even in self-play, but the replays retired it as the lead
-candidate: the collapse lands as early as turn three, before a discard-cost fetch like
-Ultra Ball can reliably be afforded. The chosen lever is Precious Trolley, an item that
-puts a Basic straight onto the bench for free, exactly the turn the collapse would
-fire, on the same 35-energy deck so the combo is untouched. It is built, deck-legal,
-grader-safe, and waiting on a scored slot, because its only upside, fewer empty-bench
-openings, shows only against the diverse ladder field.
+honest part is the falsified attempts: trading energy for a basic lost more games to
+reduced damage than the extra basic saved, and an Ultra Ball fetch measured
+even but was retired because its discard cost cannot be afforded by turn three, when
+the collapse lands. The chosen lever is Precious Trolley, an item
+that puts a Basic straight onto the bench for free, exactly the turn the collapse would
+fire, on the same 35-energy deck so the combo is untouched. On a scored slot it became
+our best result: publicScore 850 settling to 755, roughly 160 points ahead of the
+dormant-search build and every heuristic floor. The leak was in the deck, not the
+code. Its own ladder replays add the honest coda: the deck wins three of four public
+games, and the lone loss is no longer the turn-three opening board-out but a
+turn-thirteen version of the same signature, bench at zero with the deck still full
+and four prizes conceded. The next lever, submitted and validating, benches a Basic
+before any other play whenever the bench runs thin, rebuilding the board mid-game.
 
 ## The deck concept
 
@@ -140,12 +140,11 @@ Mega Abomasnow ex, a 350 HP body whose attack Hammer-lanche costs two energy and
 discards the top six cards of our deck, dealing 100 damage for every Basic Water
 Energy discarded. The deck runs 35 Basic Water Energy, so the top six average roughly
 three energy: a two-energy attack averaging over 300 damage from a 350 HP wall. Two
-Kyogre recycle discarded energy. It is one of a two-deck portfolio. A submission
-carries a single deck, so the portfolio is a design statement as much as a hedge: a
-deck otherwise weaker can be the right answer
-to a specific archetype. The second is a mono-fire control build leaning on type
-weakness, routing a 130-damage Volcanion for 260 to move a grass-tempo matchup from
-about 80/20 against to even. The arbiter is the gauntlet: build, measure, submit the
+Kyogre recycle discarded energy. It is one of a two-deck portfolio; since a submission
+carries a single deck, the portfolio is a design statement as much as a hedge, where a
+deck otherwise weaker can be the right answer to a specific archetype. The second is a
+mono-fire control build leaning on type weakness, routing a 130-damage Volcanion for
+260 to move a grass-tempo matchup from about 80/20 against to even. The arbiter is the gauntlet: build, measure, submit the
 deck the data ranks highest.
 
 ## Design tradeoffs and why they are defensible
