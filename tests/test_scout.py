@@ -705,3 +705,20 @@ def test_search_activity_over_directory(tmp_path):
     assert agg["games"] == 2
     assert agg["verdict"] == "search_ran"
     assert len(agg["per_game"]) == 2
+
+
+def test_search_activity_keeps_self_play_by_default(tmp_path):
+    # The verify channel measures OUR agent's own compute, which is opponent
+    # agnostic: a self-play replay carries our search on both seats and is valid
+    # ground truth. The default must KEEP it (dropping the only pulled self-match
+    # once printed a false "inert" verdict for the 54218335 search build).
+    rep = _main_replay([600.0, 599.5])
+    rep["info"] = {"TeamNames": ["Dan Arreola", "Dan Arreola"]}
+    json.dump(rep, open(tmp_path / "selfplay.json", "w"))
+    agg = scout.search_activity_dir(tmp_path)
+    assert agg["games"] == 1
+    assert agg["verdict"] == "search_ran"
+    # Opting into the loss-report behaviour drops the self-match, leaving nothing.
+    dropped = scout.search_activity_dir(tmp_path, skip_self_play=True)
+    assert dropped["games"] == 0
+    assert dropped["verdict"] == "inert"

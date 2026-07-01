@@ -254,13 +254,19 @@ def report(replay_dir, team_name: str = OUR_TEAM, our_index: int = 0,
 
 
 def search_activity_dir(replay_dir, team_name: str = OUR_TEAM, our_index: int = 0,
-                        skip_self_play: bool = True) -> dict:
+                        skip_self_play: bool = False) -> dict:
     """Verify channel: did determinized search actually run over these replays.
 
     Parses every replay in a directory (our seat detected per game) and rolls up
     the per-decision overage-bank drawdown on our searchable moves. The aggregate
     verdict answers, from real ladder replays, whether an on-ladder search build
     recovered the forward model or stayed inert on the heuristic.
+
+    Self-play games are KEPT by default here (unlike the loss report). This
+    channel measures OUR agent's own per-decision compute, which is opponent
+    agnostic: a self-play replay carries our search on both seats and is valid
+    ground truth. Skipping it silently discards usable evidence and can print a
+    false "inert" verdict when the only pulled replay is a self-match.
     """
     digests = digest_dir(replay_dir, team_name=team_name, our_index=our_index,
                          skip_self_play=skip_self_play)
@@ -306,6 +312,8 @@ def main():
     sa.add_argument("dir", nargs="?", default=str(REPLAYS_DIR))
     sa.add_argument("--team", default=OUR_TEAM, help="our team name in info.TeamNames")
     sa.add_argument("--our-index", type=int, default=0, help="fallback seat when team is absent")
+    sa.add_argument("--skip-self-play", action="store_true",
+                    help="drop self-play games (default keeps them: our search runs on both seats)")
 
     sp = sub.add_parser("subs", help="list our submissions (ref, status, score)")
 
@@ -326,7 +334,8 @@ def main():
         rep = report(args.dir, team_name=args.team, our_index=args.our_index)
         _print_report(rep, args.dir)
     elif args.cmd == "search-activity":
-        agg = search_activity_dir(args.dir, team_name=args.team, our_index=args.our_index)
+        agg = search_activity_dir(args.dir, team_name=args.team, our_index=args.our_index,
+                                  skip_self_play=args.skip_self_play)
         _print_search_activity(agg, args.dir)
     elif args.cmd == "subs":
         res = list_submissions()
