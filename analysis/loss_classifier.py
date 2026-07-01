@@ -47,6 +47,17 @@ NEAR_DECKOUT_DECK = 1
 START_PRIZES = 6
 # Cumulative thinking bank per player per match (cabt.json remainingOverageTime).
 BANK_S = 600.0
+# SelectType MAIN (api.py SelectType enum): the top-of-turn decision the search
+# agent runs its determinized forward model on. Kept local so this module stays
+# pure (importing agents.heuristics would pull the card DB and native engine).
+SEL_MAIN = 0
+# A searchable decision that draws at least this many seconds from the overage
+# bank shows the determinized forward model actually ran. An inert search (the
+# match-time engine exposes card data but not search_*, so the agent falls back
+# to the heuristic) draws ~0.02 to 0.05s per MAIN decision; a working search
+# spends toward its 0.5s soft cap. A 0.15s floor cleanly separates the two
+# without tripping on scheduler jitter. See analysis/ladder_search_inert.md.
+SEARCH_ACTIVE_S = 0.15
 
 BUCKETS = (
     "slow_search",
@@ -150,6 +161,13 @@ def parse_replay(replay, our_index: int = 0) -> dict:
                     "player": player,
                     "turn": turn,
                     "n_options": len(sel.get("option") or []),
+                    # Select shape, kept so the verify channel can isolate the
+                    # decisions the search agent would actually run its forward
+                    # model on (a MAIN, single-pick, multi-option select). See
+                    # search_activity below.
+                    "sel_type": sel.get("type"),
+                    "min_count": sel.get("minCount", 1),
+                    "max_count": sel.get("maxCount", 1),
                     "my_prize": prizes[player],
                     "opp_prize": prizes[1 - player],
                     "overage": overage,
@@ -288,6 +306,66 @@ def _final_opp_remaining(digest, ours):
         if d.get("opp_prize") is not None:
             return d["opp_prize"]
     return None
+
+
+def _is_searchable(d) -> bool:
+    """True when a decision has the shape the search agent runs its model on.
+
+    Mirrors agents.agent_search._searchable so the verify channel counts exactly
+    the decisions the agent would have searched: a MAIN select with a single pick
+    among more than one option.
+    """
+    return (
+        d.get("sel_type") == SEL_MAIN
+        and d.get("max_count") == 1
+        and (d.get("min_count") or 1) <= 1
+        and (d.get("n_options") or 0) > 1
+    )
+
+
+def search_activity(digest: dict, active_s: float = SEARCH_ACTIVE_S) -> dict:
+    """Measure whether determinized search actually ran on our searchable moves.
+
+    The competition sets no per-move base time and gives each player a single
+    ~600s overage bank, so the drop in that bank per decision IS the wall-clock
+    thinking time. Over OUR searchable decisions this returns the count and the
+    max and mean bank draw, plus a boolean verdict: search_ran is True when the
+    largest draw clears active_s. That single number decides whether an on-ladder
+    search build recovered the forward model (~0.5s draws) or stayed inert and
+    fell back to the heuristic (~0.02s draws). See analysis/ladder_search_inert.md.
+    """
+    ours = digest.get("our_decisions") or []
+    searchable = [d for d in ours if _is_searchable(d)]
+    draws = [d["decision_time"] for d in searchable if d.get("decision_time") is not None]
+    max_draw = max(draws) if draws else 0.0
+    mean_draw = (sum(draws) / len(draws)) if draws else 0.0
+    return {
+        "outcome": digest.get("outcome"),
+        "searchable": len(searchable),
+        "max_draw": max_draw,
+        "mean_draw": mean_draw,
+        "search_ran": max_draw >= active_s,
+    }
+
+
+def aggregate_search_activity(digests, active_s: float = SEARCH_ACTIVE_S) -> dict:
+    """Roll search_activity across a batch of replays into one verdict.
+
+    A build is judged to have run search on the ladder when at least one game
+    shows a searchable decision drawing past active_s. Games with no searchable
+    decision (forced lines, all single-option turns) do not count against it.
+    """
+    acts = [search_activity(dg, active_s=active_s) for dg in digests]
+    with_searchable = [a for a in acts if a["searchable"] > 0]
+    ran = [a for a in with_searchable if a["search_ran"]]
+    return {
+        "games": len(acts),
+        "games_with_searchable": len(with_searchable),
+        "games_search_ran": len(ran),
+        "total_searchable_decisions": sum(a["searchable"] for a in acts),
+        "max_draw": max((a["max_draw"] for a in with_searchable), default=0.0),
+        "verdict": "search_ran" if ran else "inert",
+    }
 
 
 def classify_batch(digests, thresholds: dict | None = None) -> dict:

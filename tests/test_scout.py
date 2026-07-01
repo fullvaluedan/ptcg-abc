@@ -614,3 +614,94 @@ def test_tally_matchups_counts_and_ignores_unknown():
     assert tally["totals"] == {"win": 1, "loss": 2, "draw": 0}
     assert tally["per"]["Mega Starmie ex"] == {"win": 1, "loss": 1, "draw": 0}
     assert tally["per"]["Dragapult ex"] == {"win": 0, "loss": 1, "draw": 0}
+
+
+def _main_decision(player, n_options, overage):
+    """A MAIN (searchable) per-player record with a set overage bank reading."""
+    return {
+        "action": [0],
+        "status": "ACTIVE",
+        "reward": 0,
+        "observation": {
+            "remainingOverageTime": overage,
+            "select": {"type": 0, "option": list(range(n_options)),
+                       "minCount": 1, "maxCount": 1},
+            "current": {"yourIndex": player, "turn": 3,
+                        "players": [{"prize": [None] * 4}, {"prize": [None] * 4}]},
+        },
+    }
+
+
+def _main_replay(overages, player=0, n_options=3, rewards=(1, -1)):
+    """A replay of consecutive MAIN decisions by one seat at the given bank readings."""
+    steps = [[_inactive(), _inactive()]]
+    for ov in overages:
+        step = [None, None]
+        step[player] = _main_decision(player, n_options, ov)
+        step[1 - player] = _inactive()
+        steps.append(step)
+    return {"steps": steps, "rewards": list(rewards)}
+
+
+def test_search_activity_detects_a_real_search():
+    from analysis.loss_classifier import search_activity
+
+    # Second MAIN decision draws 0.5s from the bank: the forward model ran.
+    act = search_activity(parse_replay(_main_replay([600.0, 599.5])))
+    assert act["searchable"] == 2
+    assert act["max_draw"] >= 0.15
+    assert act["search_ran"] is True
+
+
+def test_search_activity_flags_inert_search():
+    from analysis.loss_classifier import search_activity
+
+    # A 0.02s draw is the heuristic fallback cost, not a search: inert.
+    act = search_activity(parse_replay(_main_replay([600.0, 599.98])))
+    assert act["searchable"] == 2
+    assert act["max_draw"] < 0.15
+    assert act["search_ran"] is False
+
+
+def test_search_activity_ignores_non_main_decisions():
+    from analysis.loss_classifier import search_activity
+
+    # _replay selects carry no MAIN type, so even a large bank draw on them is
+    # never counted as search running (the agent would not have searched them).
+    dg = parse_replay(_replay([(0, 3, 3, 4, 6, 600.0), (0, 3, 3, 4, 6, 599.0)],
+                              rewards=[1, -1]))
+    act = search_activity(dg)
+    assert act["searchable"] == 0
+    assert act["search_ran"] is False
+
+
+def test_search_activity_ignores_single_option_main():
+    from analysis.loss_classifier import search_activity
+
+    # A forced MAIN decision (one option) is not searchable, so no draw counts.
+    dg = parse_replay(_main_replay([600.0, 599.5], n_options=1))
+    act = search_activity(dg)
+    assert act["searchable"] == 0
+    assert act["search_ran"] is False
+
+
+def test_aggregate_search_activity_verdict():
+    from analysis.loss_classifier import aggregate_search_activity
+
+    ran = parse_replay(_main_replay([600.0, 599.5]))
+    inert = parse_replay(_main_replay([600.0, 599.99]))
+    agg = aggregate_search_activity([ran, inert])
+    assert agg["games"] == 2
+    assert agg["games_with_searchable"] == 2
+    assert agg["games_search_ran"] == 1
+    assert agg["verdict"] == "search_ran"
+    assert aggregate_search_activity([inert])["verdict"] == "inert"
+
+
+def test_search_activity_over_directory(tmp_path):
+    json.dump(_main_replay([600.0, 599.5]), open(tmp_path / "ran.json", "w"))
+    json.dump(_main_replay([600.0, 599.99]), open(tmp_path / "inert.json", "w"))
+    agg = scout.search_activity_dir(tmp_path)
+    assert agg["games"] == 2
+    assert agg["verdict"] == "search_ran"
+    assert len(agg["per_game"]) == 2
