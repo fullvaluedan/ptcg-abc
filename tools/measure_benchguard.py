@@ -139,6 +139,86 @@ def measure(deck_path, n_games: int, env_factory=None) -> dict:
     }
 
 
+def sweep(deck_path, values, n_games: int, env_factory=None) -> dict:
+    """Our empty-bench board-out rate at each of several OUR-seat THIN_BENCH values.
+
+    The off-vs-on measure() answers "does the guard help at all" (threshold 0 vs the
+    shipped 2). This answers the follow-on the brief poses: if empty-bench collapse
+    persists, does RAISING the threshold (bench a Basic first until the bench is
+    wider) cut our board-out FURTHER, and where does it stop paying? Each value in
+    `values` is run on OUR seat against the same pinned-on opponent (shipped
+    THIN_BENCH), so the field is identical across settings and the only variable is
+    how wide our own develop-first guard insists the bench gets. Reads the CONTRAST
+    across thresholds, not the absolute level (mirror play over-states board-out;
+    see the module docstring). Restores the global in a finally so no shipped path is
+    mutated. This is a mechanical board-out measurement, NOT a win-rate claim: the
+    ladder judges whether a lower board-out lifts the score (meta.md).
+    """
+    if env_factory is None:
+        from ptcg_agent.engine import make_env
+
+        env_factory = make_env
+    deck_ids = read_deck(deck_path)
+    shipped = heuristics.THIN_BENCH
+    settings = []
+    try:
+        for v in values:
+            settings.append((v, _run_setting(deck_ids, v, shipped, n_games, env_factory)))
+    finally:
+        heuristics.THIN_BENCH = shipped
+    return {
+        "deck": Path(deck_path).stem,
+        "n_games": n_games,
+        "opp_thin_bench": shipped,
+        "settings": settings,
+    }
+
+
+def _format_sweep(result: dict) -> str:
+    settings = result["settings"]
+    lines = [
+        f"OUR-seat THIN_BENCH sweep on {result['deck']} (opponent guard pinned on at "
+        f"THIN_BENCH={result['opp_thin_bench']}), n={result['n_games']}/setting:",
+    ]
+    for v, r in settings:
+        lines.append(
+            f"  THIN_BENCH={v:<2d} our early_collapse {r['early_collapse']:3d}/{r['games']} "
+            f"({r['early_collapse_rate']:.1%})  CI95 {r['early_collapse_ci95']}  "
+            f"our losses {r['our_losses']}  buckets {r['loss_buckets']}"
+        )
+    shipped = result["opp_thin_bench"]
+    best_v, best_r = min(settings, key=lambda s: (s[1]["early_collapse_rate"], s[0]))
+    base = next((r for v, r in settings if v == shipped), None)
+    lines.append(
+        f"  => lowest board-out at THIN_BENCH={best_v} ({best_r['early_collapse_rate']:.1%})"
+    )
+    if base is None or best_v == shipped:
+        lines.append(
+            f"  => the shipped THIN_BENCH={shipped} is the board-out floor of this sweep; "
+            "no other threshold does mechanically better."
+        )
+        return "\n".join(lines)
+    direction = "raising" if best_v > shipped else "lowering"
+    delta = base["early_collapse_rate"] - best_r["early_collapse_rate"]
+    # A difference is a real lever only when the two Wilson intervals do not overlap;
+    # otherwise it is inside the sampling noise at this n and claims nothing.
+    base_lo, base_hi = base["early_collapse_ci95"]
+    best_lo, best_hi = best_r["early_collapse_ci95"]
+    separated = best_hi < base_lo or base_hi < best_lo
+    if separated and delta > 0:
+        lines.append(
+            f"  => {direction} to THIN_BENCH={best_v} cuts our board-out {delta:.1%} absolute "
+            "with non-overlapping CIs; a candidate next lever (ladder is the judge)."
+        )
+    else:
+        lines.append(
+            f"  => {direction} to THIN_BENCH={best_v} shifts board-out {delta:+.1%} but the "
+            f"CIs overlap the shipped {shipped}; within noise at n={result['n_games']}, no "
+            "clear lever. Raise -n to resolve, or hold the shipped threshold."
+        )
+    return "\n".join(lines)
+
+
 def _format(result: dict) -> str:
     off, on = result["off"], result["on"]
     off_rate, on_rate = off["early_collapse_rate"], on["early_collapse_rate"]
@@ -182,8 +262,15 @@ def main():
                     help="deck csv path (default: decks/trolley.csv, the shipped floor deck)")
     ap.add_argument("-n", "--games", type=int, default=80,
                     help="games per setting (our guard off, our guard on)")
+    ap.add_argument("--sweep", default=None,
+                    help="comma-separated OUR-seat THIN_BENCH values to sweep instead of "
+                         "the off-vs-on contrast, e.g. 0,1,2,3,4")
     args = ap.parse_args()
-    print(_format(measure(args.deck, args.games)))
+    if args.sweep:
+        values = [int(v) for v in args.sweep.split(",") if v.strip() != ""]
+        print(_format_sweep(sweep(args.deck, values, args.games)))
+    else:
+        print(_format(measure(args.deck, args.games)))
 
 
 if __name__ == "__main__":
