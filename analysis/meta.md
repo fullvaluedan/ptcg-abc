@@ -12,6 +12,14 @@ tops out near 570 on the ladder while the leaders sit at ~1300+. That gap is
 mostly a DECK gap, and the fastest close is to copy a proven meta deck rather
 than tweak the agent.
 
+LADDER VERDICT (refuted): both copies were submitted and settled BELOW the
+trolley floor (archaludon 451.4, grimmsnarl 409.4, vs trolley 569.6 on the same
+heuristic). The gap is NOT purely a deck gap; it is a joint deck-and-pilot gap,
+and our floor heuristic mispilots a meta deck (self-deckout on Archaludon's
+trainer engine, matchup losses on Grimmsnarl's Rare Candy line). See
+`analysis/meta_decks_underperform_on_ladder.md`. These decks stay as harvested
+reference and gauntlet foils, NOT as ladder submissions on the current agent.
+
 ## The field, by archetype
 
 Four archetypes carry the meta. Raw wins favor whatever is most POPULAR (more
