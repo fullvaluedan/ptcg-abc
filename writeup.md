@@ -160,7 +160,16 @@ engineering the recovery is the point.
 **Bench maintenance is a first-class behavior.** The dominant loss was an empty bench, so
 keeping a Basic in reserve is priced across every layer: the pilot benches one before other
 plays, search hands thin-bench turns to that guard, the leaf values a bench convexly, and
-the deck raises Basic density. One loss mode, attacked on four fronts.
+the deck raises Basic density. One loss mode, attacked on four fronts. The pilot guard was
+then measured in isolation: in a controlled test where both seats pilot the same deck, the
+opponent's thin-bench pressure is pinned on, and only our seat's guard is toggled, our
+empty-bench early collapse fell from 43 percent to 34 percent of games, a 21 percent relative
+reduction at n=100 per setting. The confidence intervals overlap, but the point estimate and
+direction match the mechanism, and the measurement itself carried a methodology lesson: a
+symmetric mirror that toggles the guard on both seats at once misreports it as adverse, so a
+pilot lever has to be measured on our seat alone. No win rate is claimed from an offline
+mirror, which meta.md shows is not ladder-predictive; the claim is only that the guard does
+what it was built to do to the loss bucket it targets.
 
 **Optimize for low variance, not margin.** Most engineering went into the floor of outcomes,
 not the ceiling: no network or model calls run at match time, every decision path terminates
