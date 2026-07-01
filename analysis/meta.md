@@ -34,8 +34,11 @@ by `tools/deck_validate.py`).
 ### 2. Dark / Marnie's Grimmsnarl ex  (what the top of the ladder actually plays)
 Ranks #7 (kazuki0123, 163W/246G, 66%) and #12 (The Debauchery Tea Party,
 95W/159G, 60%). The two teams here are leaderboard #2 (kazuki0123, ~1342) and
-leaderboard #3 (The Debauchery Tea Party, ~1273). This is the highest focused
-win rate in the meta, and the highest-rated humans pick it. Line: Marnie's
+leaderboard #3 (The Debauchery Tea Party, ~1273). A targeted `--teams tonakaiiii`
+harvest confirms leaderboard #1 (tonakaiiii, ~1344) ALSO pilots this exact
+archetype: one dominant signature, 93W/137G (68%). So all three of the highest
+humans on the board play Dark Grimmsnarl. This is the highest focused win rate in
+the meta, and the top of the ladder converges on it. Line: Marnie's
 Impidimp (646) -> Morgrem (647) -> Marnie's Grimmsnarl ex (648) via Rare Candy
 (1079), Munkidori (112) for spread/heal, Dark energy (7), Spikemuth Gym (1259),
 Dawn (1231). Higher ceiling but a harder pilot (evolution plus abilities), so
@@ -49,6 +52,17 @@ Gauntlet with our heuristic vs the built-in pool (random/first/baseline, n=60):
 heuristic pilots the Rare Candy evolution line with no self-collapse, so a
 simple policy does not break on the harder deck. Same offline-not-predictive
 caveat as Archaludon applies; ladder score is the only truth.
+
+tonakaiiii's exact 60 card list (leaderboard #1) is copied to
+`decks/meta_grimmsnarl_tonakaiiii.csv` (harvested `--teams tonakaiiii
+--min-games 5`; one dominant signature, 93W/137G, 68%). It is a genuinely
+DISTINCT Grimmsnarl build from kazuki0123's: it runs a Froslass (104) / Snorunt
+(860) tech line, Team Rocket's Petrel (1219) x4, Boss's Orders (1182) x2,
+Handheld Fan (1161) x2, Unfair Stamp (1080), and an extra Night Stretcher (3 vs
+2), while dropping kazuki's Dawn-heavy engine (4x Dawn down to 1) and misc tech.
+Validated LEGAL. Gauntlet with our heuristic vs the built-in pool (n=60): 66.7%
+(40W/20L), 0 draws, 0 invalid moves; the heuristic pilots it with the same clean,
+no-self-collapse profile as the other two meta copies.
 
 ### 3. Psychic / Alakazam
 Ranks #2 (474W/936G, 51%), #6 (THIRD PTCG Club, 180W/287G, 63%), #10 (129W/254G,
@@ -75,12 +89,25 @@ Dragapult ex (#3, 279W/631G, 44%: Dreepy 119 -> Drakloak 120 -> Dragapult ex
   submit would waste a slot.
 - Offline gauntlets are run against weak built-in bots and are NOT predictive of
   ladder rating (the trolley deck beats Archaludon 77% to 68% there yet only
-  scores ~570 on the ladder). The meta deck's real evidence is its 811 wins
-  across the live ladder field. Ladder score is the only truth; submit and read.
+  scores ~570 on the ladder). The meta deck's real evidence is its live-ladder
+  wins. Ladder score is the only truth; submit and read.
+
+## Ladder reality check (2026-07-01 04:04 UTC)
+- meta_archaludon (54219892) settled to publicScore 546.5, which is BELOW the
+  trolley floor (54215558 = 569.6). Its early 586.8 read (which looked like a
+  confirmed thesis) drifted down as real games accrued. So the Archaludon copy is
+  NOT yet a proven ladder gain over our own trolley deck.
+- meta_grimmsnarl (54220220, kazuki0123's list) is still PENDING. Its score is the
+  real test of the deck-copy thesis: Grimmsnarl is the top-players' actual pick
+  (all three highest humans run it), so if any copy beats the ~570 floor it is the
+  most likely one. Read it next iter before drawing any thesis conclusion.
 
 ## Next scouts
-- DONE: `decks/meta_grimmsnarl.csv` built from #7, validated LEGAL, gauntleted
-  (65%, 0 draws). Ready for a one-command submit once Archaludon's score lands.
-- Cross-check tonakaiiii (leaderboard #1, ~1344): not surfaced by name in the
-  top-12 team lists here, so harvest with `--teams tonakaiiii` to pull that exact
-  deck from a daily dataset.
+- DONE: `decks/meta_grimmsnarl.csv` (kazuki0123, #2) built, validated, gauntleted
+  (65%, 0 draws); submitted 54220220 (PENDING).
+- DONE: `decks/meta_grimmsnarl_tonakaiiii.csv` (tonakaiiii, #1) built, validated,
+  gauntleted (66.7%, 0 draws). Ready for a one-command submit as the higher-provenance
+  Grimmsnarl variant (the #1 player's exact list). Ship it on a free slot IF
+  kazuki0123's Grimmsnarl (54220220) validates the archetype on the ladder; if that
+  copy also lands below the trolley floor, do NOT spend a slot on a second Grimmsnarl
+  variant blind, diagnose why the heuristic underperforms the meta deck first.
