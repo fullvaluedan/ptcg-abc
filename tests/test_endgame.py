@@ -77,6 +77,55 @@ def test_endgame_dets_widens_cap_and_keeps_time_bounded():
     assert endgame.endgame_dets(3) == 3 * endgame.ENDGAME_DET_MULTIPLIER
 
 
+# --- the prize-race middle tier ---------------------------------------------
+
+def test_prize_race_fires_on_low_prizes_with_a_full_deck():
+    # A closing turn the endgame solver misses: prizes are low but the deck is big.
+    obs = {"current": _state(my_prizes=3, opp_prizes=5, deck_n=40, hand_n=6)}
+    assert endgame.is_prize_race(obs)
+    assert not endgame.is_endgame(obs)
+
+
+def test_prize_race_inert_while_both_players_lead():
+    obs = {"current": _state(my_prizes=4, opp_prizes=5, deck_n=40)}
+    assert not endgame.is_prize_race(obs)
+
+
+def test_prize_race_threshold_is_inclusive_boundary():
+    at = {"current": _state(my_prizes=3, opp_prizes=6, deck_n=40)}
+    over = {"current": _state(my_prizes=4, opp_prizes=6, deck_n=40)}
+    assert endgame.is_prize_race(at)
+    assert not endgame.is_prize_race(over)
+
+
+def test_prize_race_safe_default_on_malformed_obs():
+    assert not endgame.is_prize_race({})
+    assert not endgame.is_prize_race({"current": {"players": []}})
+
+
+def test_endgame_implies_prize_race():
+    # Every near-decided endgame is also a prize race (min prize <= 2 <= 3), so the
+    # endgame tier always takes precedence over the moderate prize-race tier.
+    obs = {"current": _state(my_prizes=2, opp_prizes=3, deck_n=8, hand_n=3)}
+    assert endgame.is_endgame(obs)
+    assert endgame.is_prize_race(obs)
+
+
+def test_prize_race_boost_levers():
+    assert endgame.prize_race_soft_cap(0.5) == endgame.PRIZE_RACE_SOFT_CAP
+    assert endgame.prize_race_soft_cap(10.0) == 10.0     # never reduce a larger cap
+    assert endgame.prize_race_dets(None) is None
+    assert endgame.prize_race_dets(3) == 3 * endgame.PRIZE_RACE_DET_MULTIPLIER
+
+
+def test_prize_race_boost_is_below_the_endgame_boost():
+    # The middle tier is a moderate boost, strictly between normal play and the
+    # full endgame commitment, so a closing turn is not searched as hard as a
+    # near-decided one.
+    assert 0.5 < endgame.PRIZE_RACE_SOFT_CAP < endgame.ENDGAME_SOFT_CAP
+    assert 1 < endgame.PRIZE_RACE_DET_MULTIPLIER < endgame.ENDGAME_DET_MULTIPLIER
+
+
 # --- a constructed forced-win position is solved ----------------------------
 
 def _damaging_attack_id():
@@ -139,6 +188,54 @@ def test_endgame_budget_is_boosted_when_engaged(monkeypatch):
     monkeypatch.setattr(agent_search.rollout, "search_decision", spy)
     agent_search.agent(obs)
     # Fresh bank, so the boosted soft cap binds (well under remaining * fraction).
+    assert captured["budget"] == endgame.ENDGAME_SOFT_CAP
+
+
+def test_prize_race_decision_gets_the_moderate_budget(monkeypatch):
+    """A closing prize-race MAIN decision (still a full deck) gets the middle cap.
+
+    The endgame solver does not fire here (the deck is large), so before the
+    middle tier this decision kept the small default cap despite being pivotal.
+    """
+    sel = {
+        "type": heuristics.SEL_MAIN, "minCount": 1, "maxCount": 1,
+        "option": [{"type": heuristics.OPT_END}, {"type": heuristics.OPT_PLAY}],
+    }
+    obs = {"select": sel, "current": _state(my_prizes=3, opp_prizes=5, deck_n=40),
+           "search_begin_input": "x"}
+    assert not endgame.is_endgame(obs) and endgame.is_prize_race(obs)
+
+    captured = {}
+
+    def spy(_obs, _deck, budget, *a, **k):
+        captured["budget"] = budget
+        return [0]
+
+    monkeypatch.setattr(agent_search, "_BUDGET", TimeBudget(soft_cap=0.5))
+    monkeypatch.setattr(agent_search.rollout, "search_decision", spy)
+    agent_search.agent(obs)
+    assert captured["budget"] == endgame.PRIZE_RACE_SOFT_CAP
+
+
+def test_endgame_tier_takes_precedence_over_prize_race(monkeypatch):
+    """When both tiers apply, the near-decided endgame gets the larger boost."""
+    sel = {
+        "type": heuristics.SEL_MAIN, "minCount": 1, "maxCount": 1,
+        "option": [{"type": heuristics.OPT_END}, {"type": heuristics.OPT_PLAY}],
+    }
+    obs = {"select": sel, "current": _state(my_prizes=2, opp_prizes=3, deck_n=6),
+           "search_begin_input": "x"}
+    assert endgame.is_endgame(obs) and endgame.is_prize_race(obs)
+
+    captured = {}
+
+    def spy(_obs, _deck, budget, *a, **k):
+        captured["budget"] = budget
+        return [0]
+
+    monkeypatch.setattr(agent_search, "_BUDGET", TimeBudget(soft_cap=0.5))
+    monkeypatch.setattr(agent_search.rollout, "search_decision", spy)
+    agent_search.agent(obs)
     assert captured["budget"] == endgame.ENDGAME_SOFT_CAP
 
 

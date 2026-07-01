@@ -27,6 +27,17 @@ RESOURCE_THRESHOLD = 12
 ENDGAME_SOFT_CAP = 4.0
 ENDGAME_DET_MULTIPLIER = 4
 
+# A prize-race turn is pivotal but not yet the near-decided endgame: a player has
+# taken enough prizes that the game is closing, yet the deck plus hand is still
+# large so the hidden state is not small. These closing turns decide games, so we
+# spend a MODERATE boost (more determinizations for a lower-variance value
+# estimate) short of the full endgame commitment. This uses more of the 600s
+# thinking bank on the decisions that matter most, while the leading MAIN
+# decisions (both players near six prizes) keep the small default cap.
+PRIZE_RACE_THRESHOLD = 3
+PRIZE_RACE_SOFT_CAP = 1.5
+PRIZE_RACE_DET_MULTIPLIER = 2
+
 
 def _prizes_left(player):
     prize = player.get("prize")
@@ -69,6 +80,41 @@ def endgame_soft_cap(base_soft_cap, soft_cap=ENDGAME_SOFT_CAP) -> float:
 
 def endgame_dets(max_dets, multiplier=ENDGAME_DET_MULTIPLIER):
     """Widen a hard determinization cap for the endgame; None stays time-bounded."""
+    if max_dets is None:
+        return None
+    return max_dets * multiplier
+
+
+def is_prize_race(obs, prize_threshold=PRIZE_RACE_THRESHOLD) -> bool:
+    """True on a closing prize-race turn: min prizes-left <= threshold.
+
+    Unlike is_endgame this ignores the resource size, so it fires on the pivotal
+    closing turns even while the deck is still large (the regime the endgame
+    solver, which also requires a small hand plus deck, does not catch). Returns
+    False (the safe default) whenever the observation lacks the prize fields to
+    judge, so a malformed state never forces an expensive boosted search.
+    """
+    try:
+        state = obs.get("current") or {}
+        yi = state.get("yourIndex", 0)
+        players = state.get("players") or []
+        if yi not in (0, 1) or len(players) < 2 or len(players) <= yi:
+            return False
+        me = players[yi]
+        opp = players[1 - yi]
+        prizes = [p for p in (_prizes_left(me), _prizes_left(opp)) if p is not None]
+        return bool(prizes) and min(prizes) <= prize_threshold
+    except Exception:
+        return False
+
+
+def prize_race_soft_cap(base_soft_cap, soft_cap=PRIZE_RACE_SOFT_CAP) -> float:
+    """Per-move soft cap for a prize-race decision; never below normal play."""
+    return max(base_soft_cap, soft_cap)
+
+
+def prize_race_dets(max_dets, multiplier=PRIZE_RACE_DET_MULTIPLIER):
+    """Widen a hard determinization cap for a prize race; None stays time-bounded."""
     if max_dets is None:
         return None
     return max_dets * multiplier

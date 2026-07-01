@@ -130,12 +130,20 @@ def agent(obs):
             and not _BUDGET.at_risk
             and rollout.search_api_available()
         ):
-            # In the endgame, raise the per-move soft cap and widen the
-            # determinization budget so the pivotal decision is searched harder;
-            # both stay bounded by the hard time guard inside allot.
-            endgame = _ENDGAME and endgame_solver.is_endgame(obs)
-            cap = endgame_solver.endgame_soft_cap(_SOFT_CAP) if endgame else None
-            dets = endgame_solver.endgame_dets(_MAX_DETS) if endgame else _MAX_DETS
+            # Escalate the per-move soft cap and determinization budget on pivotal
+            # decisions so they are searched harder; both stay bounded by the hard
+            # time guard inside allot. Tiered: the near-decided endgame gets the
+            # largest boost, a closing prize-race turn (still a full deck) gets a
+            # moderate boost, and a leading MAIN decision keeps the small default.
+            if _ENDGAME and endgame_solver.is_endgame(obs):
+                cap = endgame_solver.endgame_soft_cap(_SOFT_CAP)
+                dets = endgame_solver.endgame_dets(_MAX_DETS)
+            elif _ENDGAME and endgame_solver.is_prize_race(obs):
+                cap = endgame_solver.prize_race_soft_cap(_SOFT_CAP)
+                dets = endgame_solver.prize_race_dets(_MAX_DETS)
+            else:
+                cap = None
+                dets = _MAX_DETS
             budget = _BUDGET.allot(cap)
             if budget > 0:
                 start = time.perf_counter()
