@@ -122,16 +122,16 @@ empty bench means the hand held no second Basic. The fix has to be in the deck. 
 honest part is the falsified attempts: trading energy for a basic lost more games to
 reduced damage than the extra basic saved, and an Ultra Ball fetch measured
 even but was retired because its discard cost cannot be afforded by turn three, when
-the collapse lands. The chosen lever is Precious Trolley, an item
-that puts a Basic straight onto the bench for free, exactly the turn the collapse would
-fire, on the same 35-energy deck so the combo is untouched. On a scored slot it became
-our best result: publicScore 850 settling to 755, roughly 160 points ahead of the
-dormant-search build and every heuristic floor. The leak was in the deck, not the
-code. Its own ladder replays add the honest coda: the deck wins three of four public
-games, and the lone loss is no longer the turn-three opening board-out but a
-turn-thirteen version of the same signature, bench at zero with the deck still full
-and four prizes conceded. The next lever, submitted and validating, benches a Basic
-before any other play whenever the bench runs thin, rebuilding the board mid-game.
+the collapse lands. The chosen lever is Precious Trolley, an item that puts a Basic
+straight onto the bench for free, when the collapse fires, so the combo is untouched.
+On its scored slot it debuted near 850, then settled into the upper-500s, inside the
+noisy heuristic band; we trust the loss-bucket shift over the number. The leak is in
+the deck, not the code. Then the honest coda: we staged a guard that benches a Basic
+before any other play whenever the bench runs thin, and it landed. But a walk of every
+empty-bench decision refuted it: in 32 of 34 collapse moments the hand held no
+benchable Basic at all, so no ordering rule could help. The collapse is a consistency
+ceiling of a six-Basic glass cannon the card pool cannot thin: no unconditional draw
+item, no non-ex utility Basic.
 
 ## The deck concept
 
