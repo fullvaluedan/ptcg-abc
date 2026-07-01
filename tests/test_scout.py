@@ -511,3 +511,106 @@ def test_parse_real_match():
     assert dg["outcome"] in ("win", "loss", "draw")
     assert dg["n_decisions"] > 0
     assert all(d["n_options"] >= 1 for d in dg["decisions"])
+
+
+# --- Opponent archetype scan (Phase 4: is deck_matchup a real lever?) ---
+from analysis.opponent_archetype import (  # noqa: E402
+    archetype_label,
+    is_headline_name,
+    revealed_opponent_pokemon,
+    tally_matchups,
+)
+
+
+def _board_step(opp_seat, active_ids, bench_ids):
+    """A replay step whose opp_seat carries face-up Pokemon in active and bench.
+
+    Only the opp seat is populated (the other is inactive), matching how a real
+    step reveals whichever seat's observation is being recorded.
+    """
+    rec = {
+        "action": [0],
+        "status": "ACTIVE",
+        "observation": {
+            "current": {
+                "yourIndex": opp_seat,
+                "players": [None, None],
+            }
+        },
+    }
+    rec["observation"]["current"]["players"][opp_seat] = {
+        "active": [{"id": cid} for cid in active_ids],
+        "bench": [{"id": cid} for cid in bench_ids],
+    }
+    rec["observation"]["current"]["players"][1 - opp_seat] = {}
+    step = [_inactive(), _inactive()]
+    step[opp_seat] = rec
+    return step
+
+
+# Small stand-in card world: id -> (name, is_pokemon). No card DB needed.
+_CARDS = {
+    100: ("Mega Starmie ex", True),
+    101: ("Staryu", True),
+    200: ("Fezandipiti ex", True),
+    201: ("Riolu", True),
+    300: ("Basic {W} Energy", False),
+}
+
+
+def _name_of(cid):
+    return _CARDS.get(cid, (None, False))[0]
+
+
+def _is_pokemon(cid):
+    return _CARDS.get(cid, (None, False))[1]
+
+
+def test_revealed_opponent_pokemon_collects_and_filters():
+    replay = {"steps": [
+        [_inactive(), _inactive()],
+        _board_step(1, [101], [201, 300]),   # opp at seat 1; energy id 300 filtered
+        _board_step(1, [100], [201]),        # Mega Starmie ex evolves in, Riolu again
+    ]}
+    seen = revealed_opponent_pokemon(replay, opp_seat=1, is_pokemon=_is_pokemon)
+    assert seen == {101: 1, 201: 2, 100: 1}  # energy 300 excluded, Riolu counted twice
+
+
+def test_revealed_opponent_pokemon_wrong_seat_is_empty():
+    replay = {"steps": [_board_step(1, [100], [101])]}
+    assert revealed_opponent_pokemon(replay, opp_seat=0, is_pokemon=_is_pokemon) == {}
+
+
+def test_archetype_label_prefers_headline_attacker():
+    # A support Pokemon (Fezandipiti ex) is seen more often, but the Mega/ex line
+    # names the deck. Both are ex here, so headline order follows reveal frequency.
+    counts = {201: 3, 100: 1}  # Riolu x3 (support/basic), Mega Starmie ex x1
+    assert archetype_label(counts, _name_of) == "Mega Starmie ex"
+
+
+def test_archetype_label_falls_back_to_most_seen_then_sentinel():
+    assert archetype_label({201: 2, 101: 1}, _name_of) == "Riolu"  # no headline
+    assert archetype_label({}, _name_of) == "(unrevealed)"
+    # An unknown id (name None) is skipped in the fallback, not returned as label.
+    assert archetype_label({999: 3, 101: 1}, _name_of) == "Staryu"
+    assert archetype_label({999: 1}, _name_of) == "(unrevealed)"
+
+
+def test_is_headline_name():
+    assert is_headline_name("Mega Lucario ex")
+    assert is_headline_name("Dragapult ex")
+    assert not is_headline_name("Staryu")
+    assert not is_headline_name(None)
+
+
+def test_tally_matchups_counts_and_ignores_unknown():
+    rows = [
+        ("Mega Starmie ex", "win"),
+        ("Mega Starmie ex", "loss"),
+        ("Dragapult ex", "loss"),
+        ("Dragapult ex", "unknown"),  # ignored, not a real outcome
+    ]
+    tally = tally_matchups(rows)
+    assert tally["totals"] == {"win": 1, "loss": 2, "draw": 0}
+    assert tally["per"]["Mega Starmie ex"] == {"win": 1, "loss": 1, "draw": 0}
+    assert tally["per"]["Dragapult ex"] == {"win": 0, "loss": 1, "draw": 0}
