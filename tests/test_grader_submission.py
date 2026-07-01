@@ -59,6 +59,18 @@ SHIPPED_AGENTS = [
         [str(AGENTS / "heuristics.py")],
         id="heuristic-trolley",
     ),
+    # The validated next deck candidate (thicker-basic trolley: Kyogre 2->4,
+    # energy 35->33), staged to ladder-test as a clean single-variable deck A/B
+    # against trolley on the first slot after the scored-pair reclaim. It cut the
+    # mirror empty-bench collapse 80.8%->65.4% (n=240, p<0.001) with no win-rate
+    # regression (see analysis/collapse_rate_thick_deck.md). Lock it under the
+    # grader path so its build is de-risked before it ever spends a daily slot.
+    pytest.param(
+        str(AGENTS / "agent_heuristic.py"),
+        str(DECKS / "trolley_thick.csv"),
+        [str(AGENTS / "heuristics.py")],
+        id="heuristic-trolley_thick",
+    ),
     pytest.param(str(AGENTS / "agent_search.py"), str(DECKS / "baseline.csv"), _SEARCH_EXTRAS, id="search"),
     # The exact build queued for the next free ladder slot: the search agent
     # piloting the Precious Trolley deck. search+baseline proves the search stack
