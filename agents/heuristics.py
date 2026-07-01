@@ -97,6 +97,15 @@ RETREAT_HP_RATIO = 0.34
 # flag so every shipped build stays byte-identical (off) until it is A/B'd on the
 # ladder as a clean single-variable change; offline weak-bot gauntlets are not
 # predictive, so the ladder is the judge (see autoloop_status.md).
+# REFUTED by expert data and kept off: scored against the move-ranking breakdown
+# (analysis/energy_seq_refuted_by_expert_moves.md), the top players power the active
+# first exactly as the default does, so sequencing lowers exact-target ATTACH
+# agreement (87/1445 -> 77/1445) and net top-1 (0.212 -> 0.210) on 4524 real expert
+# MAIN decisions. It never converts an ordering miss into an attach; it only moves
+# attaches we already make away from the expert's target. Killed before it cost a
+# ladder slot, same as PTCG_BENCH_DIG. The flag and its measurement (this validator
+# with the env var set) are kept so the refutation is re-runnable; default off means
+# every shipped build stays byte-identical.
 _ENERGY_SEQ = os.environ.get("PTCG_ENERGY_SEQ", "0") != "0"
 
 # Dig-for-a-Basic when the bench is thin (PTCG_BENCH_DIG, default off). The
