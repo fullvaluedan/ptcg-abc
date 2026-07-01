@@ -271,6 +271,47 @@ def test_play_first_option_when_bench_thin_but_no_pokemon():
     assert move == [0]                  # first play option, no Pokemon to bench
 
 
+# Thin bench, no Basic in hand to bench directly, but a deck-search that benches a
+# Basic (Precious Trolley) is in hand behind a hand-disrupting draw Supporter:
+# fetch the Basic onto the bench first. Playing Cyrano first is not just a wasted
+# tempo, a hand-shuffling Supporter (Lillie's Determination) would shuffle the
+# Trolley back into the deck and strand the empty-bench fix for the turn.
+def test_play_fetches_basic_onto_bench_before_disrupting_play():
+    obs = _play_main_obs([SUPPORTER_DRAW, ITEM_DEVELOP], deck_n=30)  # empty bench
+    move = heuristic_agent(obs)
+    assert move == [1]                  # Precious Trolley, not the first Supporter
+
+
+# A Basic in hand to bench directly still beats the deck-search fetch: put the
+# Basic down (no deck shuffle, no search) rather than trolley for one out of the
+# deck. Direct develop stays the first bench-development choice.
+def test_play_prefers_direct_basic_over_deck_fetch_when_thin():
+    obs = _play_main_obs([ITEM_DEVELOP, POKEMON_PLAY], deck_n=30)  # empty bench
+    move = heuristic_agent(obs)
+    assert move == [1]                  # bench the Basic, not play the Trolley
+
+
+# With the bench no longer thin the fetch-priority guard is inert and the first
+# play option wins, so the change cannot alter a healthy-board turn.
+def test_play_fetch_priority_inert_when_bench_stocked():
+    stocked = [_pokemon(POKEMON_PLAY, 90), _pokemon(POKEMON_PLAY, 90)]
+    obs = _play_main_obs([SUPPORTER_DRAW, ITEM_DEVELOP], deck_n=30, bench=stocked)
+    move = heuristic_agent(obs)
+    assert move == [0]                  # first play option, guard inert
+
+
+# The bench-fetch predicate reads the effect text: only a deck search that puts a
+# Basic onto the bench qualifies. A search that only puts a card into hand (Mega
+# Signal, Cyrano, Ultra Ball) does not fill an empty bench and is excluded, as is a
+# non-searching develop trainer (Waitress attaches an Energy) and a Pokemon.
+def test_benches_basic_from_deck_predicate_by_effect_text():
+    assert heuristics._benches_basic_from_deck(ITEM_DEVELOP)       # Precious Trolley
+    assert not heuristics._benches_basic_from_deck(SUPPORTER_DRAW)  # Cyrano: to hand
+    assert not heuristics._benches_basic_from_deck(ITEM_DRAW)       # Mega Signal
+    assert not heuristics._benches_basic_from_deck(SUPPORTER_ENERGY)  # Waitress
+    assert not heuristics._benches_basic_from_deck(POKEMON_PLAY)    # a Pokemon
+
+
 # Boundary: at exactly the threshold the guard is active (<=, not <), so a draw
 # trainer is still declined in favor of developing a Pokemon.
 def test_play_conserves_at_threshold_boundary():

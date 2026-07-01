@@ -440,6 +440,48 @@ def _first_pokemon_play(play_opts, me):
     )
 
 
+def _benches_basic_from_deck(card_id) -> bool:
+    """True when playing this trainer searches the deck and benches a Basic Pokemon.
+
+    Precious Trolley ("Search your deck for any number of Basic Pokemon and put
+    them onto your Bench") is the one card in the pool that directly fills an empty
+    bench from the deck, exactly the answer to the early_collapse loss (a lone
+    active knocked out with an empty bench). Card data ships the effect text
+    offline, so this reads the text rather than hard-coding an id, and any Nest
+    Ball style basic-to-bench search generalizes for free. A deck search that only
+    grabs an evolution or ex to hand (Mega Signal, Cyrano, Ultra Ball) does not put
+    a benchable Basic into play and is left out. Pure, never raises.
+    """
+    if _card_type(card_id) not in CONSERVED_TRAINER_TYPES:
+        return False
+    text = _card_text(card_id)
+    if not text:
+        return False
+    t = text.lower()
+    return (
+        "search your deck" in t
+        and "onto your bench" in t
+        and "basic" in t
+        and "pok" in t
+    )
+
+
+def _first_bench_fetch_play(play_opts, me):
+    """Option index of the first PLAY that fetches a Basic onto the bench, or None.
+
+    When the bench is thin and no Basic is directly in hand to bench, a trainer
+    that searches the deck and benches a Basic (Precious Trolley) is the develop
+    play. Ordering it first matters: a hand-disrupting play kept ahead of it can
+    strand it (Lillie's Determination shuffles the whole hand, including the
+    Trolley, back into the deck), so the empty bench never gets filled that turn.
+    """
+    return next(
+        (oi for oi, opt in play_opts
+         if _benches_basic_from_deck(play_card_id(opt, me))),
+        None,
+    )
+
+
 def choose_play(play_opts, me, obs):
     """Pick which card to PLAY, developing the bench and conserving deck near a self-deckout.
 
@@ -472,6 +514,13 @@ def choose_play(play_opts, me, obs):
             poke = _first_pokemon_play(play_opts, me)
             if poke is not None:
                 return poke
+            # No Basic in hand to bench directly: search one out of the deck onto
+            # the bench (Precious Trolley) before any hand-disrupting play strands
+            # it. This is the draw-access answer to the empty-bench collapse when
+            # the hand holds no benchable Basic (the dominant early_collapse case).
+            fetch = _first_bench_fetch_play(play_opts, me)
+            if fetch is not None:
+                return fetch
         return play_opts[0][0]
     pokemon_play = _first_pokemon_play(play_opts, me)
     if pokemon_play is not None:
