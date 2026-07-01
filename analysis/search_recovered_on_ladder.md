@@ -12,14 +12,17 @@ the search budget; see `ladder_search_inert.md`). The whole recovery resolved on
 one number: per-MAIN-decision overage-bank drawdown, ~0.5s if search ran vs
 ~0.02s if it stayed inert.
 
-## The verdict
+## The verdict: search runs, but it does not help
 
 54218335 is COMPLETE. Its publicScore opened at 600.0 off the single validation
-game and, as real ladder games accrued, settled to 585.8. That is above the plain
-trolley deck (569.6) and the trolley bench-guard (571.9) but slightly below the
-inert search on the baseline deck (54208986 at 591.9). So the recovery is real
-compute, not yet a clear rating win; the two figures below (only 2 non-validation
-games so far) are a small sample.
+game, settled to 585.8 as the first real games accrued, and has now dropped to
+431.4 as the sample grew. That is the LOWEST of the three trolley-era subs: the
+plain trolley deck (569.6) and the trolley bench-guard (571.9), both the same deck
+under the plain heuristic, sit ~140 points ABOVE it. A fresh per-agent pull
+(`replays/search_trolley_fresh`, self-play skipped) confirms the score with the
+record: 1W/3L, all three losses early_collapse. The recovery is real compute (search
+ran; see below), but running it made the agent play WORSE than the heuristic floor
+on the same deck. The recovery arc is closed and the outcome is negative.
 
 The first ladder episode (episode-82961967) is a self-play validation game. Run
 through the codified verify channel alone it read:
@@ -51,21 +54,37 @@ MAIN decision (60 total). The heaviest decision now draws 6.564s from the bank, 
 above the 1.06s of the quiet self-play game and ~150x to ~300x the inert
 heuristic-fallback cost. Determinized lookahead is unambiguously live on the ladder.
 
-## The tuning input this exposes
+## Why tuning cannot rescue it: the offline A/B
 
-6.564s on a single decision is ~13x the 0.5s `PTCG_SEARCH_BUDGET` soft cap. That is
-expected, not a bug: the soft cap bounds the search LOOP, but each determinization
-rolls out to a terminal `result` uninterrupted (`_ROLLOUT_DEPTH` defaults to None),
-and the endgame solver raises the cap on pivotal decisions. So per-decision cost is
-dominated by rollout depth against a real (long) game, not by the soft cap. Across
-~20 searchable decisions per game the worst case still stays well under the 600s
-bank, so this is a throughput/quality lever, not a timeout risk. The concrete tuning
-knob is `PTCG_ROLLOUT_DEPTH`: a positive cut-off stops each rollout early and trusts
-the board value function, trading terminal accuracy for more determinization samples
-inside the same 0.5s. That is the first thing to A/B offline on the trolley deck.
+The prior open action was to A/B `PTCG_ROLLOUT_DEPTH` offline and submit a config
+that beats the current search stack. That plan rested on the search stack being
+worth improving. A controlled offline gauntlet (search vs the plain heuristic, both
+agents on the SAME deck via a staged `deck.csv`, n=30 each, alternating first seat)
+shows it is not:
 
-The loss in the 1/0/1 real-game split buckets as early_collapse (empty-bench
-self-collapse), a deck-level lever already worked and closed, not a search defect.
+```
+search vs heuristic, trolley deck,   n=30:  15W/15L = 50.0%  (CI 33.2 to 66.8%)
+search vs heuristic, baseline deck,  n=30:  17W/13L = 56.7%  (CI 39.2 to 72.6%)
+```
+
+On the trolley deck search is a dead coin flip against the heuristic it falls back
+to. The modest edge it carries on the baseline deck (56.7%) does not transfer to the
+trolley deck at all. So search's offline CEILING on the trolley deck is parity with
+the heuristic, and it pays that for nothing: the heuristic reaches the same 50/50 at
+~0.02s per decision while search draws up to 6.564s. `PTCG_ROLLOUT_DEPTH` trades
+terminal accuracy for more determinizations inside the budget, but no depth setting
+can lift a stack whose full-depth ceiling is already only a tie. There is no
+offline-validated improvement to submit, and offline self-play cannot even see the
+real failure: on the ladder (the diverse field, not our own heuristic) trolley-search
+scores 431.4 against the heuristic's 569.6 to 571.9.
+
+The likely mechanism: `determinize` biases the hidden state toward the opponent's
+recognized archetype, falling back to the MIRROR prior (assume the opponent runs OUR
+deck) when nothing is recognized. Against a varied ladder field that prior is
+systematically wrong, so the search optimizes lines for the wrong world and lands
+below the assumption-free heuristic. All three fresh losses bucket as early_collapse,
+the same empty-bench signature the heuristic hits, so search adds no endgame value
+either, only cost and variance.
 
 ## Verify-channel defect fixed this iter
 
@@ -80,14 +99,18 @@ reports the honest verdict on exactly the evidence a fresh submission first
 produces. Regression test added: a self-play replay is kept by default and the
 verdict is `search_ran`; opting out drops it to 0 games.
 
-## What this opens
+## What this closes
 
-The verdict is now confirmed against real opponents (above), so the recovery arc is
-closed. The next lever is tuning the recovered search stack on the trolley deck,
-measured offline first, then submitted on a genuine offline-validated improvement.
-The most promising knob given the 6.564s draws is `PTCG_ROLLOUT_DEPTH` (a terminal
-cut-off buying more determinizations per decision), with `PTCG_SEARCH_BUDGET` and
-`PTCG_SEARCH_DETS` as secondary width knobs. A/B each offline via the gauntlet on
-the trolley deck before any submit. Do NOT re-walk the closed analysis levers (deck
-falsification, bench-ordering, deck_matchup, draw-access) and do NOT re-submit
-54218335 or anything already on the ladder.
+The search-on-the-ladder lever is closed with data. Search was recovered (it runs
+in the grader sandbox, 66 searchable decisions over 5 replays, up to 6.564s draws)
+but recovering it did not pay: on the trolley deck it only ties the heuristic
+offline (50%) and loses to it on the ladder (431.4 vs 569.6 to 571.9). The standing
+best agent to keep as the ladder floor is therefore the plain heuristic on the
+trolley deck (bench-guard 54215910 at 571.9, plain trolley 54215558 at 569.6), NOT
+search. Do NOT A/B `PTCG_ROLLOUT_DEPTH` / `PTCG_SEARCH_DETS` / `PTCG_SEARCH_BUDGET`
+to "improve" the search stack (the offline ceiling is a tie, retired here), do NOT
+re-submit 54218335 or anything already on the ladder, and do NOT re-walk the closed
+analysis levers (deck falsification, bench-ordering, deck_matchup, draw-access). The
+one thing that would reopen search is a determinization prior that models the real
+opponent field instead of the mirror, which is a from-scratch modeling effort, not a
+knob turn; absent that, the heuristic is the policy to defend.
