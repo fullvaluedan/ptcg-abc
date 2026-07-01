@@ -11,8 +11,9 @@ from search import eval as ev
 from search import rollout
 
 
-def _pokemon(hp, max_hp):
-    return {"id": 1, "hp": hp, "maxHp": max_hp}
+def _pokemon(hp, max_hp, energy=0):
+    return {"id": 1, "hp": hp, "maxHp": max_hp,
+            "energyCards": [{"id": 2}] * energy}
 
 
 def _player(prizes_left, active=None, bench=None):
@@ -95,6 +96,48 @@ def test_board_value_bounded_within_a_terminal_result():
 def test_missing_players_is_neutral():
     assert ev.board_value({"players": []}, 0) == 0.0
     assert ev.shaped_value({"result": ev.RESULT_ONGOING, "players": [{}]}, 0) == 0.0
+
+
+# --- attached energy breaks a tie the other board terms cannot ---------------
+
+def test_energy_breaks_a_prize_health_and_width_tie():
+    # Same prizes, same HP, same board width; we hold more attached energy, so our
+    # board is closer to attacking and scores higher.
+    powered = _pokemon(120, 120, energy=3)
+    empty = _pokemon(120, 120, energy=0)
+    ahead = _state(_player(3, active=powered), _player(3, active=empty))
+    tie = _state(_player(3, active=empty), _player(3, active=empty))
+    assert ev.board_value(ahead, 0) > ev.board_value(tie, 0) == 0.0
+
+
+def test_energy_term_is_symmetric_between_seats():
+    state = _state(_player(3, active=_pokemon(120, 120, energy=4)),
+                   _player(3, active=_pokemon(120, 120, energy=1)))
+    assert ev.board_value(state, 0) == -ev.board_value(state, 1)
+
+
+def test_energy_never_outranks_a_prize_lead():
+    # A mountain of energy on a prize-behind board still loses to a prize lead.
+    loaded = _pokemon(120, 120, energy=20)
+    behind = _state(_player(5, active=loaded, bench=[loaded, loaded]),
+                    _player(2, active=_pokemon(120, 120, energy=0)))
+    assert ev.board_value(behind, 0) < 0
+
+
+def test_energy_term_is_bounded_and_clamped():
+    # An absurd energy pile saturates at ENERGY_SHAPING; the whole estimate stays
+    # below a real win.
+    pile = _pokemon(120, 120, energy=99)
+    state = _state(_player(3, active=pile), _player(3, active=_pokemon(120, 120)))
+    assert 0 < ev.board_value(state, 0) <= ev.ENERGY_SHAPING + 1e-9
+    assert ev.board_value(state, 0) < ev.WIN
+
+
+def test_missing_energy_field_is_neutral():
+    # A slot without an energyCards field contributes nothing rather than raising.
+    bare = {"id": 1, "hp": 120, "maxHp": 120}
+    state = _state(_player(3, active=bare), _player(3, active=bare))
+    assert ev.board_value(state, 0) == 0.0
 
 
 # --- rollout depth cut-off ---------------------------------------------------

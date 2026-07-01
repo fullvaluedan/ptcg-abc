@@ -3,7 +3,8 @@
 The rating is margin independent (KTD5), so the primary signal is win, loss, or
 draw. When a rollout does not reach a terminal result within the step budget, a
 small prize differential breaks the tie: a state where we are closer to taking
-our six prizes than the opponent is to theirs scores slightly higher. The shaping
+our six prizes than the opponent is to theirs scores slightly higher. Board
+health, board presence, and attached energy break any remaining tie. The shaping
 is deliberately small so it never outweighs an actual win or loss.
 
 Pure functions over the raw state dict (the shape cg.api returns once converted
@@ -28,6 +29,16 @@ PRIZE_SHAPING = 0.5
 # outranks raw board state and a terminal result always outranks any estimate.
 HP_SHAPING = 0.15
 BOARD_SHAPING = 0.05
+# Attached energy is the fuel for attacks: a board with more energy in play is
+# closer to executing its game plan and taking prizes, so it breaks ties between
+# positions that are otherwise equal on prizes, health, and width. Kept small so
+# the sum of the board terms (0.15 + 0.05 + 0.05 = 0.25) stays well under
+# PRIZE_SHAPING and a terminal result always outranks any estimate.
+ENERGY_SHAPING = 0.05
+# The attached-energy differential is normalized by the energy a well-developed
+# full board carries and clamped to it, so a single over-loaded Pokemon saturates
+# the term rather than letting it grow without bound.
+ENERGY_NORM = 12
 # cabt allows one active plus five bench Pokemon per player.
 BENCH_MAX = 5
 
@@ -72,13 +83,25 @@ def _hp_fraction(pokes) -> float:
     return sum(fracs) / len(fracs) if fracs else 0.0
 
 
+def _attached_energy(pokes) -> int:
+    """Total energy cards attached across a list of in-play Pokemon.
+
+    Read directly from each slot's energyCards, so the value function stays pure
+    over the state dict with no card-data lookup and ships unchanged inside a
+    submission. A slot with no energyCards field contributes nothing rather than
+    guessing.
+    """
+    return sum(len(p.get("energyCards") or []) for p in pokes)
+
+
 def board_value(state, your_index) -> float:
     """Card-data-aware estimate of a non-terminal position, from our point of view.
 
-    Prize differential dominates (it is the win condition). Board health and board
-    presence then break ties between positions with equal prizes: a healthier,
-    wider board is worth more. Every term is bounded and their sum stays under a
-    terminal win or loss, so a real result always outranks any estimate.
+    Prize differential dominates (it is the win condition). Board health, board
+    presence, and attached energy then break ties between positions with equal
+    prizes: a healthier, wider, better-powered board is worth more. Every term is
+    bounded and their sum stays under a terminal win or loss, so a real result
+    always outranks any estimate.
     """
     players = state.get("players") or []
     if len(players) < 2:
@@ -90,7 +113,9 @@ def board_value(state, your_index) -> float:
     theirs = _in_play(opp)
     hp = (_hp_fraction(mine) - _hp_fraction(theirs)) * HP_SHAPING
     board = (len(mine) - len(theirs)) / (BENCH_MAX + 1) * BOARD_SHAPING
-    return prize + hp + board
+    energy_raw = (_attached_energy(mine) - _attached_energy(theirs)) / ENERGY_NORM
+    energy = max(-1.0, min(1.0, energy_raw)) * ENERGY_SHAPING
+    return prize + hp + board + energy
 
 
 def shaped_value(state, your_index) -> float:
