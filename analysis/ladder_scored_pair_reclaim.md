@@ -114,9 +114,53 @@ only the slot-2 TARGET changes:
   `python tools/build_submission.py --agent agents/agent_heuristic.py --deck
   decks/trolley.csv --extra agents/heuristics.py --out submission_trolley.tar.gz`
 - Slot 2: submit the strongest DISTINCT reproducible, grader-green HEURISTIC build,
-  not the search 591.9 config. The plain heuristic on the base deck (`agent_heuristic`
-  + `decks/baseline.csv`, the `heuristic` grader-test case) is the clean second build;
-  accept its realized score lands in the ~460-590 heuristic band and do NOT expect the
-  591.9 number. Its only job is to evict the second meta copy so both live pair slots
-  hold a heuristic build instead of a refuted meta copy. Do NOT rebuild-and-ship the
-  search stack to chase 591.9.
+  not the search 591.9 config. Do NOT rebuild-and-ship the search stack to chase 591.9.
+  Two candidates, `trolley_thick` preferred (see the slot-2 upgrade below); the plain
+  heuristic on the base deck (`agent_heuristic` + `decks/baseline.csv`, the `heuristic`
+  grader-test case) is the safe fallback if `trolley_thick` fails any pre-submit check.
+
+## Slot-2 upgrade: ship trolley_thick, not baseline (2026-07-01, verified)
+
+The revised slot-2 target above (baseline heuristic) is DOMINATED by the staged
+`trolley_thick` deck (`agent_heuristic` + `decks/trolley_thick.csv`) under both
+readings of the latest-two-scored rule (`docs/PLAYBOOK.md`), so slot 2 should ship
+trolley_thick instead of wasting the slot on baseline:
+
+- If the board scores best-of-the-latest-two: slot-1 (trolley, the known 569.6
+  config) sets our floor, so slot-2 trolley_thick can only ADD upside. Zero
+  downside; a wasted baseline slot becomes a free forward deck A/B.
+- If both latest count (average/sum): trolley_thick is trolley with two Kyogre
+  swapped in for two basic energy (2->4 basics, energy 35->33), i.e. strictly more
+  basic-Pokemon density on the same shell. It cut the mirror empty-bench collapse
+  80.8%->65.4% (n=240, z~3.8, p<0.001) with no head-to-head win-rate regression
+  (thick 66-54 vs trolley, n=120; `analysis/collapse_rate_thick_deck.md`), so it is
+  extremely unlikely to score below baseline's ~460 and should land at or above
+  trolley's ~569. Baseline drags the pair down; trolley_thick does not.
+
+The only property baseline had that trolley_thick "lacked" was a proven ladder
+build. That gap is now closed: trolley_thick is legality-validated, locked in the
+grader load test (`tests/test_grader_submission.py::...[heuristic-trolley_thick]`),
+and its exact slot-2 tarball was rebuilt from HEAD and verified this session:
+
+- Deck bytes: tarball `deck.csv` is byte-identical to `decks/trolley_thick.csv`
+  (60 cards) for both slot builds.
+- Grader path: the `heuristic-trolley` and `heuristic-trolley_thick` cases both pass
+  the exec-without-`__file__` load + full-match path (2 passed).
+
+Each submission keeps its OWN publicScore on the board, so shipping trolley vs
+trolley_thick as the live pair still yields a clean per-build read of the thick-deck
+A/B; it does not have to wait for a separate third slot.
+
+Verified slot commands (rebuilt and grader-green from HEAD today):
+
+- Slot 1: `python tools/build_submission.py --agent agents/agent_heuristic.py --deck
+  decks/trolley.csv --extra agents/heuristics.py --out submission_trolley.tar.gz`
+  (evicts archaludon 391.8).
+- Slot 2: `python tools/build_submission.py --agent agents/agent_heuristic.py --deck
+  decks/trolley_thick.csv --extra agents/heuristics.py --out
+  submission_trolley_thick.tar.gz` (evicts grimmsnarl 506.5).
+
+Pre-submit each slot (mandatory): `kaggle competitions submissions -c
+pokemon-tcg-ai-battle` FIRST (confirm the slot is free and the target copy is still
+live), then rerun the two grader-load cases on the exact tarball. Fall back to the
+baseline heuristic for slot 2 only if trolley_thick fails a check.
