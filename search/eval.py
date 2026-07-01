@@ -28,6 +28,14 @@ PRIZE_SHAPING = 0.5
 # bounded and their sum stays under PRIZE_SHAPING, so prize progress always
 # outranks raw board state and a terminal result always outranks any estimate.
 HP_SHAPING = 0.15
+# The active Pokemon is on the front line: it is the one being attacked, the one
+# that gets knocked out for a prize, and the one that attacks back. Its health
+# therefore matters more than a benched Pokemon's, so weight it above the bench
+# rather than averaging the whole board flat: a dying active behind a healthy
+# bench is in real danger, which a flat mean would hide by letting the bench pull
+# the score up. The active carries this fraction of the health term; the bench
+# shares the rest.
+ACTIVE_HP_WEIGHT = 0.6
 BOARD_SHAPING = 0.05
 # Attached energy is the fuel for attacks: a board with more energy in play is
 # closer to executing its game plan and taking prizes, so it breaks ties between
@@ -69,18 +77,44 @@ def _in_play(player) -> list:
     return pokes
 
 
-def _hp_fraction(pokes) -> float:
-    """Mean current-HP fraction across in-play Pokemon, 0 when none are in play.
+def _slot_hp_fraction(slot):
+    """Current-HP fraction of one Pokemon in [0, 1], or None when maxHp is missing.
 
-    A Pokemon with no maxHp recorded is skipped rather than guessed, so a missing
+    A slot with no maxHp recorded is skipped rather than guessed, so a missing
     field never invents board health.
     """
-    fracs = []
-    for p in pokes:
-        mx = p.get("maxHp") or 0
-        if mx > 0:
-            fracs.append(max(0.0, min(1.0, p.get("hp", 0) / mx)))
-    return sum(fracs) / len(fracs) if fracs else 0.0
+    mx = slot.get("maxHp") or 0
+    if mx <= 0:
+        return None
+    return max(0.0, min(1.0, slot.get("hp", 0) / mx))
+
+
+def _mean_hp_fraction(slots):
+    """Mean HP fraction across slots, or None when none report a maxHp."""
+    fracs = [f for f in (_slot_hp_fraction(s) for s in slots) if f is not None]
+    return sum(fracs) / len(fracs) if fracs else None
+
+
+def _hp_fraction(player) -> float:
+    """Board-health score in [0, 1], weighting the active above the bench.
+
+    The active Pokemon's health is worth ACTIVE_HP_WEIGHT of the term and the
+    bench shares the rest, because the active is the one being attacked and taking
+    prizes: a board with a dying active but a healthy bench is in real danger,
+    which a flat mean over every Pokemon would hide. Falls back to whichever part
+    is present, so a knocked-out active awaiting a promote or an empty bench never
+    invents or drops health. Returns 0 when neither part reports a maxHp.
+    """
+    active = player.get("active") or []
+    active_frac = _slot_hp_fraction(active[0]) if active and active[0] else None
+    bench_frac = _mean_hp_fraction([p for p in (player.get("bench") or []) if p])
+    if active_frac is None and bench_frac is None:
+        return 0.0
+    if active_frac is None:
+        return bench_frac
+    if bench_frac is None:
+        return active_frac
+    return ACTIVE_HP_WEIGHT * active_frac + (1 - ACTIVE_HP_WEIGHT) * bench_frac
 
 
 def _attached_energy(pokes) -> int:
@@ -111,7 +145,7 @@ def board_value(state, your_index) -> float:
     prize = (_prizes_left(opp) - _prizes_left(me)) / PRIZE_TOTAL * PRIZE_SHAPING
     mine = _in_play(me)
     theirs = _in_play(opp)
-    hp = (_hp_fraction(mine) - _hp_fraction(theirs)) * HP_SHAPING
+    hp = (_hp_fraction(me) - _hp_fraction(opp)) * HP_SHAPING
     board = (len(mine) - len(theirs)) / (BENCH_MAX + 1) * BOARD_SHAPING
     energy_raw = (_attached_energy(mine) - _attached_energy(theirs)) / ENERGY_NORM
     energy = max(-1.0, min(1.0, energy_raw)) * ENERGY_SHAPING

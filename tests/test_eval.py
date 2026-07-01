@@ -67,6 +67,31 @@ def test_health_breaks_a_prize_tie():
     assert ev.board_value(ahead, 0) > ev.board_value(tie, 0) == 0.0
 
 
+def test_active_health_outweighs_a_healthy_bench():
+    # Same prizes, width, and energy for both of our candidate boards; only which
+    # Pokemon is hurt differs. A dying active behind a healthy bench is in real
+    # danger, so it must score below a healthy active backed by a hurt bench. A
+    # flat mean over the board would rate the danger board HIGHER (its two healthy
+    # bench Pokemon pull the mean up past the single hurt active), which is the bug
+    # the active weighting fixes.
+    healthy = _pokemon(120, 120)
+    dying = _pokemon(10, 120)
+    opp = _player(3, active=healthy, bench=[healthy, healthy])
+    danger = _state(_player(3, active=dying, bench=[healthy, healthy]), opp)
+    safe = _state(_player(3, active=healthy, bench=[dying, dying]), opp)
+    assert ev.board_value(safe, 0) > ev.board_value(danger, 0)
+
+
+def test_health_falls_back_to_bench_when_active_absent():
+    # A player whose active was just knocked out (awaiting a promote) still scores
+    # its bench health rather than reading as zero, so the health term never drops
+    # a board that still has healthy Pokemon in play.
+    healthy = _pokemon(120, 120)
+    state = _state(_player(3, active=None, bench=[healthy]),
+                   _player(3, active=None, bench=[_pokemon(20, 120)]))
+    assert ev.board_value(state, 0) > 0
+
+
 def test_board_presence_breaks_a_prize_tie():
     full = _pokemon(120, 120)
     wider = _state(_player(3, active=full, bench=[full, full]),
