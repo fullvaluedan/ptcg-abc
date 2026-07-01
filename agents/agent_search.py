@@ -66,7 +66,7 @@ _DECK = _read_deck()
 # gauntlet can trade depth for throughput without touching code.
 _SEARCH_SEED = 20260630
 _RNG = random.Random(_SEARCH_SEED)
-_SOFT_CAP = float(os.environ.get("PTCG_SEARCH_BUDGET", "0.5"))
+_SOFT_CAP = float(os.environ.get("PTCG_SEARCH_BUDGET", "2.0"))
 # An optional hard cap on determinizations per decision; the gauntlet sets it to
 # trade depth for throughput. 0 means time-bounded only.
 _MAX_DETS = int(os.environ.get("PTCG_SEARCH_DETS", "0")) or None

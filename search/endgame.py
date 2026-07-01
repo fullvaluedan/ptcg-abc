@@ -23,8 +23,11 @@ RESOURCE_THRESHOLD = 12
 # Boosted thinking for a pivotal endgame decision. The soft cap is the per-move
 # time ceiling handed to TimeBudget.allot (still bounded by the remaining-bank
 # reserve fraction), and the determinization multiplier widens the search when a
-# hard determinization cap is set; both are inert in non-endgame play.
-ENDGAME_SOFT_CAP = 4.0
+# hard determinization cap is set; both are inert in non-endgame play. The cap sits
+# well above the raised default soft cap so the near-decided endgame still gets the
+# largest slice of the bank; a near-decided state rolls out fast, so the extra
+# seconds buy many more hidden-world samples on the decision that wins or loses.
+ENDGAME_SOFT_CAP = 12.0
 ENDGAME_DET_MULTIPLIER = 4
 
 # A prize-race turn is pivotal but not yet the near-decided endgame: a player has
@@ -33,9 +36,12 @@ ENDGAME_DET_MULTIPLIER = 4
 # spend a MODERATE boost (more determinizations for a lower-variance value
 # estimate) short of the full endgame commitment. This uses more of the 600s
 # thinking bank on the decisions that matter most, while the leading MAIN
-# decisions (both players near six prizes) keep the small default cap.
+# decisions (both players near six prizes) keep the default cap. The cap stays
+# strictly between the raised default and the endgame cap, so the tiering
+# (default < prize-race < endgame) holds and a closing turn is searched harder than
+# a routine one but short of the full near-decided commitment.
 PRIZE_RACE_THRESHOLD = 3
-PRIZE_RACE_SOFT_CAP = 1.5
+PRIZE_RACE_SOFT_CAP = 5.0
 PRIZE_RACE_DET_MULTIPLIER = 2
 
 

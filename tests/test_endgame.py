@@ -11,7 +11,7 @@ import agents.agent_baseline as baseline  # noqa: F401  (import order, see modul
 import agents.agent_search as agent_search
 from agents import heuristics
 from search import endgame
-from search.timebudget import RESERVE_FRACTION, TimeBudget
+from search.timebudget import RESERVE_FRACTION, SOFT_CAP, TimeBudget
 
 
 def _state(my_prizes, opp_prizes, deck_n, hand_n=0):
@@ -69,7 +69,7 @@ def test_endgame_safe_default_on_malformed_obs():
 def test_endgame_soft_cap_never_below_normal_play():
     assert endgame.endgame_soft_cap(0.5) == endgame.ENDGAME_SOFT_CAP
     # A normal soft cap larger than the endgame cap is never reduced.
-    assert endgame.endgame_soft_cap(10.0) == 10.0
+    assert endgame.endgame_soft_cap(20.0) == 20.0
 
 
 def test_endgame_dets_widens_cap_and_keeps_time_bounded():
@@ -122,7 +122,7 @@ def test_prize_race_boost_is_below_the_endgame_boost():
     # The middle tier is a moderate boost, strictly between normal play and the
     # full endgame commitment, so a closing turn is not searched as hard as a
     # near-decided one.
-    assert 0.5 < endgame.PRIZE_RACE_SOFT_CAP < endgame.ENDGAME_SOFT_CAP
+    assert SOFT_CAP < endgame.PRIZE_RACE_SOFT_CAP < endgame.ENDGAME_SOFT_CAP
     assert 1 < endgame.PRIZE_RACE_DET_MULTIPLIER < endgame.ENDGAME_DET_MULTIPLIER
 
 

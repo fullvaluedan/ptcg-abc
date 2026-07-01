@@ -15,7 +15,7 @@ import agents.agent_search as agent_search
 from search import eval as ev
 from search import rollout
 from search.determinize import determinize
-from search.timebudget import HARD_BANK, TimeBudget
+from search.timebudget import HARD_BANK, SAFETY_RESERVE, SOFT_CAP, TimeBudget
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -68,6 +68,28 @@ def test_budget_reserve_fraction_binds_when_bank_low():
 
 def test_default_hard_bank_under_real_ceiling():
     assert HARD_BANK < 600.0
+
+
+def test_default_soft_cap_samples_more_worlds():
+    # The default per-move cap was raised to use more of the otherwise idle 600s
+    # bank: each determinized rollout runs to terminal, so a tiny cap bought about
+    # one hidden-world sample per decision and starved the variance penalty and
+    # field prior (both need several worlds). At a full bank allot returns the full
+    # cap, so a decision may sample proportionally more worlds than the old 0.5s.
+    assert SOFT_CAP >= 2.0
+    assert TimeBudget().allot() == SOFT_CAP
+
+
+def test_full_match_of_default_decisions_never_reaches_the_guard():
+    # Raising the default cap must not risk a timeout. Spend the full default cap on
+    # a very generous count of searchable decisions (far more than a real match's
+    # ~20-40) and confirm cumulative time stays clear of the at-risk guard, so the
+    # agent keeps searching without ever approaching the 540s hard bank.
+    b = TimeBudget()
+    for _ in range(120):
+        b.record(b.allot())
+    assert b.spent < HARD_BANK - SAFETY_RESERVE
+    assert not b.at_risk
 
 
 # --- rollout legality helper -------------------------------------------------

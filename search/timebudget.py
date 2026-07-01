@@ -14,8 +14,16 @@ from __future__ import annotations
 
 # Stay clear of the real 600s ceiling; a timeout forfeits the match.
 HARD_BANK = 540.0
-# Most decisions are not pivotal, so the per-move soft cap is modest by default.
-SOFT_CAP = 0.5
+# How much of the 600s bank an ordinary decision may spend. Deliberately generous:
+# each determinized rollout runs to a terminal result, so a tiny cap bought only
+# about one hidden-world sample per decision, leaving the mean-over-determinizations
+# argmax noisy and starving the variance penalty and field prior that both need
+# several worlds to do anything (a single world has zero variance). A larger cap
+# samples more worlds and uses more of the otherwise idle bank; the reserve fraction
+# below and the SAFETY_RESERVE guard keep cumulative time clear of a timeout
+# regardless, and the atomic first rollout means an expensive decision is never made
+# more expensive, only cheap decisions gain extra worlds up to the cap.
+SOFT_CAP = 2.0
 # Never commit more than this fraction of the remaining bank to one decision, so
 # the agent always keeps time in reserve for the rest of the match.
 RESERVE_FRACTION = 0.25
