@@ -97,13 +97,17 @@ hidden world. And the clock is used, not hoarded: prior matches spent about 130 
 600-second bank, so the per-move caps were raised and tiered, with the endgame
 and closing prize race sampling more worlds than an ordinary turn, under a reserve guard
 that keeps cumulative time clear of a timeout. Because the heuristic is also the rollout policy, teaching it to drive an evolution line with
-Rare Candy toward its Stage 2 payoff deepens every rollout for free, and it steers surplus
-energy onto a benched attacker rather than overloading an active that can already attack. And the leaf evaluation gained an
-attached-energy term, an active-weighted health term, and a convex empty-bench cushion, so a
-depth-limited rollout scores a board by how close it is to attacking, by the health of the
-active that takes a prize when knocked out, and by whether it still has a bench to promote,
-not by prizes alone. These are committed and await the ladder's verdict, a hypothesis under
-test.
+Rare Candy toward its Stage 2 payoff deepens every rollout for free. Two further changes are
+built but dormant on the shipped stack, and it is worth being precise about that rather than
+claiming them as wins: an energy-attach resequencing that steers surplus energy onto a benched
+attacker, and a richer leaf evaluation (an attached-energy term, an active-weighted health
+term, and a convex empty-bench cushion). The leaf terms are read only at a rollout leaf, but
+the shipped policy rolls every line to a terminal result, so a leaf is reached only at the
+engine's step cap and the terms never fire. Activating them needs a positive rollout depth
+cut-off, which we measured and rejected: at the depths that made the cushion bite, the
+depth-cut argmax diverged from the faithful terminal argmax, so the cut cost more accuracy than
+the leaf terms bought. They stay off until a rollout policy cheap enough to justify cutting
+depth makes them pay.
 
 ## Tuned by real loss data, not by guessing
 
@@ -128,9 +132,11 @@ The most useful thing we learned may be the least intuitive. With our own decks 
 near 570 and the leaderboard top near 1300, the obvious move is to copy a proven deck. We
 harvested the real meta from thousands of ladder episodes and submitted exact copies of the
 two best: the most-adopted Archaludon metal engine, and the Dark Grimmsnarl ex list of the
-top two human players. Both scored at or below our own robust deck on the
-same agent, Archaludon near 425 and Grimmsnarl near 570. A top-1300 deck made our pilot
-play worse, not better.
+top two human players. Both scored below our own robust deck on the same agent, each landing
+clearly under the roughly 570 the trolley deck reaches. The exact publicScores drift as the
+live ladder keeps replaying them, so we anchor on the stable fact rather than a moving number:
+neither meta copy has come within reach of the floor. A top-1300 deck made our pilot play
+worse, not better.
 
 The replays say why. Our agent decks itself out on Archaludon's trainer-heavy engine, and
 at that time had no plan for driving Grimmsnarl's Rare Candy line to its payoff, the exact
