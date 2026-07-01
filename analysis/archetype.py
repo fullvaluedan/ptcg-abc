@@ -105,6 +105,18 @@ _BUILTIN_DECKLISTS: dict = {
 }
 _REGISTERED: list = []
 
+# The widest-adoption ladder pillar (Metal / Archaludon ex: ranks #1 at 811W/1786G
+# plus #4 and #8, by far the widest field, analysis/meta.md). Used as the no-reveal
+# DEFAULT opponent model: before the opponent shows a distinctive card there is no
+# belief to map, and the modal field deck is a far better guess than the mirror (a
+# copy of our own deck), which the varied ladder field almost never actually plays.
+# That mirror fallback on every opening turn is the exact bias the field prior
+# exists to remove; without this the prior only sharpened AFTER a reveal and search
+# rolled out the whole early game against a copy of our own deck. Gated by the same
+# PTCG_FIELD_PRIOR flag (=0 restores the mirror default) so the effect stays part of
+# the one field-prior A/B lever rather than a new independent knob.
+_FIELD_DEFAULT_NAME = "meta_archaludon"
+
 
 @lru_cache(maxsize=1)
 def _builtin_archetypes() -> tuple:
@@ -127,6 +139,23 @@ def _field_prior_enabled() -> bool:
     the mirror-only prior within one process by toggling the environment.
     """
     return os.environ.get("PTCG_FIELD_PRIOR", "1") != "0"
+
+
+def _field_default_decklist():
+    """The modal field archetype's decklist, or None when no field default applies.
+
+    Returns the widest-adoption builtin (see _FIELD_DEFAULT_NAME) so a no-reveal
+    determinization models the most common ladder opponent instead of the mirror.
+    None when PTCG_FIELD_PRIOR=0 (field prior off) so opponent_prior falls back to
+    the mirror decklist exactly as before, which keeps the field prior isolable to
+    that one flag.
+    """
+    if not _field_prior_enabled():
+        return None
+    for arch in _builtin_archetypes():
+        if arch.name == _FIELD_DEFAULT_NAME:
+            return list(arch.decklist)
+    return None
 
 
 def _archetypes(explicit=None) -> list:
@@ -254,14 +283,22 @@ def opponent_prior(obs, your_deck, archetypes=None) -> list:
     """A 60 card prior decklist for the opponent, biased by revealed cards.
 
     Picks the most likely archetype's decklist as the base when belief is non
-    empty, else mirrors our own deck, then merges in every revealed opponent card
-    so the prior stays consistent with the visible board. Pass the result to the
-    determinizer as opponent_prior.
+    empty. With no belief (no distinctive card revealed yet, the opening turns) the
+    base is the modal field archetype when the field prior is on, else the mirror of
+    our own deck; either way every revealed opponent card is merged in so the prior
+    stays consistent with the visible board. The explicit-archetypes path (tests and
+    dev) keeps the mirror fallback so it stays fully caller controlled. Pass the
+    result to the determinizer as opponent_prior.
     """
     revealed = revealed_opponent_ids(obs)
     belief = infer_belief(revealed, archetypes)
     arch = map_archetype(belief, archetypes)
-    base = list(arch.decklist) if arch is not None else list(your_deck)
+    if arch is not None:
+        base = list(arch.decklist)
+    elif archetypes is None and (field_default := _field_default_decklist()) is not None:
+        base = field_default
+    else:
+        base = list(your_deck)
     return _merge_revealed(base, revealed)
 
 

@@ -232,9 +232,62 @@ def test_field_prior_distinguishes_grimmsnarl_variants(monkeypatch):
 
 
 # Test scenario: signatures drop basic energy, so a bare basic-energy reveal is not
-# a tell for any field deck (every deck runs energy) and the prior stays the mirror.
+# a tell for any field deck (every deck runs energy) and produces no belief.
 def test_field_prior_ignores_basic_energy_reveal(monkeypatch):
     monkeypatch.delenv("PTCG_FIELD_PRIOR", raising=False)
     deck = _deck()
     opp = _player(active=[_slot(8, energies=[8])])  # id 8 is a basic energy
     assert archetype.belief_report(_obs(opp), deck)["map"] is None
+
+
+# --- No-reveal default: the field prior models the modal opponent, not the mirror ---
+
+
+# Test scenario: with the field prior on and nothing revealed (every opening turn),
+# the prior is the modal field archetype (Archaludon, the widest-adoption pillar),
+# NOT a mirror of our own deck, so early rollouts face a realistic ladder opponent.
+def test_no_reveal_defaults_to_modal_field_deck(monkeypatch):
+    monkeypatch.delenv("PTCG_FIELD_PRIOR", raising=False)  # default on
+    deck = _deck()
+    opp = _player(active=[], bench=[], discard=[])  # nothing revealed
+    assert archetype.belief_report(_obs(opp), deck)["map"] is None  # no belief
+    prior = archetype.opponent_prior(_obs(opp), deck)
+    assert len(prior) == 60
+    assert Counter(prior) == Counter(archetype._BUILTIN_DECKLISTS["meta_archaludon"])
+    assert Counter(prior) != Counter(deck)  # not the mirror
+
+
+# Test scenario: PTCG_FIELD_PRIOR=0 removes the field default too, so a no-reveal
+# prior falls back to the mirror deck exactly as before (the one-flag A/B control).
+def test_no_reveal_field_prior_off_is_mirror(monkeypatch):
+    monkeypatch.setenv("PTCG_FIELD_PRIOR", "0")
+    deck = _deck()
+    opp = _player(active=[], bench=[], discard=[])
+    prior = archetype.opponent_prior(_obs(opp), deck)
+    assert Counter(prior) == Counter(deck)
+
+
+# Test scenario: a non-distinctive reveal (basic energy only) yields no belief, but
+# the base is still the modal field deck with the reveal merged, so the prior carries
+# the field's distinctive cards (Archaludon ex, id 169) our own deck never holds.
+def test_no_belief_reveal_uses_field_default_base(monkeypatch):
+    monkeypatch.delenv("PTCG_FIELD_PRIOR", raising=False)  # default on
+    deck = _deck()
+    opp = _player(active=[_slot(8, energies=[8])])  # basic energy, not a tell
+    assert archetype.belief_report(_obs(opp), deck)["map"] is None
+    prior = archetype.opponent_prior(_obs(opp), deck)
+    assert len(prior) == 60
+    field = archetype._BUILTIN_DECKLISTS["meta_archaludon"]
+    assert Counter(prior)[169] == Counter(field)[169] > 0  # field's payoff Pokemon
+    assert Counter(deck)[169] == 0  # which the mirror deck does not contain
+
+
+# Test scenario: the explicit-archetypes path (tests and dev) never injects the
+# builtin field default, so with no matching reveal the base stays the caller's
+# mirror deck even while the field prior is on for production callers.
+def test_explicit_archetypes_no_reveal_keeps_mirror(monkeypatch):
+    monkeypatch.delenv("PTCG_FIELD_PRIOR", raising=False)  # on for production path
+    deck = _deck()
+    opp = _player(active=[], bench=[], discard=[])
+    prior = archetype.opponent_prior(_obs(opp), deck, archetypes=[])
+    assert Counter(prior) == Counter(deck)
