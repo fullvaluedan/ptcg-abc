@@ -312,6 +312,73 @@ def test_benches_basic_from_deck_predicate_by_effect_text():
     assert not heuristics._benches_basic_from_deck(POKEMON_PLAY)    # a Pokemon
 
 
+# Rare Candy evolution-line driver.
+#   1079 Rare Candy               Item: evolve a Basic to Stage 2, skipping Stage 1
+#   646  Marnie's Impidimp        Basic
+#   648  Marnie's Grimmsnarl ex   Stage 2, evolves from Marnie's Morgrem (from 646)
+RARE_CANDY = 1079
+BASIC_IMPIDIMP = 646
+STAGE2_GRIMMSNARL = 648
+BASIC_KYOGRE = 721  # a standalone Basic with no Stage 2 line, an inert board target
+
+
+# With the bench stocked, holding the Stage 2 whose line traces to an in-play Basic,
+# a Rare Candy play is preferred over the first ordinary play: it evolves the Basic
+# straight to its payoff attacker a turn sooner, and evolving that Basic to Stage 1
+# first would consume it and waste the accelerator.
+def test_rare_candy_preferred_to_drive_evolution_line():
+    stocked = [_pokemon(BASIC_IMPIDIMP, 90), _pokemon(BASIC_KYOGRE, 90)]
+    obs = _play_main_obs(
+        [SUPPORTER_DRAW, RARE_CANDY, STAGE2_GRIMMSNARL], deck_n=30, bench=stocked
+    )
+    assert heuristic_agent(obs) == [1]  # Rare Candy, not the first Supporter
+
+
+# Without a Stage 2 in hand the accelerator would whiff, so it is not preferred and
+# ordinary play resumes (the first play option). This gate keeps the card from being
+# burned on an empty condition.
+def test_rare_candy_not_preferred_without_stage2_target():
+    stocked = [_pokemon(BASIC_IMPIDIMP, 90), _pokemon(BASIC_KYOGRE, 90)]
+    obs = _play_main_obs([SUPPORTER_DRAW, RARE_CANDY], deck_n=30, bench=stocked)
+    assert heuristic_agent(obs) == [0]  # first play, Rare Candy left alone
+
+
+# When the bench is thin the evolution driver is held back: surviving the empty-bench
+# collapse (the #1 loss bucket) outranks tempo, so the bench-development guard runs
+# and a Basic is developed instead of the accelerator being played.
+def test_rare_candy_held_back_when_bench_thin():
+    obs = _play_main_obs(
+        [RARE_CANDY, POKEMON_PLAY, STAGE2_GRIMMSNARL],
+        deck_n=30, bench=[_pokemon(BASIC_IMPIDIMP, 90)],  # one Pokemon: thin
+    )
+    assert heuristic_agent(obs) == [1]  # develop the Basic, not Rare Candy (0)
+
+
+# The accelerator predicate reads the effect text: only a trainer that evolves a
+# Basic to a Stage 2 skipping Stage 1 qualifies. A develop trainer, a draw trainer,
+# and a Pokemon are all excluded.
+def test_evolves_basic_to_stage2_predicate_by_effect_text():
+    assert heuristics._evolves_basic_to_stage2(RARE_CANDY)
+    assert not heuristics._evolves_basic_to_stage2(ITEM_DEVELOP)      # Precious Trolley
+    assert not heuristics._evolves_basic_to_stage2(SUPPORTER_DRAW)    # Cyrano
+    assert not heuristics._evolves_basic_to_stage2(STAGE2_GRIMMSNARL)  # a Pokemon
+
+
+# The target check traces the line by name: a Stage 2 in hand fires only against the
+# matching Basic in play. It is False when that Basic is absent and False when no
+# Stage 2 is held, so the driver only prefers a Rare Candy that will actually land.
+def test_rare_candy_has_target_traces_line_by_name():
+    with_target = {"active": [None], "bench": [_pokemon(BASIC_IMPIDIMP, 90)],
+                   "hand": [_card(STAGE2_GRIMMSNARL)]}
+    assert heuristics._rare_candy_has_target(with_target)
+    wrong_basic = {"active": [None], "bench": [_pokemon(BASIC_KYOGRE, 90)],
+                   "hand": [_card(STAGE2_GRIMMSNARL)]}
+    assert not heuristics._rare_candy_has_target(wrong_basic)
+    no_stage2 = {"active": [None], "bench": [_pokemon(BASIC_IMPIDIMP, 90)],
+                 "hand": [_card(SUPPORTER_DRAW)]}
+    assert not heuristics._rare_candy_has_target(no_stage2)
+
+
 # Boundary: at exactly the threshold the guard is active (<=, not <), so a draw
 # trainer is still declined in favor of developing a Pokemon.
 def test_play_conserves_at_threshold_boundary():

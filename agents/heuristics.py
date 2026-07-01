@@ -126,6 +126,20 @@ def attack_index() -> dict:
     return {a.attackId: a for a in all_attack()}
 
 
+@lru_cache(maxsize=1)
+def _name_index() -> dict:
+    """Map card name -> CardData, for tracing an evolution line by name.
+
+    Card data records evolvesFrom as the prior stage's name (not its id), so
+    resolving a chain (Stage 2 -> its Stage 1 -> that Stage 1's Basic) needs a
+    by-name lookup. Cached once like card_index. Defensive: empty on any failure.
+    """
+    try:
+        return {c.name: c for c in card_index().values() if getattr(c, "name", None)}
+    except Exception:
+        return {}
+
+
 def options_by_type(options) -> dict:
     """Map an OptionType to the list of (index, option) pairs that have it."""
     groups: dict = {}
@@ -231,6 +245,17 @@ def my_bench_count(obs):
         return None
     bench = players[yi].get("bench") or []
     return sum(1 for b in bench if b)
+
+
+def _bench_is_thin(obs) -> bool:
+    """True when our bench holds fewer than THIN_BENCH Pokemon (early-collapse risk).
+
+    Shared by the bench-development guard and the evolution-line driver so both
+    read the same empty-bench signal. None (unknown) is treated as not thin, so a
+    degenerate observation never triggers a develop-over-everything override.
+    """
+    b = my_bench_count(obs)
+    return b is not None and b < THIN_BENCH
 
 
 def effective_damage(attacker_id, attack, defender_id) -> int:
@@ -493,6 +518,85 @@ def _first_bench_fetch_play(play_opts, me):
     )
 
 
+def _evolves_basic_to_stage2(card_id) -> bool:
+    """True when this trainer evolves a Basic straight to a Stage 2, skipping Stage 1.
+
+    Rare Candy ("If you have a Stage 2 card in your hand that evolves from that
+    Pokemon, put that card onto the Basic Pokemon to evolve it, skipping the Stage
+    1") is the accelerator that brings a deck's Stage 2 payoff attacker online a
+    full turn sooner. Read from the effect text offline so any equivalent
+    accelerator generalizes rather than hard-coding an id; a deck without such a
+    card (the trolley deck) has no matching play and the driver below stays inert.
+    Pure, never raises.
+    """
+    if _card_type(card_id) not in CONSERVED_TRAINER_TYPES:
+        return False
+    text = _card_text(card_id)
+    if not text:
+        return False
+    t = text.lower()
+    return "stage 2" in t and "skipping the stage 1" in t
+
+
+def _in_play_basic_names(me) -> set:
+    """Names of every un-evolved Basic Pokemon we have in play (active plus bench).
+
+    An in-play Pokemon shows the id of its current top card, so an already-evolved
+    line reports its Stage 1/2 id and is excluded; only a Basic still sitting as a
+    Basic is a Rare Candy target. Pure, never raises.
+    """
+    cards = card_index()
+    names = set()
+    for zone in (me.get("active"), me.get("bench")):
+        for p in (zone or []):
+            cid = p.get("id") if p else None
+            if cid and is_basic_pokemon(cid):
+                c = cards.get(cid)
+                if c is not None and getattr(c, "name", None):
+                    names.add(c.name)
+    return names
+
+
+def _rare_candy_has_target(me) -> bool:
+    """True when a Rare Candy play would actually evolve a Basic to its Stage 2.
+
+    Rare Candy is offered whenever it sits in hand, but its effect is conditional:
+    it fires only when we hold a Stage 2 whose line traces back to a Basic already
+    in play. Preferring it without a target would waste the card, so confirm one:
+    some Stage 2 in hand -> its Stage 1 (by name) -> that Stage 1's Basic (by name)
+    matches a Basic we have in play. Pure, defensive, never raises.
+    """
+    in_play = _in_play_basic_names(me or {})
+    if not in_play:
+        return False
+    cards = card_index()
+    names = _name_index()
+    for entry in (me or {}).get("hand") or []:
+        cid = entry.get("id") if entry else None
+        c = cards.get(cid) if cid else None
+        if c is None or not getattr(c, "stage2", False):
+            continue
+        stage1 = names.get(getattr(c, "evolvesFrom", None))
+        if stage1 is not None and getattr(stage1, "evolvesFrom", None) in in_play:
+            return True
+    return False
+
+
+def _first_rare_candy_play(play_opts, me):
+    """Option index of a Rare Candy play with a live Stage 2 target, or None.
+
+    Gated on _rare_candy_has_target so the accelerator is preferred only when it
+    will land a Stage 2 on a Basic in play, never burned on an empty condition.
+    """
+    if not _rare_candy_has_target(me):
+        return None
+    return next(
+        (oi for oi, opt in play_opts
+         if _evolves_basic_to_stage2(play_card_id(opt, me))),
+        None,
+    )
+
+
 def choose_play(play_opts, me, obs):
     """Pick which card to PLAY, developing the bench and conserving deck near a self-deckout.
 
@@ -520,8 +624,7 @@ def choose_play(play_opts, me, obs):
         # with prizes untouched). When the bench is thin, bench a Basic Pokemon
         # before any other play. Nothing is sacrificed: other PLAY options remain
         # legal on later decisions this same turn, since PLAY is not once-per-turn.
-        bench = my_bench_count(obs)
-        if bench is not None and bench < THIN_BENCH:
+        if _bench_is_thin(obs):
             poke = _first_pokemon_play(play_opts, me)
             if poke is not None:
                 return poke
@@ -690,7 +793,17 @@ def choose(obs) -> list:
     # 1. Take a knockout immediately.
     if lethal:
         return [ba[0]]
-    # 2. Evolve, then develop the hand, then power up the attacker.
+    # 2. Drive the evolution line to its payoff. A Rare Candy accelerator evolves a
+    #    Basic straight to its Stage 2 (skipping Stage 1), bringing the deck's payoff
+    #    attacker online a turn sooner; evolving that Basic to Stage 1 first would
+    #    consume it and waste the accelerator, so prefer it before the greedy evolve.
+    #    Held back when the bench is thin (surviving the empty-bench collapse, the #1
+    #    loss bucket, outranks tempo) and inert on decks with no such card (trolley).
+    if OPT_PLAY in groups and not _bench_is_thin(obs):
+        candy = _first_rare_candy_play(groups[OPT_PLAY], me)
+        if candy is not None:
+            return [candy]
+    # 3. Evolve, then develop the hand, then power up the attacker.
     if OPT_EVOLVE in groups:
         return [groups[OPT_EVOLVE][0][0]]
     if OPT_PLAY in groups:
@@ -703,17 +816,17 @@ def choose(obs) -> list:
             (i for i, op in attach if op.get("inPlayArea") == AREA_ACTIVE), None
         )
         return [active_attach if active_attach is not None else attach[0][0]]
-    # 3. Retreat an endangered active before chipping in with a weak attack.
+    # 4. Retreat an endangered active before chipping in with a weak attack.
     if OPT_RETREAT in groups and should_retreat(
         my_active, me.get("bench"), lethal
     ):
         return [groups[OPT_RETREAT][0][0]]
-    # 4. Otherwise attack with the strongest option available.
+    # 5. Otherwise attack with the strongest option available.
     if ba is not None and ba[1] > 0:
         return [ba[0]]
     if OPT_ATTACK in groups:
         return [groups[OPT_ATTACK][0][0]]
-    # 5. End the turn, or fall back to any legal selection.
+    # 6. End the turn, or fall back to any legal selection.
     if OPT_END in groups:
         return [groups[OPT_END][0][0]]
     return _first_legal(sel)
