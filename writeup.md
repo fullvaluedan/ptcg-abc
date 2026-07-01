@@ -126,6 +126,32 @@ falsified attempts: trading energy for a Basic lost more to reduced damage than 
 and an Ultra Ball fetch measured even but was retired, its discard cost unaffordable by
 turn three when the collapse lands.
 
+## The measurement problem, and the discipline it forced
+
+Every claim above rests on a harder question than the changes themselves: how do you
+know a change helped? The obvious answer, a self-play gauntlet, is a trap here. Offline
+gauntlets run against the SDK's built-in bots, and they are not ladder-predictive: the
+trolley deck beats the Archaludon engine 77 percent to 68 in the gauntlet, yet on the
+scored ladder Archaludon lands below trolley, not above. The only honest oracle is the
+ladder itself, and it is rationed: five submissions a day, and only the two most recent
+count toward the standing. A noisy, rate-limited, latest-two-scored oracle is the real
+environment, and pretending the gauntlet was the oracle would have burned the whole
+climb on changes that only looked good against weak bots.
+
+Three rules fell out of that. First, measure mechanisms, not outcomes. A win-rate delta
+from an offline mirror means nothing, but a loss-bucket shift is a real, reproducible
+fact about behavior: the deckout guard drove self-deckout from the top loss to near
+zero, and the bench guard cut our empty-bench collapse from 43 to 34 percent, both
+measured offline and both trusted precisely because they are counts of a named failure,
+not a rating. Second, never spend a scarce ladder slot on a lever the ladder cannot
+judge before it ships: a staged flag that only changes behavior under an environment
+toggle would land inert and waste a slot, so those stay off until a default-on version
+earns the test. Third, because only the latest two submissions score, a known-good
+build has to be reclaimed: after an experiment pushes it out of the scored pair, the
+floor is re-submitted to re-enter it, so the standing tracks our best verified build
+rather than our most recent guess. Most teams will read the gauntlet as truth; the
+result that mattered most was learning not to.
+
 ## Deck and pilot are one lever: the coupling result
 
 The most useful thing we learned may be the least intuitive. With our own decks capped
