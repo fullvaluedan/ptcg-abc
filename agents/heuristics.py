@@ -118,6 +118,25 @@ _ENERGY_SEQ = os.environ.get("PTCG_ENERGY_SEQ", "0") != "0"
 # default off means every shipped build stays byte-identical.
 _BENCH_DIG = os.environ.get("PTCG_BENCH_DIG", "0") != "0"
 
+# Ability activation (PTCG_ABILITY, default off). The pilot has never activated an
+# ability: 0 of 554 real expert MAIN decisions where the top players used one (the
+# move-ranking breakdown, analysis/move_ranking_diverges_ability_gap.md). Abilities
+# are 12% of the top players' MAIN actions and the draw/search/damage engines of
+# this meta (the exact engines our meta-deck copies mispiloted), so this is a whole
+# category the heuristic lacks, orthogonal to the bench work refuted three times.
+# The historical reason to skip abilities is loop safety: choose() is stateless and
+# the engine re-calls it until the turn ends, so a pilot that preferred a REPEATABLE
+# ability over ending the turn would activate it every decision forever and hang the
+# match. This lever adds the branch loop-safely by activating ONLY a "once during
+# your turn" ability: the engine flags such an ability used after activation, so it
+# is never re-offered that turn and the turn still terminates (finitely many
+# once-per-turn abilities fire, then the usual attack/end path runs). A repeatable
+# ability that carries no such limit is left out precisely because it is the loop
+# risk. Staged behind a default-off flag so every shipped build stays byte-identical
+# until it is validated (the move-ranking breakdown) and A/B'd on the ladder; offline
+# weak-bot gauntlets are not predictive, so the ladder is the judge.
+_ABILITY = os.environ.get("PTCG_ABILITY", "0") != "0"
+
 
 def _ensure_cg_on_path() -> None:
     try:
@@ -416,6 +435,40 @@ def _choose_attach(attach, me) -> int:
 def _active(player):
     act = player.get("active") or []
     return act[0] if act and act[0] is not None else None
+
+
+def _is_once_per_turn_ability(card_id) -> bool:
+    """True when a Pokemon's ability is limited to once during your turn.
+
+    Read from the card's skill text offline (a Pokemon's ability lives in `skills`,
+    separate from its `attacks`). The "once during your turn" limit is the one the
+    engine flags as used after activation, so such an ability is never re-offered
+    that turn: activating it always makes progress and the turn still terminates. An
+    ability without that limit (a passive or repeatable ability) is the infinite-loop
+    risk a stateless pilot must avoid, so it is excluded. Conservative on missing
+    text: no text means the once-per-turn limit cannot be proven, so it is treated as
+    unsafe and not activated. Pure, never raises.
+    """
+    text = _card_text(card_id)
+    if not text:
+        return False
+    return "once during your turn" in text.lower()
+
+
+def _once_per_turn_ability(ability_opts, sel, obs):
+    """Option index of a loop-safe once-per-turn ability to activate, or None.
+
+    An ABILITY option carries the area+index of the Pokemon whose ability it is, so
+    resolve that Pokemon's card id (option_card_id) and read its skill text. Only an
+    ability limited to "once during your turn" is returned; a repeatable ability, or
+    one whose Pokemon or text cannot be resolved, is skipped so a stateless pilot can
+    never loop on it. Lowest option index wins. Pure, never raises.
+    """
+    for oi, opt in ability_opts:
+        cid = option_card_id(opt, sel, obs)
+        if cid is not None and _is_once_per_turn_ability(cid):
+            return oi
+    return None
 
 
 def lethal_move(obs, sel=None):
@@ -938,6 +991,21 @@ def choose(obs) -> list:
             return [play_idx]
     if OPT_ATTACH in groups:
         return [_choose_attach(groups[OPT_ATTACH], me)]
+    # 3b. Fire a once-per-turn ability engine (the draw/search/damage abilities that
+    #     are 12% of the top players' MAIN actions and that the pilot has never used,
+    #     0/554; see analysis/move_ranking_diverges_ability_gap.md). Placed AFTER the
+    #     develop steps (evolve, play, attach) so it never diverts from those: the
+    #     top players develop the board first and spend the ability once nothing is
+    #     left to build, and placing it above evolve regressed EVOLVE hard on the
+    #     move-ranking breakdown. It stays ahead of retreat and the non-lethal attack
+    #     so a dig-then-attack turn still fires the ability. Loop-safe because only a
+    #     "once during your turn" ability is taken: the engine flags it used so it is
+    #     never re-offered and the turn still terminates. Flag-guarded (default off)
+    #     so shipped builds stay byte-identical until validated and A/B'd.
+    if _ABILITY and OPT_ABILITY in groups:
+        ability = _once_per_turn_ability(groups[OPT_ABILITY], sel, obs)
+        if ability is not None:
+            return [ability]
     # 4. Retreat an endangered active before chipping in with a weak attack.
     if OPT_RETREAT in groups and should_retreat(
         my_active, me.get("bench"), lethal

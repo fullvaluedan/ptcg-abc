@@ -80,3 +80,42 @@ Add an ability-activation branch to `heuristics.choose` behind a default-off fla
 then re-run `--breakdown` to confirm it lifts ABILITY agreement off zero without
 regressing ATTACK/EVOLVE, and self-play to confirm no crash or timeout. Ship only if
 it is a verified improvement and never displaces a stronger live build.
+
+## Result (2026-07-01): PTCG_ABILITY branch, loop-safe, validated
+
+Built the branch (agents/heuristics.py, `_ABILITY` flag, default off). The historical
+reason abilities were skipped is loop safety: `choose` is stateless and the engine
+re-calls it until the turn ends, so a pilot that preferred a REPEATABLE ability over
+ending the turn would activate it every decision forever. The branch sidesteps this by
+activating ONLY a "once during your turn" ability (read from the card's skill text,
+`_is_once_per_turn_ability`): the engine flags such an ability used after activation,
+so it is never re-offered that turn and the turn still terminates. A repeatable ability
+carries no such limit and is excluded precisely because it is the loop risk.
+
+Placement matters. Placed FIRST (right after the lethal check) it lifted ABILITY to
+0.412 but regressed EVOLVE 0.570 -> 0.333 and PLAY/ATTACH too, netting agreement flat
+at 0.212: the top players develop the board before spending the ability, so an ability
+branch above evolve/play/attach diverts from those. Placed AFTER the develop steps
+(evolve, play, attach) and before retreat/attack, the breakdown over the same 4524
+expert MAIN decisions is:
+
+```
+                 baseline   candidate
+  top-1          0.212  ->  0.225
+  ABILITY  0/554 0.000  ->  0.139  (+77)
+  EVOLVE         0.570  ->  0.570  (preserved)
+  PLAY           0.263  ->  0.263  (preserved)
+  ATTACH         0.060  ->  0.060  (preserved)
+  ATTACK         0.770  ->  0.747  (-10, a scoring artifact: abilities do not end
+                                    the turn, so in real play the attack still
+                                    follows on the next decision)
+```
+
+EVOLVE (the brief's hard constraint) is fully preserved and net agreement rises. Self-
+play with the flag on found no hang or crash: heuristic vs the 8-deck pool n=30 -> 0
+invalid, all games terminated; the determinized search agent (the flag also drives its
+rollout policy and fallback) n=12 -> 0 invalid, max 5.2s/decision, all terminated.
+
+Kept default off so every shipped build stays byte-identical; the ladder is the judge,
+so the next step is a clean single-variable A/B (PTCG_ABILITY on vs off) once a slot is
+free. This is the first non-zero ABILITY agreement the pilot has ever had.

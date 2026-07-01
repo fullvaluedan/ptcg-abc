@@ -474,6 +474,88 @@ def test_rare_candy_has_target_traces_line_by_name():
     assert not heuristics._rare_candy_has_target(no_stage2)
 
 
+# Ability activation lever (PTCG_ABILITY). The pilot had no OPT_ABILITY branch at all
+# (0/554 real expert ability uses; see analysis/move_ranking_diverges_ability_gap.md).
+# This lever activates only a loop-safe once-per-turn ability. Real card ids: 66
+# Dudunsparce carries a "once during your turn" draw ability; 28 Poltchageist carries
+# a passive/repeatable ability with no such limit (the infinite-loop risk).
+ABILITY_ONCE = 66
+ABILITY_REPEATABLE = 28
+
+
+def _ability_main_obs(active_id):
+    opts = [
+        {"type": heuristics.OPT_ABILITY, "area": heuristics.AREA_ACTIVE, "index": 0},
+        {"type": heuristics.OPT_END},
+    ]
+    return _main_obs(opts, my_active=_pokemon(active_id, 90),
+                     opp_active=_pokemon(722, 90))
+
+
+# The predicate reads the skill text: a "once during your turn" ability is loop-safe
+# (the engine flags it used, so it never re-offers), a repeatable one is not, and an
+# unknown card cannot be proven safe.
+def test_once_per_turn_ability_predicate_by_effect_text():
+    assert heuristics._is_once_per_turn_ability(ABILITY_ONCE)        # Dudunsparce
+    assert not heuristics._is_once_per_turn_ability(ABILITY_REPEATABLE)  # Poltchageist
+    assert not heuristics._is_once_per_turn_ability(-1)              # unknown id
+
+
+# With the flag on and a once-per-turn ability offered, the pilot activates it before
+# ending the turn, lifting the ABILITY category off zero.
+def test_ability_activated_when_once_per_turn_and_flag_on(monkeypatch):
+    monkeypatch.setattr(heuristics, "_ABILITY", True)
+    obs = _ability_main_obs(ABILITY_ONCE)
+    assert heuristic_agent(obs) == [0]
+
+
+# Default off: shipped builds stay byte-identical, so the ability is left alone and
+# the turn ends exactly as before.
+def test_ability_inert_by_default(monkeypatch):
+    monkeypatch.setattr(heuristics, "_ABILITY", False)
+    obs = _ability_main_obs(ABILITY_ONCE)
+    assert heuristic_agent(obs) == [1]
+
+
+# A repeatable ability is the loop risk (a stateless pilot would re-activate it every
+# decision forever), so even with the flag on it is skipped and the turn ends.
+def test_ability_skips_repeatable_even_when_flag_on(monkeypatch):
+    monkeypatch.setattr(heuristics, "_ABILITY", True)
+    obs = _ability_main_obs(ABILITY_REPEATABLE)
+    assert heuristic_agent(obs) == [1]
+
+
+# An ability option whose Pokemon cannot be resolved (index out of range) cannot be
+# proven safe, so it is skipped rather than activated.
+def test_ability_skips_unresolvable_option(monkeypatch):
+    monkeypatch.setattr(heuristics, "_ABILITY", True)
+    opts = [
+        {"type": heuristics.OPT_ABILITY, "area": heuristics.AREA_ACTIVE, "index": 9},
+        {"type": heuristics.OPT_END},
+    ]
+    obs = _main_obs(opts, my_active=_pokemon(ABILITY_ONCE, 90),
+                    opp_active=_pokemon(722, 90))
+    assert heuristic_agent(obs) == [1]
+
+
+# A knockout still wins: the lethal check runs before the ability branch, so an
+# available once-per-turn ability never diverts the pilot from taking the prize.
+def test_lethal_taken_before_ability(monkeypatch):
+    monkeypatch.setattr(heuristics, "_ABILITY", True)
+    attacks = heuristics.attack_index()
+    aid, attack = next((k, a) for k, a in attacks.items() if (a.damage or 0) > 0)
+    opp = _pokemon(722, 90)
+    eff = heuristics.effective_damage(ABILITY_ONCE, attack, opp["id"])
+    opp["hp"] = eff  # lethal
+    opts = [
+        {"type": heuristics.OPT_ABILITY, "area": heuristics.AREA_ACTIVE, "index": 0},
+        {"type": heuristics.OPT_ATTACK, "attackId": aid},
+        {"type": heuristics.OPT_END},
+    ]
+    obs = _main_obs(opts, my_active=_pokemon(ABILITY_ONCE, 90), opp_active=opp)
+    assert heuristic_agent(obs) == [1]  # the knockout, not the ability
+
+
 # Boundary: at exactly the threshold the guard is active (<=, not <), so a draw
 # trainer is still declined in favor of developing a Pokemon.
 def test_play_conserves_at_threshold_boundary():
