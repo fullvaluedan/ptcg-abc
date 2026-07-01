@@ -165,6 +165,76 @@ def test_missing_energy_field_is_neutral():
     assert ev.board_value(state, 0) == 0.0
 
 
+# --- empty-bench floor (PTCG_BENCH_FLOOR, staged off) ------------------------
+
+def test_bench_floor_is_off_by_default():
+    # The lever ships dormant so the frozen search batch stays byte-identical and
+    # the pending A/B is single-variable.
+    assert ev._BENCH_FLOOR is False
+
+
+def test_bench_floor_off_leaves_board_value_untouched(monkeypatch):
+    # With the flag off the term is never even computed, so the shipped default is
+    # exactly the prior four-term estimate. A term that raises when called proves
+    # the off path does not touch it.
+    def _boom(*_args):
+        raise AssertionError("bench-floor term computed while flag is off")
+
+    monkeypatch.setattr(ev, "_bench_floor_term", _boom)
+    monkeypatch.setattr(ev, "_BENCH_FLOOR", False)
+    full = _pokemon(120, 120)
+    asymmetric = _state(_player(3, active=full, bench=[full, full]),
+                        _player(3, active=full))
+    # Runs without invoking the term, and still returns the plain width estimate.
+    assert ev.board_value(asymmetric, 0) > 0
+
+
+def test_bench_cushion_is_convex_and_saturates():
+    # The first benched Pokemon (0 -> 1, the jump off the self-collapse cliff) is
+    # worth more than a later one, and the cushion flattens by BENCH_TARGET.
+    first = ev._bench_cushion(1) - ev._bench_cushion(0)
+    later = ev._bench_cushion(3) - ev._bench_cushion(2)
+    assert first > later > 0
+    assert ev._bench_cushion(0) == 0.0
+    assert ev._bench_cushion(ev.BENCH_TARGET) == 1.0
+    assert ev._bench_cushion(ev.BENCH_MAX) == ev._bench_cushion(ev.BENCH_TARGET)
+
+
+def test_bench_floor_penalizes_an_empty_bench_beyond_flat_width(monkeypatch):
+    # Emptying our bench costs more than the flat width differential alone: the
+    # floor widens the gap between a one-Pokemon cushion and none.
+    full = _pokemon(120, 120)
+    opp = _player(3, active=full, bench=[full, full])
+    empty = _state(_player(3, active=full, bench=[]), opp)
+    one = _state(_player(3, active=full, bench=[full]), opp)
+
+    monkeypatch.setattr(ev, "_BENCH_FLOOR", False)
+    delta_off = ev.board_value(one, 0) - ev.board_value(empty, 0)
+    monkeypatch.setattr(ev, "_BENCH_FLOOR", True)
+    delta_on = ev.board_value(one, 0) - ev.board_value(empty, 0)
+    assert delta_on > delta_off > 0
+
+
+def test_bench_floor_term_is_symmetric_between_seats(monkeypatch):
+    monkeypatch.setattr(ev, "_BENCH_FLOOR", True)
+    full = _pokemon(120, 120)
+    state = _state(_player(3, active=full, bench=[full, full, full]),
+                   _player(3, active=full))
+    assert ev.board_value(state, 0) == -ev.board_value(state, 1)
+
+
+def test_bench_floor_term_is_bounded(monkeypatch):
+    # The widest possible cushion gap saturates at BENCH_FLOOR_SHAPING, and the
+    # whole estimate still stays below a real win.
+    full = _pokemon(120, 120)
+    me = _player(3, active=full, bench=[full] * 5)
+    opp = _player(3, active=full, bench=[])
+    assert ev._bench_floor_term(me, opp) <= ev.BENCH_FLOOR_SHAPING + 1e-9
+    assert ev._bench_floor_term(opp, me) >= -ev.BENCH_FLOOR_SHAPING - 1e-9
+    monkeypatch.setattr(ev, "_BENCH_FLOOR", True)
+    assert ev.board_value(_state(me, opp), 0) < ev.WIN
+
+
 # --- rollout depth cut-off ---------------------------------------------------
 
 @dataclass

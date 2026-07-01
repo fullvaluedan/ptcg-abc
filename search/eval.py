@@ -12,6 +12,8 @@ with dataclasses.asdict), so this ships unchanged inside a submission.
 """
 from __future__ import annotations
 
+import os
+
 WIN = 1.0
 LOSS = -1.0
 DRAW = 0.0
@@ -49,6 +51,26 @@ ENERGY_SHAPING = 0.05
 ENERGY_NORM = 12
 # cabt allows one active plus five bench Pokemon per player.
 BENCH_MAX = 5
+
+# Empty-bench floor (PTCG_BENCH_FLOOR, default off). The linear board-presence
+# term above values width as a flat differential: it treats losing one benched
+# Pokemon the same whether we drop from five to four or from one to zero. But
+# self-collapse (our active is knocked out with no Basic to promote) is the
+# dominant loss mode, and it is a CLIFF, not a linear cost: the FIRST benched
+# Pokemon is the one that keeps us alive through a knockout, so its marginal
+# value dwarfs the fifth's. This term adds a convex bench cushion whose gain is
+# largest going from zero to one and saturates by BENCH_TARGET, so the search
+# steers away from trading into a knockout that empties our own bench. It is a
+# differential of our cushion against the opponent's, so it stays antisymmetric
+# and equal boards net to zero. Kept bounded so the four board terms
+# (0.15 + 0.05 + 0.05 + 0.08 = 0.33) still sum below PRIZE_SHAPING and a terminal
+# result always outranks any estimate.
+BENCH_FLOOR_SHAPING = 0.08
+# A bench of this width is a "reasonably full" cushion: beyond it the marginal
+# survival value of another Basic is negligible, so the cushion saturates here
+# rather than rewarding a maxed bench over an adequate one.
+BENCH_TARGET = 3
+_BENCH_FLOOR = os.environ.get("PTCG_BENCH_FLOOR", "0") != "0"
 
 
 def terminal_value(result, your_index):
@@ -128,6 +150,37 @@ def _attached_energy(pokes) -> int:
     return sum(len(p.get("energyCards") or []) for p in pokes)
 
 
+def _bench_count(player) -> int:
+    """Number of Pokemon on a player's bench (the active is not counted).
+
+    The bench is the promote pool: an empty bench means one knockout ends the
+    game, so this count, not the whole board width, is what the floor term reads.
+    """
+    return sum(1 for p in (player.get("bench") or []) if p)
+
+
+def _bench_cushion(count) -> float:
+    """Convex survival cushion of a bench of `count` Pokemon, in [0, 1].
+
+    Concave and saturating: sqrt gives the first benched Pokemon the largest
+    marginal value (0 -> 1 is the jump off the self-collapse cliff) and flattens
+    by BENCH_TARGET, past which another Basic barely changes our survival odds.
+    """
+    capped = min(count, BENCH_TARGET)
+    return (capped / BENCH_TARGET) ** 0.5
+
+
+def _bench_floor_term(me, opp) -> float:
+    """Differential convex bench-cushion term, our board against the opponent's.
+
+    A differential (not a one-sided penalty) so equal boards net to zero and the
+    whole estimate stays antisymmetric, while convexity still makes emptying our
+    own bench cost more than any single step higher up.
+    """
+    cushion = _bench_cushion(_bench_count(me)) - _bench_cushion(_bench_count(opp))
+    return cushion * BENCH_FLOOR_SHAPING
+
+
 def board_value(state, your_index) -> float:
     """Card-data-aware estimate of a non-terminal position, from our point of view.
 
@@ -149,7 +202,8 @@ def board_value(state, your_index) -> float:
     board = (len(mine) - len(theirs)) / (BENCH_MAX + 1) * BOARD_SHAPING
     energy_raw = (_attached_energy(mine) - _attached_energy(theirs)) / ENERGY_NORM
     energy = max(-1.0, min(1.0, energy_raw)) * ENERGY_SHAPING
-    return prize + hp + board + energy
+    bench_floor = _bench_floor_term(me, opp) if _BENCH_FLOOR else 0.0
+    return prize + hp + board + energy + bench_floor
 
 
 def shaped_value(state, your_index) -> float:
