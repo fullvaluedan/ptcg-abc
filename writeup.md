@@ -127,11 +127,11 @@ straight onto the bench for free, when the collapse fires, so the combo is untou
 On its scored slot it debuted near 850, then settled into the upper-500s, inside the
 noisy heuristic band; we trust the loss-bucket shift over the number. The leak is in
 the deck, not the code. Then the honest coda: we staged a guard that benches a Basic
-before any other play whenever the bench runs thin, and it landed. But a walk of every
-empty-bench decision refuted it: in 32 of 34 collapse moments the hand held no
-benchable Basic at all, so no ordering rule could help. The collapse is a consistency
-ceiling of a six-Basic glass cannon the card pool cannot thin: no unconditional draw
-item, no non-ex utility Basic.
+before any other play when the bench runs thin, and it landed. A walk of every
+empty-bench loss found no ordering fix: 32 of 34 collapse moments held no benchable
+Basic. But that walk cannot see the guard's upside, benching before a near-collapse
+becomes a loss, and the fresh sample bears it out: the guarded deck now leads the plain
+one on the board.
 
 ## The deck concept
 
