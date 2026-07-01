@@ -19,6 +19,8 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
 from analysis.move_ranking_validator import (  # noqa: E402
     SEL_MAIN,
     agreement,
+    category_confusion,
+    decision_categories,
     iter_expert_decisions,
     load_replays,
     score_replays,
@@ -191,6 +193,100 @@ def test_load_replays_from_dir_respects_limit_and_skips_bad_json(tmp_path):
     loaded_all = list(load_replays(tmp_path))
     # a and b parse, c is skipped
     assert len(loaded_all) == 2
+
+
+# decision_categories / category_confusion ---------------------------------
+
+# OptionType values that map to categories (api.py OptionType enum).
+_OPT_PLAY = 7
+_OPT_ATTACH = 8
+_OPT_ATTACK = 13
+_OPT_END = 14
+
+
+def _typed_main_entry(*, seat, action, option_types):
+    """A MAIN decision whose options carry real OptionType `type` fields.
+
+    option_types is the per-option list of OptionType ints, so a test can pin what
+    action category each index resolves to and check the expert-vs-pilot labeling.
+    """
+    return {
+        "action": action,
+        "status": "ACTIVE",
+        "observation": {
+            "select": {
+                "type": SEL_MAIN,
+                "minCount": 1,
+                "maxCount": 1,
+                "option": [{"type": t} for t in option_types],
+            },
+            "current": {"yourIndex": seat},
+        },
+    }
+
+
+def test_decision_categories_labels_expert_and_pilot_choice():
+    # Options: [ATTACH, PLAY, ATTACK]. Expert played index 0 (ATTACH); the pilot
+    # picks index 2 (ATTACK), a disagreement labeled by both categories.
+    entry = _typed_main_entry(
+        seat=0, action=[0], option_types=[_OPT_ATTACH, _OPT_PLAY, _OPT_ATTACK]
+    )
+    rep = _replay([_step(entry, 0)])
+    rows = list(decision_categories(rep, lambda obs: [2], expert_index=0))
+    assert rows == [("ATTACH", "ATTACK", False)]
+
+
+def test_decision_categories_agreement_true_on_same_index():
+    entry = _typed_main_entry(
+        seat=0, action=[1], option_types=[_OPT_ATTACH, _OPT_PLAY, _OPT_ATTACK]
+    )
+    rep = _replay([_step(entry, 0)])
+    rows = list(decision_categories(rep, lambda obs: [1], expert_index=0))
+    assert rows == [("PLAY", "PLAY", True)]
+
+
+def test_decision_categories_bad_pilot_answer_labeled_none():
+    entry = _typed_main_entry(
+        seat=0, action=[2], option_types=[_OPT_ATTACH, _OPT_PLAY, _OPT_ATTACK]
+    )
+    rep = _replay([_step(entry, 0)])
+
+    def boom(obs):
+        raise RuntimeError("nope")
+
+    rows = list(decision_categories(rep, boom, expert_index=0))
+    assert rows == [("ATTACK", "NONE", False)]
+
+
+def test_category_confusion_aggregates_by_expert_category_and_matrix():
+    # Two expert decisions: one ATTACH the pilot matches, one END the pilot answers
+    # with ATTACK (a divergence). Confusion tallies per expert category and the
+    # substitution matrix.
+    e1 = _typed_main_entry(
+        seat=0, action=[0], option_types=[_OPT_ATTACH, _OPT_ATTACK]
+    )  # expert ATTACH at 0
+    e2 = _typed_main_entry(
+        seat=0, action=[1], option_types=[_OPT_ATTACK, _OPT_END]
+    )  # expert END at 1
+    rep = _replay([_step(e1, 0), _step(e2, 0)])
+
+    # Pilot always picks index 0: matches e1 (ATTACH) but on e2 picks index 0 (ATTACK)
+    # while the expert played END.
+    conf = category_confusion([(rep, "r.json")], lambda obs: [0], {"kazuki0123"})
+    assert conf["episodes"] == 1 and conf["skipped"] == 0
+    assert conf["n"] == 2 and conf["agree"] == 1
+    assert conf["by_expert"]["ATTACH"] == {"n": 1, "agree": 1}
+    assert conf["by_expert"]["END"] == {"n": 1, "agree": 0}
+    assert conf["matrix"]["ATTACH"] == {"ATTACH": 1}
+    assert conf["matrix"]["END"] == {"ATTACK": 1}
+
+
+def test_category_confusion_skips_no_expert_episode():
+    entry = _typed_main_entry(seat=0, action=[0], option_types=[_OPT_ATTACH])
+    rep = _replay([_step(entry, 0)], team_names=("aidy", "someone"))
+    conf = category_confusion([(rep, "r.json")], lambda obs: [0], {"kazuki0123"})
+    assert conf["episodes"] == 0 and conf["skipped"] == 1
+    assert conf["n"] == 0 and conf["agreement"] is None
 
 
 def test_load_replays_from_zip(tmp_path):

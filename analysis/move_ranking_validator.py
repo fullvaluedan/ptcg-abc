@@ -50,6 +50,22 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
 # can score any choose-like callable.
 SEL_MAIN = 0
 
+# OptionType (api.py OptionType enum) values that can appear at a MAIN decision,
+# mapped to the action category name. Kept local for the same reason SEL_MAIN is:
+# the validator stays independent of the pilot module. A MAIN option's `type` field
+# names the KIND of action, so labeling both the option the expert played and the
+# one our pilot chose turns a raw disagreement into a map of WHERE the pilot
+# diverges (e.g. the expert ATTACHes but our pilot ENDs the turn).
+OPT_CATEGORY = {
+    7: "PLAY",
+    8: "ATTACH",
+    9: "EVOLVE",
+    10: "ABILITY",
+    12: "RETREAT",
+    13: "ATTACK",
+    14: "END",
+}
+
 
 def team_seat(replay, expert_teams) -> int | None:
     """Seat index (0 or 1) whose team name is in `expert_teams`, or None.
@@ -143,6 +159,98 @@ def agreement(replay, pilot_choose, expert_index) -> dict:
         if isinstance(choice, (list, tuple)) and len(choice) == 1 and choice[0] == played:
             agree += 1
     return {"n": n, "agree": agree, "agreement": (agree / n) if n else None}
+
+
+def _option_category(sel, index) -> str:
+    """Action category name of option `index` in a MAIN select.
+
+    Reads the option's OptionType and maps it through OPT_CATEGORY, so a decision
+    can be bucketed by what KIND of action was chosen. An out-of-range index or a
+    non-dict / unknown-type option maps to "OTHER" rather than raising, so one odd
+    record never aborts a batch. Pure.
+    """
+    options = sel.get("option") or []
+    if not isinstance(index, int) or isinstance(index, bool):
+        return "OTHER"
+    if not (0 <= index < len(options)):
+        return "OTHER"
+    opt = options[index]
+    if not isinstance(opt, dict):
+        return "OTHER"
+    return OPT_CATEGORY.get(opt.get("type"), "OTHER")
+
+
+def decision_categories(replay, pilot_choose, expert_index):
+    """Yield (expert_category, pilot_category, agree) per scorable MAIN decision.
+
+    For each real expert decision, run the candidate pilot on the same observation
+    and label BOTH the option the expert played and the one the pilot chose by their
+    action category. A pilot that raises or returns a non-single-index answer labels
+    its choice "NONE" (agree False) so the decision still contributes an
+    (expert, NONE) row rather than aborting the batch. This turns the pooled top-1
+    agreement number into a category-level map of WHERE the pilot diverges from the
+    top players. Pure and defensive.
+    """
+    for obs, played in iter_expert_decisions(replay, expert_index):
+        sel = obs.get("select") or {}
+        expert_cat = _option_category(sel, played)
+        try:
+            choice = pilot_choose(obs)
+        except Exception:
+            choice = None
+        if (
+            isinstance(choice, (list, tuple))
+            and len(choice) == 1
+            and isinstance(choice[0], int)
+            and not isinstance(choice[0], bool)
+        ):
+            pilot_idx = choice[0]
+            yield expert_cat, _option_category(sel, pilot_idx), pilot_idx == played
+        else:
+            yield expert_cat, "NONE", False
+
+
+def category_confusion(replays, pilot_choose, expert_teams) -> dict:
+    """Confusion of expert action category vs the candidate pilot's, over replays.
+
+    Aggregates decision_categories over an iterable of (replay, label) pairs, using
+    the same expert-seat resolution as score_replays (a replay with no single expert
+    seat is skipped). Returns, per expert action category, the number of decisions
+    and how often the pilot agreed, plus the full (expert_cat -> {pilot_cat: count})
+    substitution matrix. A caller can read both the per-category agreement rate (which
+    kind of decision our pilot gets right or wrong relative to the top players) and
+    the dominant substitution it makes on the ones it misses. Pure, never raises.
+    """
+    by_expert = {}
+    matrix = {}
+    episodes = 0
+    skipped = 0
+    for replay, _label in replays:
+        seat = team_seat(replay, expert_teams)
+        if seat is None:
+            skipped += 1
+            continue
+        episodes += 1
+        for expert_cat, pilot_cat, agree in decision_categories(
+            replay, pilot_choose, seat
+        ):
+            row = by_expert.setdefault(expert_cat, {"n": 0, "agree": 0})
+            row["n"] += 1
+            if agree:
+                row["agree"] += 1
+            cell = matrix.setdefault(expert_cat, {})
+            cell[pilot_cat] = cell.get(pilot_cat, 0) + 1
+    total_n = sum(r["n"] for r in by_expert.values())
+    total_agree = sum(r["agree"] for r in by_expert.values())
+    return {
+        "episodes": episodes,
+        "skipped": skipped,
+        "n": total_n,
+        "agree": total_agree,
+        "agreement": (total_agree / total_n) if total_n else None,
+        "by_expert": by_expert,
+        "matrix": matrix,
+    }
 
 
 def score_replays(replays, pilot_choose, expert_teams) -> dict:
@@ -262,9 +370,40 @@ def main(argv=None) -> int:
         action="store_true",
         help="print the per-episode agreement rows too",
     )
+    ap.add_argument(
+        "--breakdown",
+        action="store_true",
+        help="print the per-category agreement and the expert-vs-pilot substitution "
+        "matrix (where the pilot diverges from the top players)",
+    )
     args = ap.parse_args(argv)
 
     pilot = _default_pilot()
+    if args.breakdown:
+        conf = category_confusion(
+            load_replays(args.source, limit=args.limit), pilot, args.teams
+        )
+        agr = conf["agreement"]
+        print(f"expert teams: {', '.join(args.teams)}")
+        print(f"episodes scored: {conf['episodes']} (skipped {conf['skipped']})")
+        print(f"expert decisions: {conf['n']}")
+        print(
+            f"top-1 agreement: {agr:.3f}" if agr is not None else "top-1 agreement: n/a"
+        )
+        print("\nper expert action category (decisions, our agreement):")
+        for cat in sorted(conf["by_expert"], key=lambda c: -conf["by_expert"][c]["n"]):
+            row = conf["by_expert"][cat]
+            rate = row["agree"] / row["n"] if row["n"] else 0.0
+            print(f"  {cat:<8} n={row['n']:<5} agree={row['agree']:<5} ({rate:.3f})")
+        print("\nexpert chose -> our pilot chose (on all decisions):")
+        for cat in sorted(conf["matrix"], key=lambda c: -conf["by_expert"][c]["n"]):
+            subs = conf["matrix"][cat]
+            parts = ", ".join(
+                f"{k}:{subs[k]}" for k in sorted(subs, key=lambda k: -subs[k])
+            )
+            print(f"  {cat:<8} -> {parts}")
+        return 0
+
     result = score_replays(
         load_replays(args.source, limit=args.limit), pilot, args.teams
     )
