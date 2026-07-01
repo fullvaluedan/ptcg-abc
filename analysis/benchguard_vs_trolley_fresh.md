@@ -1,6 +1,8 @@
 # Bench guard vs plain trolley: a 35-game pull settles the call
 
 Date: 2026-07-01 (UTC ~01:30). Supersedes the ~00:59 thin-sample read on this page.
+See the "Update (UTC ~01:50)" section at the foot: a second, larger pull plus a board
+flip now push the call past "tied" to "the plain deck leads."
 
 ## What was pulled
 
@@ -70,3 +72,44 @@ early_collapse rate off 100% of losses. The next genuine lever is not a third be
 it is draw access, digging into a Basic when the bench is thin and the hand holds none
 (search Items or draw Supporters played earlier), a deck-consistency change measured
 against the offline collapse-rate mirror before any slot is spent.
+
+## Update (UTC ~01:50): a larger sample and a board flip retire "benchguard is best"
+
+Both leaders accrued another ~7 public episodes each and the board reordered. Re-pulled
+both into fresh isolated dirs (replays/trolley_fresh, replays/benchguard_fresh),
+self-play skipped, seat per replay.
+
+| sub | agent | public W/L | winrate | early_collapse | board score |
+| --- | --- | --- | --- | --- | --- |
+| 54215558 | trolley, plain | 13/11 | 54.2% (n=24) | 11 of 11 (100%) | 668.8 |
+| 54215910 | trolley + bench guard | 9/10 | 47.4% (n=19) | 10 of 10 (100%) | 639.7 |
+
+Two things moved together since the ~01:30 read above. On the board the pair CROSSED:
+last iter the guard led (701.4 > 686.0) and the standing NEXT called it "the preferred
+future artifact"; now the plain deck leads (668.8 > 639.7). Independently, on the larger
+head-to-head sample the plain deck also pulls ahead (54.2% vs 47.4%, where at n=14/21 they
+were dead even at 57.1%). Two separate signals, board and record, now point the same way.
+
+This does not prove the plain deck is durably better; the 29-point gap still sits inside
+the 130-plus TrueSkill drift band and the winrate gap is a handful of games. What it does
+retire is the opposite claim: five iters ago (044ff0b) the guard was reinstated as "the
+standing best" off an n=6 pull, and the standing NEXT has carried "benchguard is the
+preferred artifact" since. On the larger sample neither metric supports that. The honest
+resting state is the writeup's own coda: the two are a wash within noise, the guard fires
+correctly and is not the leak, and the binding constraint is draw access, not play order.
+
+## Update (UTC ~01:50): the matchup lever stays closed on the larger sample
+
+Re-ran analysis.opponent_archetype.scan_dir on both fresh pulls (the stated reopening gate
+was a single opponent archetype climbing to a real share of our losses). It has not:
+
+- trolley: 11 losses spread across 8 distinct archetypes, max 2 to any one line (Mega
+  Starmie ex, Mega Lucario ex, Crustle), and we go 3W/2L and 2W/2L into the first two.
+- benchguard: 10 losses across 7 archetypes, max 3 (Mega Lucario ex). That 30% share is
+  the one borderline case, but it is n=19 small-sample and the plain deck is 2W/2L into
+  Lucario, so it is not a durable matchup hole.
+
+Every loss on both agents is still early_collapse (empty bench, deck 17 to 45). The
+collapse is opponent-agnostic on the larger sample too, so no tech or sideboard card
+reopens deck_matchup. The lever stays closed alongside bench-ordering, draw-engine, and
+portfolio.
