@@ -80,3 +80,14 @@ Recovering search on the ladder would require a forward model the match-time
 engine does not expose, so it is not a near-term lever. Verification channel for
 any future attempt: the overage-bank drawdown in the next replay (a working
 search shows ~0.5s draws instead of ~0.02s).
+
+## Update (2026-07-01): search recovered but scores BELOW the heuristic
+
+The recovery was later built (54218335 force-loads our own bundled cg so search
+actually runs, verified by the ~0.5s bank draws it was designed to produce). Its
+ladder result closes the lever with data rather than the forward-model caveat:
+on the SAME trolley deck, search-active 514.7 vs heuristic-only 569.6 (54215558).
+Running the determinized search costs ~55 public-score points versus just playing
+the heuristic. So the lever is not merely "hard to reach"; when reached it is
+negative. Do not ship a search-active build; the plain heuristic is the stronger
+ladder pilot. See `analysis/ladder_scored_pair_reclaim.md`.
