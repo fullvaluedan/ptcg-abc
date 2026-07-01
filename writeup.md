@@ -1,8 +1,8 @@
 # A heuristic hardened by real-engine search and ladder forensics
 
 A Pokemon TCG agent built on three commitments: decide by the competition's exact
-rules, refuse to lose to its own blunders, and tune by real ladder loss data rather
-than by guesswork. It runs fully offline and never crashes. Two findings from our own
+rules, refuse to lose to its own blunders, and tune by real ladder loss data, not
+guesswork. It runs fully offline and never crashes. Two findings from our own
 replays shaped the climb: that the scored engine at first would not let our search run,
 and the recovery that got it running again, over a heuristic floor that carries every
 match search cannot yet win.
@@ -14,14 +14,12 @@ The cabt SDK ships a forward model, `search_begin`/`search_step`/`search_release
 moves at the same speed and rules as the scored match. The founding decision was to drive
 that model rather than reimplement the game in Python. A hand-written rules engine is the
 largest risk in any TCG search agent: any divergence from the real rules silently poisons
-every rollout. Using the engine's own model removes that risk, so our rollouts are not an
+every rollout. Using the engine's own model removes that risk: our rollouts are not an
 approximation of the game, they are it.
 
-That decision built a strong self-play agent. The honest twist is that the scored
-engine at first withheld the forward model at match time, so search was dormant on the
-ladder and the heuristic underneath was what played. We found that from replays and
-engineered around it, so search now runs on the scored ladder too, over a heuristic
-floor that is strong on its own and guarantees the agent never forfeits.
+That decision built a strong self-play agent, but the scored engine at first withheld the
+forward model at match time, so search was dormant on the ladder until the recovery
+described below; the heuristic floor underneath guarantees the agent never forfeits.
 
 ## How the agent decides, step by step
 
@@ -40,15 +38,14 @@ or end the turn. The lethal check is real: opponent HP against our best
 attack's damage, adjusted for the engine's x2 weakness and flat resistance. Card
 sub-selections are handled with intent: on a deck search with a thin bench it fetches a
 Basic for backup, and on a discard cost it sheds surplus energy and spares the combo
-line. Abilities are deprioritized, because a stateless agent that prefers a repeatable
-ability could loop forever; every other action consumes a resource, so the turn always
-advances. On its own it beats the random-legal baseline about 89 percent of the time with
+line. Abilities are deprioritized so a stateless agent cannot loop forever on a repeatable one;
+every other action consumes a resource, so the turn always advances. On its own it beats the random-legal baseline about 89 percent of the time with
 zero illegal moves.
 
 **Determinization and search.** Above the heuristic sits determinized Monte Carlo
 search. The sampler reconstructs a full state the forward model will accept: our own deck
 and prizes exactly, the opponent's hidden zones sampled from a prior so all visible counts
-match and every revealed card sits in a zone it could be in. For each candidate move it
+match and every revealed card sits in a legal zone. For each candidate move it
 rolls out to a terminal result with the heuristic as the rollout policy for both players,
 then picks the highest-scoring first move; in the gauntlet it beats the strong heuristic
 66 to 70 percent head to head.
@@ -69,13 +66,13 @@ that cracked the case: the engine sets `actTimeout: 0` and gives each player a s
 ~600s overage bank, so the drop in that bank per decision is the real wall-clock thinking
 time. In every early search-agent replay our searchable decisions drew only 0.02 to 0.05
 seconds from the bank, while the same observations replayed locally take 500 to 830
-milliseconds because search runs to its budget. Search was not running at all on Kaggle.
+milliseconds. Search was not running at all on Kaggle.
 
 The cause is precise. The 0.02s cost means the agent raised before the rollout loop, on
 the import of the forward model. Yet the heuristic imports `all_card_data` from the same
-`cg.api` and plays card-aware moves on the ladder, so the module imports fine and carries
-the card database; it simply did not expose the `search_*` wrappers. The grader had
-registered a shadow `cg` with the card data but not the forward model.
+`cg.api`, so the module loads fine and carries the card database; it simply did not expose
+the `search_*` wrappers. The grader had registered a shadow `cg` with the card data but
+not the forward model.
 
 The recovery reopened the ladder to search. When the ambient `cg.api` lacks the forward
 model, the agent force-loads our OWN bundled `cg` package under a private module name,
@@ -101,8 +98,13 @@ world-to-world spread, demoting a move that wins only in a favorable and possibl
 hidden world. And the clock is used, not hoarded: prior matches spent about 130 of the
 600-second bank, so the per-move caps were raised and tiered, with the endgame
 and closing prize race sampling more worlds than an ordinary turn, under a reserve guard
-that keeps cumulative time clear of a timeout. These are committed and await the ladder's
-verdict, a hypothesis under test, not a claim.
+that keeps cumulative time clear of a timeout. Two more levers sharpen the value estimate.
+Because the heuristic is also the rollout policy, teaching it to drive an evolution line,
+preferring a Rare Candy that reaches a Stage 2 payoff a turn early, deepens every rollout
+for free; and the leaf evaluation gained an attached-energy term, so a depth-limited
+rollout scores a live board by how close it is to attacking, not by prizes and health
+alone. These are committed and await the
+ladder's verdict, a hypothesis under test, not a claim.
 
 ## Tuned by real loss data, not by guessing
 
@@ -121,8 +123,8 @@ seven with all six prizes still ours, a lone Basic attacker knocked out while th
 was empty. This is deck thinness, not misplay: the heuristic already benches every Basic
 it draws, so an empty bench means the hand held no second Basic. The honest part is the
 falsified attempts: trading energy for a Basic lost more to reduced damage than it saved,
-and an Ultra Ball fetch measured even but was retired because its discard cost cannot be
-afforded by turn three, when the collapse lands.
+and an Ultra Ball fetch measured even but was retired, its discard cost unaffordable by
+turn three when the collapse lands.
 
 ## Deck and pilot are one lever: the coupling result
 
@@ -135,7 +137,8 @@ same agent, Archaludon near 425 and Grimmsnarl near 570. A top-1300 deck made ou
 play worse, not better.
 
 The replays say why. Our agent decks itself out on Archaludon's trainer-heavy engine, and
-has no plan for driving Grimmsnarl's Rare Candy evolution line to its payoff. A deck's
+at that time had no plan for driving Grimmsnarl's Rare Candy line to its payoff, the exact
+gap the pilot lever above now targets. A deck's
 ceiling is only reachable by a pilot that executes its game plan; hand a strong plan to an
 agent that cannot run it and the mismatch costs more than a simple robust deck. The gap to
 the top is not a deck gap or a pilot gap, it is joint, and for us the binding limiter is
@@ -148,7 +151,7 @@ miss.
 The deployable deck is Precious Trolley, chosen by the same loss-data discipline. Because
 early collapse is deck thinness rather than misplay, the fix has to be in the deck.
 Precious Trolley is an item that puts a Basic straight onto the bench for free, filling the
-empty bench exactly when the collapse fires without touching any combo line. On its scored
+empty bench exactly when the collapse fires. On its scored
 slot it settled into the upper-500s inside the noisy heuristic band. It stays the deployable
 deck until a stronger pilot proves it can extract more from a harder one.
 
@@ -166,10 +169,9 @@ unknown option types are treated as a safe pass against mid-competition rule add
 
 **Let the simulator decide, always.** A council of LLMs was a development-time aid, but it
 never votes on what ships. Every change is kept only if a gauntlet, then the real ladder,
-says it is an improvement. That discipline is why the falsified energy trade was caught, why
-we believe our replays over our intentions when they disagree, as they did about search, and
-why the deck-copy shortcut was reported as the honest failure it was rather than the win we
-hoped for. The result is an agent forged against the real game in self-play, recovered onto
+says it is an improvement. That discipline caught the falsified energy trade, and reported
+the deck-copy shortcut as the honest failure it was rather than the win we hoped for. The
+result is an agent forged against the real game in self-play, recovered onto
 the ladder when the grader hid its forward model, guarding every match against the losses
 that actually cost rating, and improved by reading its own replays, including the one that
 told us our cleverest machinery was asleep.
