@@ -21,9 +21,9 @@ The split that matters for the shipped build:
     - endgame solver on                    (agent_search._ENDGAME)
     - modal field-opponent prior on        (archetype._field_prior_enabled())
     - thin-bench MAIN defer (unconditional, no flag; see e44245a)
-  STAGED-OFF (inert on the deployed policy; A/B levers awaiting a slot):
+  STAGED-OFF (inert on the deployed policy):
     - rollout depth cut-off None -> terminal rollouts (agent_search._ROLLOUT_DEPTH)
-    - convex empty-bench leaf floor off    (eval._BENCH_FLOOR)
+    - convex empty-bench leaf floor off    (eval._BENCH_FLOOR)  [REFUTED, keep off]
     - energy-attach resequencing off       (heuristics._ENERGY_SEQ)
 
 Keystone coupling: the leaf-eval terms (the empty-bench floor, plus the
@@ -31,8 +31,16 @@ active-weighted and attached-energy health terms) are only read at a rollout LEA
 With _ROLLOUT_DEPTH None every line rolls to a terminal result and a leaf is only
 reached at the engine's 400-step cap, so those terms are effectively inert on the
 shipped build regardless of their own flags. That is why flipping the bench floor
-alone does nothing: it needs a positive rollout depth to matter (measured in
-tools/measure_bench_floor.py).
+alone does nothing: it needs a positive rollout depth to matter.
+
+The rollout-depth + bench-floor JOINT lever is now refuted, not merely pending: a
+fidelity/efficacy squeeze means no rollout depth both fires the floor AND keeps the
+rollout faithful. At depth 8 the floor flips 2/5 decisions but the depth-cut argmax
+disagrees with the terminal argmax on 4/5; at depth 16 the rollout tracks terminal
+2/2 but the floor flips 0/2 (tools/measure_bench_floor.py;
+analysis/bench_floor_search_lever_squeezed.md). These two levers therefore stay off
+permanently, and the bench-maintenance win stays in the PILOT guard (the e44245a
+thin-bench defer, measured to cut our board-out 43 -> 34pct with no fidelity cost).
 """
 import os
 
