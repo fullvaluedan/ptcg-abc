@@ -26,6 +26,28 @@ import sys
 from functools import lru_cache
 from pathlib import Path
 
+
+def _env_num(name, default, cast):
+    """Read a tunable numeric constant from the environment, else the default.
+
+    The CEM optimizer (tools/weight_space.py, offline) tunes the pilot by baking
+    PTCG_W_* overrides into a build via tools/build_submission.py --env; each such
+    knob is read here exactly like the boolean PTCG_* levers below. When the
+    variable is unset (every shipped build unless a tuned vector is baked) the
+    default is returned unchanged, so an un-tuned submission stays byte-identical.
+    A malformed value falls back to the default rather than raising, preserving
+    the never-raise contract. `cast` is int or float; the default mirrors the
+    entry in tools/weight_space.PARAM_SPACE (a drift test guards the pairing).
+    """
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return cast(raw)
+    except (TypeError, ValueError):
+        return default
+
+
 # OptionType values (api.py OptionType enum).
 OPT_NUMBER = 0
 OPT_YES = 1
@@ -79,14 +101,16 @@ CTX_DISCARD = 8
 
 # Fetch a Basic to develop only when our bench holds fewer than this many
 # Pokemon, so a healthy board is never steered away from its normal fetch.
-THIN_BENCH = 2
+# CEM-tunable (PTCG_W_THIN_BENCH); defaults to the shipped value when unset.
+THIN_BENCH = _env_num("PTCG_W_THIN_BENCH", 2, int)
 
 # Standard damage modifiers. cabt uses x2 weakness and a flat resistance cut.
 WEAKNESS_MULT = 2
 RESISTANCE_CUT = 30
 
 # Retreat when the active is at or below this fraction of its max HP.
-RETREAT_HP_RATIO = 0.34
+# CEM-tunable (PTCG_W_RETREAT_HP_RATIO); defaults to the shipped value when unset.
+RETREAT_HP_RATIO = _env_num("PTCG_W_RETREAT_HP_RATIO", 0.34, float)
 
 # Energy-attach sequencing (PTCG_ENERGY_SEQ, default off). Off, the agent always
 # powers the active first (attach to the active if an option targets it, else the
@@ -543,7 +567,8 @@ def _first_legal(sel) -> list:
 # ladder loss (see analysis/loss_classifier.py: two of three live losses were
 # deckouts, one while ahead on prizes), so a voluntary over-draw on a COUNT
 # selection is capped to what the deck can still support once it runs low.
-DECKOUT_THRESHOLD = 5
+# CEM-tunable (PTCG_W_DECKOUT_THRESHOLD); defaults to the shipped value when unset.
+DECKOUT_THRESHOLD = _env_num("PTCG_W_DECKOUT_THRESHOLD", 5, int)
 
 
 def own_deck_count(obs):
@@ -564,7 +589,8 @@ def own_deck_count(obs):
 # fired in any of those games because the mill was all PLAY actions. Near deckout
 # we still develop Pokemon and attack; only the card-advantage trainer is skipped
 # so the deck survives long enough to close on prizes.
-DRAW_CONSERVE_THRESHOLD = 8
+# CEM-tunable (PTCG_W_DRAW_CONSERVE_THRESHOLD); defaults to the shipped value when unset.
+DRAW_CONSERVE_THRESHOLD = _env_num("PTCG_W_DRAW_CONSERVE_THRESHOLD", 8, int)
 # Only Item and Supporter trainers can drill the deck for card advantage; a
 # Pokemon, energy attach, Tool, or Stadium never does. The narrower _drills_deck
 # predicate below decides which of these to actually decline near deckout.

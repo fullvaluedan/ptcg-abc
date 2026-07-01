@@ -14,6 +14,27 @@ from __future__ import annotations
 
 import os
 
+
+def _env_num(name, default, cast):
+    """Read a tunable leaf-eval constant from the environment, else the default.
+
+    The CEM optimizer (tools/weight_space.py, offline) searches the leaf shaping
+    weights alongside the pilot knobs by baking PTCG_W_* overrides into a build;
+    each is read here like the PTCG_BENCH_FLOOR lever below. Unset (every shipped
+    build unless a tuned vector is baked) returns the default unchanged, so the
+    build stays byte-identical, and a malformed value falls back to the default
+    rather than raising. `cast` is int or float; the default mirrors the entry in
+    tools/weight_space.PARAM_SPACE (a drift test guards the pairing).
+    """
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return cast(raw)
+    except (TypeError, ValueError):
+        return default
+
+
 WIN = 1.0
 LOSS = -1.0
 DRAW = 0.0
@@ -25,11 +46,11 @@ RESULT_DRAW = 2
 PRIZE_TOTAL = 6
 # Largest magnitude the prize shaping can reach. Kept well below 1 so a clear
 # win always dominates a favorable but unfinished position.
-PRIZE_SHAPING = 0.5
+PRIZE_SHAPING = _env_num("PTCG_W_PRIZE_SHAPING", 0.5, float)
 # Board-strength terms break ties between positions with equal prizes. Each is
 # bounded and their sum stays under PRIZE_SHAPING, so prize progress always
 # outranks raw board state and a terminal result always outranks any estimate.
-HP_SHAPING = 0.15
+HP_SHAPING = _env_num("PTCG_W_HP_SHAPING", 0.15, float)
 # The active Pokemon is on the front line: it is the one being attacked, the one
 # that gets knocked out for a prize, and the one that attacks back. Its health
 # therefore matters more than a benched Pokemon's, so weight it above the bench
@@ -37,14 +58,14 @@ HP_SHAPING = 0.15
 # bench is in real danger, which a flat mean would hide by letting the bench pull
 # the score up. The active carries this fraction of the health term; the bench
 # shares the rest.
-ACTIVE_HP_WEIGHT = 0.6
-BOARD_SHAPING = 0.05
+ACTIVE_HP_WEIGHT = _env_num("PTCG_W_ACTIVE_HP_WEIGHT", 0.6, float)
+BOARD_SHAPING = _env_num("PTCG_W_BOARD_SHAPING", 0.05, float)
 # Attached energy is the fuel for attacks: a board with more energy in play is
 # closer to executing its game plan and taking prizes, so it breaks ties between
 # positions that are otherwise equal on prizes, health, and width. Kept small so
 # the sum of the board terms (0.15 + 0.05 + 0.05 = 0.25) stays well under
 # PRIZE_SHAPING and a terminal result always outranks any estimate.
-ENERGY_SHAPING = 0.05
+ENERGY_SHAPING = _env_num("PTCG_W_ENERGY_SHAPING", 0.05, float)
 # The attached-energy differential is normalized by the energy a well-developed
 # full board carries and clamped to it, so a single over-loaded Pokemon saturates
 # the term rather than letting it grow without bound.
@@ -65,11 +86,11 @@ BENCH_MAX = 5
 # and equal boards net to zero. Kept bounded so the four board terms
 # (0.15 + 0.05 + 0.05 + 0.08 = 0.33) still sum below PRIZE_SHAPING and a terminal
 # result always outranks any estimate.
-BENCH_FLOOR_SHAPING = 0.08
+BENCH_FLOOR_SHAPING = _env_num("PTCG_W_BENCH_FLOOR_SHAPING", 0.08, float)
 # A bench of this width is a "reasonably full" cushion: beyond it the marginal
 # survival value of another Basic is negligible, so the cushion saturates here
 # rather than rewarding a maxed bench over an adequate one.
-BENCH_TARGET = 3
+BENCH_TARGET = _env_num("PTCG_W_BENCH_TARGET", 3, int)
 _BENCH_FLOOR = os.environ.get("PTCG_BENCH_FLOOR", "0") != "0"
 
 
