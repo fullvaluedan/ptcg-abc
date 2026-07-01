@@ -39,7 +39,7 @@ attack's damage, adjusted for the engine's x2 weakness and flat resistance. Card
 sub-selections are handled with intent: on a deck search with a thin bench it fetches a
 Basic for backup, and on a discard cost it sheds surplus energy and spares the combo
 line. Abilities are deprioritized so a stateless agent cannot loop forever on a repeatable one;
-every other action consumes a resource, so the turn always advances. On its own it beats the random-legal baseline about 89 percent of the time with
+every other action consumes a resource, so the turn always advances. On its own it beats the random-legal baseline about 89 percent with
 zero illegal moves.
 
 **Determinization and search.** Above the heuristic sits determinized Monte Carlo
@@ -70,9 +70,8 @@ milliseconds. Search was not running at all on Kaggle.
 
 The cause is precise. The 0.02s cost means the agent raised before the rollout loop, on
 the import of the forward model. Yet the heuristic imports `all_card_data` from the same
-`cg.api`, so the module loads fine and carries the card database; it simply did not expose
-the `search_*` wrappers. The grader had registered a shadow `cg` with the card data but
-not the forward model.
+`cg.api`, so the module loads fine and carries the card database; the grader had registered
+a shadow `cg` with card data but none of the `search_*` wrappers.
 
 The recovery reopened the ladder to search. When the ambient `cg.api` lacks the forward
 model, the agent force-loads our OWN bundled `cg` package under a private module name,
@@ -90,20 +89,23 @@ the recovery is not a finish line but what made the next levers worth pulling.
 ## Strengthening the recovered search
 
 With search live, a stack of changes targets why it does not yet beat its own floor. The
-determinization prior now models the real field: the highest-adoption ladder archetypes
-are embedded, so once an opponent reveals a distinctive card the hidden zones are dealt
-from a real decklist rather than a mirror of our own deck. The argmax is hardened against
+determinization prior now models the real field from the opening turn: the highest-adoption
+ladder archetypes are embedded, so before any reveal the hidden zones are dealt from the
+modal opponent rather than a mirror of our own deck, and once a distinctive card shows,
+belief sharpens to that archetype. The argmax is hardened against
 strategy fusion: a candidate is scored by its mean rollout value minus a penalty on the
 world-to-world spread, demoting a move that wins only in a favorable and possibly wrong
 hidden world. And the clock is used, not hoarded: prior matches spent about 130 of the
 600-second bank, so the per-move caps were raised and tiered, with the endgame
 and closing prize race sampling more worlds than an ordinary turn, under a reserve guard
-that keeps cumulative time clear of a timeout. Two more levers sharpen the value estimate.
+that keeps cumulative time clear of a timeout. More levers sharpen the value estimate.
 Because the heuristic is also the rollout policy, teaching it to drive an evolution line,
 preferring a Rare Candy that reaches a Stage 2 payoff a turn early, deepens every rollout
-for free; and the leaf evaluation gained an attached-energy term, so a depth-limited
-rollout scores a live board by how close it is to attacking, not by prizes and health
-alone. These are committed and await the
+for free; it also steers surplus energy onto a benched payoff attacker rather than
+overloading an active that can already attack. And the leaf evaluation gained an
+attached-energy term and an active-weighted health term, so a depth-limited rollout scores
+a board by how close it is to attacking and by the health of the active that takes a prize
+when knocked out, not by prizes alone. These are committed and await the
 ladder's verdict, a hypothesis under test, not a claim.
 
 ## Tuned by real loss data, not by guessing
@@ -114,9 +116,7 @@ deckout guard, which had only lived in the search layer, was extracted into shar
 heuristic logic so it now protects every scored match, capping over-draw only when the
 deck runs critically low. The proof lives in the loss buckets, not the
 leaderboard number: across fresh pulls, self-deckout fell from the most common loss to
-near zero, and the deck-thinness collapse it had masked surfaced as the new top leak. The
-TrueSkill scores are too noisy to trust here, reordering between pulls, so we trust the
-bucket shift over the wobble.
+near zero, and the deck-thinness collapse it had masked surfaced as the new top leak.
 
 Second, that new leak was early collapse: about half the remaining losses ended by turn
 seven with all six prizes still ours, a lone Basic attacker knocked out while the bench
@@ -171,7 +171,6 @@ unknown option types are treated as a safe pass against mid-competition rule add
 never votes on what ships. Every change is kept only if a gauntlet, then the real ladder,
 says it is an improvement. That discipline caught the falsified energy trade, and reported
 the deck-copy shortcut as the honest failure it was rather than the win we hoped for. The
-result is an agent forged against the real game in self-play, recovered onto
-the ladder when the grader hid its forward model, guarding every match against the losses
-that actually cost rating, and improved by reading its own replays, including the one that
-told us our cleverest machinery was asleep.
+result is an agent forged in self-play, recovered onto the ladder when the grader hid its
+forward model, and improved by reading its own replays, including the one that told us our
+cleverest machinery was asleep.
