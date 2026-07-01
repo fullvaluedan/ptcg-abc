@@ -329,6 +329,40 @@ def test_empty_bench_late_loss_is_early_collapse():
     assert classify_loss(dg) == "early_collapse"
 
 
+def test_empty_bench_near_win_loss_is_early_collapse():
+    # We were one or two prizes from winning (my_prize 2) but our bench ended
+    # empty: the lone active was knocked out with nothing to promote. This is the
+    # same deck-thinness collapse as the early version, not search slipping a
+    # winnable endgame, so it is early_collapse even though the prize count is
+    # inside the endgame_misplay (close_remaining) band. Real ladder replays on
+    # both leaders showed every "endgame_misplay" loss was actually this shape.
+    rec = _decision(0, 13, 4, 2, 3, 599.0)
+    players = rec["observation"]["current"]["players"]
+    players[0]["deckCount"] = 17
+    players[1]["deckCount"] = 20
+    players[0]["bench"] = []          # our seat: empty bench
+    players[1]["bench"] = [{}, {}]    # opponent still has a bench
+    rep = {"steps": [[_inactive(), _inactive()], [rec, _inactive()]], "rewards": [-1, 1]}
+    dg = parse_replay(rep, our_index=0)
+    assert dg["my_bench_end"] == 0 and dg["my_prize_end"] == 2
+    assert classify_loss(dg) == "early_collapse"
+
+
+def test_near_win_with_bench_stays_endgame_misplay():
+    # The empty-bench rule must not swallow a genuine near-win misplay: here we
+    # needed two prizes and lost the race but kept a two Pokemon bench, so bench
+    # depletion is not the cause and it stays endgame_misplay.
+    rec = _decision(0, 14, 4, 2, 1, 599.0)
+    players = rec["observation"]["current"]["players"]
+    players[0]["deckCount"] = 15
+    players[1]["deckCount"] = 12
+    players[0]["bench"] = [{}, {}]    # our seat: bench still standing
+    rep = {"steps": [[_inactive(), _inactive()], [rec, _inactive()]], "rewards": [-1, 1]}
+    dg = parse_replay(rep, our_index=0)
+    assert dg["my_bench_end"] == 2 and dg["my_prize_end"] == 2
+    assert classify_loss(dg) == "endgame_misplay"
+
+
 def test_developed_board_midgame_loss_stays_bad_determinization():
     # The empty-bench rule must not swallow genuine middlegame race losses: here
     # we kept a three Pokemon bench but still lost the prize race after turn 8,

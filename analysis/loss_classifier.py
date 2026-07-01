@@ -198,13 +198,16 @@ def classify_loss(digest: dict, thresholds: dict | None = None):
                        when we led on prizes, so it ranks above any prize reading.
       3. deck_matchup  a genuine prize race blowout: the opponent took almost
                        every prize while we took at most one.
-      4. endgame_misplay  a near win that slipped (we needed one or two prizes).
-      5. early_collapse   our bench emptied (lone active knocked out, nothing to
-                          promote), or the game ended very early with no prize
-                          race: a deck-thinness or setup failure, not search.
-                          The empty-bench signature catches late and partial
-                          collapses the early-turn gate alone would miss.
-      6. bad_determinization  a middling loss with a developed board where the
+      4. early_collapse (empty bench)  our bench emptied (lone active knocked out,
+                          nothing to promote): a deck-thinness collapse. Ranked
+                          above the near-win gate because a loss one or two prizes
+                          short with an EMPTY bench is the same collapse, not a
+                          slipped endgame. Genuine endgame misplays keep a bench.
+      5. endgame_misplay  a near win that slipped with a bench still standing (we
+                          needed one or two prizes and lost the race anyway).
+      6. early_collapse (early game)  the game ended very early with no prize
+                          race: a setup or rule failure, not search.
+      7. bad_determinization  a middling loss with a developed board where the
                           prize race was simply lost (not bench depletion).
     """
     if digest.get("outcome") != "loss":
@@ -247,19 +250,23 @@ def classify_loss(digest: dict, thresholds: dict | None = None):
     )
     if took_at_most_one and opp_took_almost_all:
         return "deck_matchup"
-    if my_remaining <= th["close_remaining"]:
-        return "endgame_misplay"
     # An empty bench on a loss is the same structural failure no matter the turn
     # or how many prizes we had already traded: our lone active was knocked out
     # with nothing to promote. The deck is not exhausted (deckout handled above)
     # and the opponent had not steamrolled the prize race (deck_matchup handled
     # above), so the proximate cause is bench depletion, not search judgement.
-    # This catches the late or partial empty-bench collapses that the early-turn
-    # gate below misses (real ladder replays land many of these at turn 9 to 12,
-    # or after we had taken two or three prizes, which the gate excludes). bench
-    # is None when the field was never observed, so this never fires on a guess.
+    # This fires BEFORE the endgame_misplay near-win gate: a loss one or two
+    # prizes short with an EMPTY bench is not search misjudging a winnable
+    # endgame, it is the same deck-thinness collapse landing late (real ladder
+    # replays show these at turn 7 to 13, sometimes while far ahead on prizes).
+    # Genuine endgame misplays keep a bench, so they still reach the gate below.
+    # It also catches the late or partial collapses the early-turn gate misses.
+    # bench is None when the field was never observed, so this never fires on a
+    # guess, and deckout and deck_matchup stay ahead as distinct end states.
     if digest.get("my_bench_end") == 0:
         return "early_collapse"
+    if my_remaining <= th["close_remaining"]:
+        return "endgame_misplay"
     if took_at_most_one and digest.get("n_turns", 0) <= th["early_turn_limit"]:
         return "early_collapse"
     return "bad_determinization"
