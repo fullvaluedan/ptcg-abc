@@ -159,31 +159,178 @@ def test_agent_returns_deck_at_selection():
 
 
 # --- forward-model availability probe ----------------------------------------
-# The Kaggle grader resolves a cg.api that carries card data (so the heuristic
-# plays) but NOT the search_* forward model, so determinized search is inert on
-# the ladder. search_api_available reports that condition; the agent gates search
-# on it so it does not pay a swallowed ImportError on every searchable decision.
+# On the ladder `import cg.api` resolved a module that carries card data (so the
+# heuristic plays) but NOT the search_* forward model, so determinized search was
+# inert. We now force-load our OWN bundled cg package under a private name, which
+# carries the wrappers and its own native lib, so search recovers even under a
+# shadowed top-level cg.api. search_api_available reports whether a forward model
+# is reachable at all; the agent gates search on it.
+
+def _clear_forward_caches():
+    # Guard each clear: tests may monkeypatch these to plain functions (no cache).
+    for fn in (
+        rollout.search_api_available,
+        rollout._resolve_api,
+        rollout._forward_api,
+        rollout._cg,
+    ):
+        clear = getattr(fn, "cache_clear", None)
+        if clear is not None:
+            clear()
+
+
+def _stub_forward_module():
+    import types
+
+    m = types.ModuleType("_stub_forward")
+    for name in rollout._SEARCH_FUNCS:
+        setattr(m, name, lambda *a, **k: None)
+    return m
+
 
 def test_search_api_available_true_with_full_cg():
-    rollout.search_api_available.cache_clear()
-    # The repo's bundled cg.api exposes the full forward model.
+    _clear_forward_caches()
+    # The repo's bundled cg package exposes the full forward model.
     assert rollout.search_api_available() is True
-    rollout.search_api_available.cache_clear()
+    _clear_forward_caches()
 
 
-def test_search_api_available_false_when_search_funcs_missing(monkeypatch):
+def test_resolve_prefers_ambient_and_skips_bundled_load(monkeypatch):
+    # When the ambient cg.api already exposes the forward model (self-play, local,
+    # and any match where our bundled cg IS the top-level cg), the resolver must use
+    # it and NEVER force-load a second native instance (double GameInitialize would
+    # fault; see KTD4).
+    called = {"n": 0}
+
+    def boom():
+        called["n"] += 1
+        raise AssertionError("_forward_api must not run when ambient cg.api is full")
+
+    monkeypatch.setattr(rollout, "_forward_api", boom)
+    _clear_forward_caches()
+    assert rollout.search_api_available() is True
+    assert called["n"] == 0
+    _clear_forward_caches()
+
+
+def test_resolve_falls_back_to_bundled_when_shadowed(monkeypatch):
     import sys
     import types
 
-    # Mimic the grader's cg.api: card data present, forward model absent.
+    # Mimic the ladder condition: the ambient cg.api carries card data but NOT the
+    # forward model. The resolver must fall back to our force-loaded bundled package
+    # (stubbed here so the test does not trigger a real second native load), so the
+    # probe reports True and _cg returns callables from that fallback module.
+    stub = types.ModuleType("cg.api")
+    stub.all_card_data = lambda: []
+    stub.all_attack = lambda: []
+    monkeypatch.setitem(sys.modules, "cg.api", stub)
+    fake = _stub_forward_module()
+    monkeypatch.setattr(rollout, "_forward_api", lambda: fake)
+
+    _clear_forward_caches()
+    assert rollout.search_api_available() is True
+    assert rollout._resolve_api() is fake
+    assert all(callable(f) for f in rollout._cg())
+    _clear_forward_caches()
+
+
+def test_bundled_cg_dir_found_without_module_file():
+    # The grader execs main.py without a module __file__. The bundled-package
+    # locator must still resolve our cg/ via cwd or sys.path, or the shadowed-ladder
+    # recovery could never fire at match time.
+    g = rollout.__dict__
+    saved = g.pop("__file__", None)
+    try:
+        found = rollout._bundled_cg_dir()
+    finally:
+        if saved is not None:
+            g["__file__"] = saved
+    assert found is not None
+    assert (found / "api.py").exists() and (found / "sim.py").exists()
+
+
+def test_forward_api_loads_a_separate_native_instance(tmp_path, monkeypatch):
+    # The crux of the shadowed-ladder recovery: force-loading our OWN bundled cg
+    # from its own path is a SEPARATE native instance from the engine's, so its
+    # one-time GameInitialize is a first call and does not collide (KTD4). Copy the
+    # bundled cg to a distinct path (the match-time condition: our cg lives at a
+    # different path than the grader's) and drive the real _forward_api loader
+    # against it, proving a working forward model loads alongside the already
+    # initialized ambient one.
+    import shutil
+    import sys
+
+    src = rollout._bundled_cg_dir()
+    assert src is not None
+    dest = tmp_path / "cg"
+    shutil.copytree(src, dest, ignore=shutil.ignore_patterns("__pycache__"))
+
+    # Isolate from the real private module so this load is genuinely fresh and does
+    # not leave the production name pointing at the temp copy.
+    saved = {k: v for k, v in sys.modules.items() if k.startswith(rollout._PRIV_CG_NAME)}
+    for k in saved:
+        del sys.modules[k]
+    monkeypatch.setattr(rollout, "_bundled_cg_dir", lambda: dest)
+    rollout._forward_api.cache_clear()
+    try:
+        api = rollout._forward_api()
+        assert api is not None
+        assert all(hasattr(api, name) for name in rollout._SEARCH_FUNCS)
+        # The separate native lib actually initialized (card DB is readable).
+        assert len(api.all_card_data()) > 0
+    finally:
+        for k in [k for k in sys.modules if k.startswith(rollout._PRIV_CG_NAME)]:
+            del sys.modules[k]
+        sys.modules.update(saved)
+        rollout._forward_api.cache_clear()
+
+
+def test_forward_api_purges_stale_module_on_validation_failure(tmp_path, monkeypatch):
+    # If a force-loaded cg package loads but lacks the search_* wrappers, it must be
+    # purged from sys.modules so a later (cache-cleared) retry re-execs from disk
+    # rather than returning the stale module. Build a fake cg/ whose api.py defines
+    # none of the wrappers.
+    import sys
+
+    fake = tmp_path / "cg"
+    fake.mkdir()
+    (fake / "__init__.py").write_text("")
+    (fake / "sim.py").write_text("lib = object()\n")
+    (fake / "api.py").write_text("# no search_* wrappers here\nvalue = 1\n")
+
+    monkeypatch.setattr(rollout, "_bundled_cg_dir", lambda: fake)
+    saved = {k: v for k, v in sys.modules.items() if k.startswith(rollout._PRIV_CG_NAME)}
+    for k in saved:
+        del sys.modules[k]
+    rollout._forward_api.cache_clear()
+    try:
+        assert rollout._forward_api() is None
+        # No _ptcg_forward_cg* entries should linger.
+        assert not any(k.startswith(rollout._PRIV_CG_NAME) for k in sys.modules)
+    finally:
+        for k in [k for k in sys.modules if k.startswith(rollout._PRIV_CG_NAME)]:
+            del sys.modules[k]
+        sys.modules.update(saved)
+        rollout._forward_api.cache_clear()
+
+
+def test_search_api_available_false_without_bundled_package(monkeypatch):
+    import sys
+    import types
+
+    # No bundled package to force-load AND the ambient cg.api lacks the forward
+    # model: search is genuinely unavailable and the probe reports False (the agent
+    # then stays on the heuristic, never paying a per-decision ImportError).
+    monkeypatch.setattr(rollout, "_forward_api", lambda: None)
     stub = types.ModuleType("cg.api")
     stub.all_card_data = lambda: []
     stub.all_attack = lambda: []
     monkeypatch.setitem(sys.modules, "cg.api", stub)
 
-    rollout.search_api_available.cache_clear()
+    _clear_forward_caches()
     assert rollout.search_api_available() is False
-    rollout.search_api_available.cache_clear()
+    _clear_forward_caches()
 
 
 def test_agent_skips_search_when_forward_model_absent(monkeypatch):

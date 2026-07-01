@@ -13,6 +13,8 @@ keyed by searchId, search_release frees it, search_end resets between decisions.
 """
 from __future__ import annotations
 
+import importlib
+import importlib.util
 import sys
 from dataclasses import asdict
 from functools import lru_cache
@@ -55,21 +57,6 @@ def _ensure_cg_on_path() -> None:
                 return
 
 
-@lru_cache(maxsize=1)
-def _cg():
-    """The cg.api forward-model functions, imported once."""
-    _ensure_cg_on_path()
-    from cg.api import (
-        search_begin,
-        search_end,
-        search_release,
-        search_step,
-        to_observation_class,
-    )
-
-    return search_begin, search_step, search_end, search_release, to_observation_class
-
-
 # The forward-model functions the determinized search needs on top of the card
 # data (all_card_data, all_attack) the heuristic already uses.
 _SEARCH_FUNCS = (
@@ -80,30 +67,179 @@ _SEARCH_FUNCS = (
     "to_observation_class",
 )
 
+# Private module name under which we force-load OUR OWN bundled cg package, so it
+# can never collide with whatever the match-time engine registered as top-level
+# `cg` in sys.modules.
+_PRIV_CG_NAME = "_ptcg_forward_cg"
+
+
+def _bundled_cg_dir() -> Path | None:
+    """Locate our own bundled cg/ package directory on disk.
+
+    In a submission cg/ sits beside main.py at the top level; in the repo it is
+    data/cg (gitignored) or vendor/cg. We only accept a directory that carries
+    both api.py (the Python forward-model wrappers) and sim.py (which loads our
+    own native lib), so the package we force-load is self-contained.
+
+    The grader execs main.py without a module __file__, so we cannot rely on it:
+    we also scan the working directory, the known match-time agent root, and every
+    sys.path entry. That lets the fallback find our top-level cg/ at match time,
+    where `import cg.api` resolves to the engine's shadow instead.
+    """
+    roots: list[Path] = []
+    if "__file__" in globals():
+        roots.extend(Path(__file__).resolve().parents)
+    try:
+        roots.append(Path.cwd())
+    except Exception:
+        pass
+    roots.append(Path("/kaggle_simulations/agent"))
+    for entry in sys.path:
+        if entry:
+            try:
+                roots.append(Path(entry))
+            except Exception:
+                continue
+    seen: set[str] = set()
+    for parent in roots:
+        for cand in (parent / "cg", parent / "data" / "cg", parent / "vendor" / "cg"):
+            key = str(cand)
+            if key in seen:
+                continue
+            seen.add(key)
+            try:
+                if (cand / "api.py").exists() and (cand / "sim.py").exists():
+                    return cand
+            except Exception:
+                continue
+    return None
+
+
+def _ambient_api():
+    """The ambient `import cg.api` module IF it exposes the forward model.
+
+    This is the module `from cg.api import ...` resolves to: our bundled cg in
+    self-play and local runs, or whatever the match-time engine registered. Returns
+    None when it lacks the search_* wrappers (the shadowed-ladder condition).
+    """
+    _ensure_cg_on_path()
+    api = importlib.import_module("cg.api")
+    if all(hasattr(api, name) for name in _SEARCH_FUNCS):
+        return api
+    return None
+
+
+def _purge_private_cg() -> None:
+    """Remove our force-loaded private cg package and all its submodules.
+
+    A half-registered package (exec failed, or loaded but missing wrappers) would
+    otherwise make the next `if _PRIV_CG_NAME not in sys.modules` skip a fresh load
+    and hand back the stale module. Clear the parent and every submodule so a retry
+    re-execs from disk.
+    """
+    for key in [k for k in sys.modules if k == _PRIV_CG_NAME or k.startswith(_PRIV_CG_NAME + ".")]:
+        sys.modules.pop(key, None)
+
+
+@lru_cache(maxsize=1)
+def _forward_api():
+    """Force-load our OWN bundled cg.api under a private name, as a fallback.
+
+    Used only when the ambient cg.api lacks the forward model (the shadowed-ladder
+    condition). Loading our bundled package by explicit path under a private module
+    name binds search_* against our own cg.dll, independent of whatever the engine
+    registered as top-level `cg`. Because our bundled native lib lives at our own
+    path, it is a separate process instance from the engine's, so its one-time
+    GameInitialize is a first call and does not collide with the engine's. Returns
+    None (search then stays the heuristic fallback) if no self-contained bundled
+    package can be loaded.
+
+    NOTE: our sim.py runs GameInitialize once at import, and the native core is a
+    process-global singleton (KTD4). We must NEVER force-load this when the ambient
+    cg.api already IS our bundled package (same dll, already initialized), or the
+    second GameInitialize faults. Callers must probe _ambient_api() first.
+    """
+    pkg_dir = _bundled_cg_dir()
+    if pkg_dir is None:
+        return None
+    try:
+        if _PRIV_CG_NAME not in sys.modules:
+            spec = importlib.util.spec_from_file_location(
+                _PRIV_CG_NAME,
+                pkg_dir / "__init__.py",
+                submodule_search_locations=[str(pkg_dir)],
+            )
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[_PRIV_CG_NAME] = module
+            spec.loader.exec_module(module)
+        api = importlib.import_module(f"{_PRIV_CG_NAME}.api")
+    except Exception:
+        _purge_private_cg()
+        return None
+    if not all(hasattr(api, name) for name in _SEARCH_FUNCS):
+        # A package that loaded but lacks the wrappers is not usable; purge it so a
+        # later cache-cleared retry re-execs from disk instead of returning this
+        # stale module.
+        _purge_private_cg()
+        return None
+    return api
+
+
+@lru_cache(maxsize=1)
+def _resolve_api():
+    """Resolve a forward-model module, ambient first, bundled fallback second.
+
+    Prefer the ambient cg.api whenever it exposes the forward model: that covers
+    self-play, local runs, and any match where our bundled cg IS the top-level cg,
+    with a single native instance and no double GameInitialize. Only when the
+    ambient module lacks the wrappers (the shadowed-ladder condition ladder replays
+    exposed) do we force-load our own bundled package as a separate native
+    instance. Returns None when neither carries the forward model.
+    """
+    try:
+        api = _ambient_api()
+        if api is not None:
+            return api
+    except Exception:
+        pass
+    return _forward_api()
+
+
+@lru_cache(maxsize=1)
+def _cg():
+    """The cg.api forward-model functions, resolved once."""
+    api = _resolve_api()
+    if api is None:
+        # No forward model anywhere; surface a clear error (callers guard search on
+        # search_api_available, so this only fires if that contract is bypassed).
+        raise ImportError("no cg.api forward model (search_* functions) is reachable")
+    return (
+        api.search_begin,
+        api.search_step,
+        api.search_end,
+        api.search_release,
+        api.to_observation_class,
+    )
+
 
 @lru_cache(maxsize=1)
 def search_api_available() -> bool:
-    """True only when the resolved cg.api exposes the search forward model.
+    """True when a forward model with the search_* functions is reachable.
 
     The heuristic needs only card data (all_card_data, all_attack), which the
-    match-time engine provides, so the agent always loads and plays. Determinized
-    search additionally needs the search_* forward model. On the Kaggle grader the
-    resolved cg.api carries card data but NOT those search functions (confirmed
-    from ladder replays: with actTimeout 0 every search decision drew about 0.02s
-    from the 600s overage bank, the heuristic-fallback cost, never the per-move
-    search budget). Probing this once lets the agent skip the search attempt
-    cleanly rather than pay a swallowed ImportError on every decision, and makes
-    the inert-search condition a first-class, testable fact. Never raises.
+    match-time engine always provides, so the agent loads and plays regardless.
+    Determinized search additionally needs the search_* forward model. Ladder
+    replays showed `import cg.api` resolved a module WITHOUT those wrappers (every
+    search decision drew about 0.02s from the 600s overage bank, the heuristic
+    cost, never the per-move search budget), so search was inert. We now fall back
+    to force-loading our OWN bundled package (its own wrappers and native lib) when
+    the ambient cg.api is that stripped shadow, so this reports True whenever a
+    working forward model can be reached. Never raises. The verification channel on
+    the ladder is the overage-bank drawdown in the next replay: a working search
+    shows about 0.5s draws instead of about 0.02s.
     """
     try:
-        _ensure_cg_on_path()
-        import importlib
-
-        # Resolve the same module object `from cg.api import ...` would use (the
-        # sys.modules entry), so the probe matches what _cg actually imports even
-        # when a different cg.api was loaded first.
-        api = importlib.import_module("cg.api")
-        return all(hasattr(api, name) for name in _SEARCH_FUNCS)
+        return _resolve_api() is not None
     except Exception:
         return False
 
