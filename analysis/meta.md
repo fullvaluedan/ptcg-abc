@@ -41,6 +41,15 @@ Impidimp (646) -> Morgrem (647) -> Marnie's Grimmsnarl ex (648) via Rare Candy
 Dawn (1231). Higher ceiling but a harder pilot (evolution plus abilities), so
 its 66% is partly kazuki0123's skill, not purely the deck.
 
+kazuki0123's exact 60 card list is copied to `decks/meta_grimmsnarl.csv`
+(harvested with `--teams kazuki0123 --min-games 8`; they run exactly one deck
+signature across all 246 games). Validated LEGAL by `tools/deck_validate.py`.
+Gauntlet with our heuristic vs the built-in pool (random/first/baseline, n=60):
+65% (39W/21L), 0 draws, 0 invalid moves. The 0 draws is the key read: the
+heuristic pilots the Rare Candy evolution line with no self-collapse, so a
+simple policy does not break on the harder deck. Same offline-not-predictive
+caveat as Archaludon applies; ladder score is the only truth.
+
 ### 3. Psychic / Alakazam
 Ranks #2 (474W/936G, 51%), #6 (THIRD PTCG Club, 180W/287G, 63%), #10 (129W/254G,
 51%). Abra (741) -> Kadabra (742) -> Alakazam (743), Dunsparce (305)/Dudunsparce
@@ -58,15 +67,20 @@ Dragapult ex (#3, 279W/631G, 44%: Dreepy 119 -> Drakloak 120 -> Dragapult ex
   line, and it gauntlets cleanly with our heuristic (68% vs random/first/baseline,
   0 invalid moves, 0 self-collapse draws). It is the deck to ship FIRST.
 - Dark Grimmsnarl is the higher-ceiling copy (the actual top-players' deck) but a
-  harder pilot; build and gauntlet it next, since a simple heuristic may not
-  extract kazuki0123's 66%.
+  harder pilot. Now BUILT and gauntleted (65%, 0 draws): the heuristic pilots it
+  cleanly, so it is a live submit candidate. Ship it AFTER Archaludon's ladder
+  score lands: if the safer copy beats the ~570 trolley floor, the deck-copy
+  thesis is confirmed and Grimmsnarl (higher ceiling) is the obvious next slot; if
+  Archaludon flops, the heuristic cannot extract a meta deck and a blind Grimmsnarl
+  submit would waste a slot.
 - Offline gauntlets are run against weak built-in bots and are NOT predictive of
   ladder rating (the trolley deck beats Archaludon 77% to 68% there yet only
   scores ~570 on the ladder). The meta deck's real evidence is its 811 wins
   across the live ladder field. Ladder score is the only truth; submit and read.
 
 ## Next scouts
-- Build and validate `decks/meta_grimmsnarl.csv` from #7 and gauntlet it.
+- DONE: `decks/meta_grimmsnarl.csv` built from #7, validated LEGAL, gauntleted
+  (65%, 0 draws). Ready for a one-command submit once Archaludon's score lands.
 - Cross-check tonakaiiii (leaderboard #1, ~1344): not surfaced by name in the
   top-12 team lists here, so harvest with `--teams tonakaiiii` to pull that exact
   deck from a daily dataset.
