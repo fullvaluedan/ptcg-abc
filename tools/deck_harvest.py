@@ -209,21 +209,40 @@ def write_deck(deck, path) -> None:
             fh.write(f"{int(card_id)}\n")
 
 
-def _print_report(agg, names, top=5, min_games=1) -> None:
+def _safe(text, encoding=None) -> str:
+    """Down-convert text to what the output stream can encode.
+
+    Team names and card names carry non ASCII characters (curly apostrophes,
+    accents, and CJK player handles). Printing them straight to a legacy console
+    (Windows defaults stdout to cp1252) raises UnicodeEncodeError and aborts the
+    whole report mid print. Encoding with 'replace' first swaps any unencodable
+    character for '?' so the report always completes.
+    """
+    enc = encoding or getattr(sys.stdout, "encoding", None) or "utf-8"
+    return text.encode(enc, "replace").decode(enc)
+
+
+def format_report(agg, names, top=5, min_games=1) -> str:
+    """Render the winning-meta report as a single text block."""
     ranked = rank_decks(agg, min_games=min_games)
-    print(
+    lines = [
         f"harvested {agg['records']} decklists over {agg['episodes']} episodes; "
-        f"{len(agg['by_sig'])} distinct decks"
-    )
-    print(f"top {min(top, len(ranked))} by wins (min {min_games} games):")
+        f"{len(agg['by_sig'])} distinct decks",
+        f"top {min(top, len(ranked))} by wins (min {min_games} games):",
+    ]
     for i, (_, entry, win_rate) in enumerate(ranked[:top], 1):
         teams = ", ".join(sorted(entry["teams"]))[:70]
-        print(
+        lines.append(
             f"\n#{i}  {entry['wins']}W / {entry['games']}G "
             f"({win_rate * 100:.0f}%)  teams: {teams}"
         )
         for n, card_id, name in deck_fingerprint(entry["deck"], names):
-            print(f"    {n}x {name} ({card_id})")
+            lines.append(f"    {n}x {name} ({card_id})")
+    return "\n".join(lines)
+
+
+def _print_report(agg, names, top=5, min_games=1) -> None:
+    print(_safe(format_report(agg, names, top=top, min_games=min_games)))
 
 
 def main(argv=None) -> int:
@@ -237,6 +256,7 @@ def main(argv=None) -> int:
     hp.add_argument("--limit", type=int, default=None, help="cap episodes read (quick pass)")
     hp.add_argument("--top", type=int, default=5, help="how many decks to print")
     hp.add_argument("--out", default=None, help="write the #1 ranked deck to this CSV path")
+    hp.add_argument("--report", default=None, help="write the full report to this UTF-8 file")
 
     args = ap.parse_args(argv)
     if args.cmd == "harvest":
@@ -244,6 +264,9 @@ def main(argv=None) -> int:
         agg = harvest(args.source, teams=teams, limit=args.limit)
         names = load_card_names()
         _print_report(agg, names, top=args.top, min_games=args.min_games)
+        if args.report:
+            report = format_report(agg, names, top=args.top, min_games=args.min_games)
+            Path(args.report).write_text(report + "\n", encoding="utf-8")
         if args.out:
             ranked = rank_decks(agg, min_games=args.min_games)
             if ranked:

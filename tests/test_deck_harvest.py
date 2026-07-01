@@ -143,3 +143,35 @@ def test_write_deck_roundtrip(tmp_path):
     deck_harvest.write_deck(deck, out)
     lines = [int(x) for x in out.read_text().split("\n") if x.strip()]
     assert lines == deck
+
+
+def test_safe_replaces_unencodable_chars():
+    # A CJK team handle cannot encode to cp1252; _safe swaps it for '?' instead
+    # of raising UnicodeEncodeError (the bug that aborted a full harvest report).
+    assert deck_harvest._safe("team ト", encoding="cp1252") == "team ?"
+    # An accented name that IS in cp1252 round trips unchanged.
+    assert deck_harvest._safe("Pokégear", encoding="cp1252") == "Pokégear"
+
+
+def test_format_report_carries_non_ascii_team_names(tmp_path):
+    rep = _replay(["トナ", "Bob"], [1, -1], [_deck(721), _deck(164)])
+    d = tmp_path / "eps"
+    d.mkdir()
+    (d / "e0.json").write_text(json.dumps(rep), encoding="utf-8")
+    agg = deck_harvest.harvest(d)
+    names = {721: ("Kyogre", "n/a")}
+    text = deck_harvest.format_report(agg, names, top=5)
+    assert "Kyogre" in text
+    assert "トナ" in text  # full UTF-8 report preserves the handle
+
+
+def test_main_report_writes_utf8_file(tmp_path):
+    rep = _replay(["トナ", "Bob"], [1, -1], [_deck(721), _deck(164)])
+    d = tmp_path / "eps"
+    d.mkdir()
+    (d / "e0.json").write_text(json.dumps(rep), encoding="utf-8")
+    report_path = tmp_path / "meta_report.txt"
+    rc = deck_harvest.main(["harvest", str(d), "--report", str(report_path)])
+    assert rc == 0
+    written = report_path.read_text(encoding="utf-8")
+    assert "トナ" in written and "decklists over 1 episodes" in written
