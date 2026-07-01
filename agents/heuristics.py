@@ -381,11 +381,13 @@ def _drills_deck(card_id) -> bool:
     development (Precious Trolley benches a Basic, Waitress attaches an Energy) is
     kept: it is the "develop, do not hoard" play the deckout guard means to allow.
     Cards that move the discard pile back into the deck (Sacred Ash, Energy
-    Recycler) grow the deck and are kept too. Card data ships the effect text
-    offline so this reads the text rather than guessing by type. Conservative on
-    missing data: an Item or Supporter whose text is unavailable is treated as a
-    driller, preserving the prior safe skip-every-trainer behavior. Pure, never
-    raises.
+    Recycler) grow the deck and are kept too, and a card that returns cards from
+    the discard pile into the hand (Night Stretcher) never touches the deck, so it
+    is a resource recovery, not a mill, and is kept as well. Card data ships the
+    effect text offline so this reads the text rather than guessing by type.
+    Conservative on missing data: an Item or Supporter whose text is unavailable is
+    treated as a driller, preserving the prior safe skip-every-trainer behavior.
+    Pure, never raises.
     """
     if _card_type(card_id) not in CONSERVED_TRAINER_TYPES:
         return False
@@ -393,6 +395,15 @@ def _drills_deck(card_id) -> bool:
     if text is None:
         return True
     t = text.lower()
+    # A card that returns cards FROM your discard pile into your hand (Night
+    # Stretcher) recovers resources and never depletes the deck, so it is not a
+    # mill, mirroring the deck-recycler carve-out above. Guarded by "your deck" not
+    # in the text so a card that ALSO searches or draws the deck stays a drill.
+    recovers_from_discard = (
+        "from your discard pile" in t
+        and "into your hand" in t
+        and "your deck" not in t
+    )
     # \bdraw matches "draw"/"draws" but not "withdraw" (a switch effect, no deck
     # drill). "into your hand" catches search-to-hand. A discard that names the
     # deck as the source ("of your deck", "your deck for ... discard") destroys
@@ -403,7 +414,7 @@ def _drills_deck(card_id) -> bool:
     )
     return (
         bool(re.search(r"\bdraw", t))
-        or "into your hand" in t
+        or ("into your hand" in t and not recovers_from_discard)
         or discards_from_deck
     )
 

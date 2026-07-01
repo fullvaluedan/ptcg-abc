@@ -414,6 +414,26 @@ def test_drills_deck_keeps_deck_recyclers():
     assert not heuristics._drills_deck(1139)          # basic energy -> deck
 
 
+# A card that returns cards from the discard pile INTO YOUR HAND (Night Stretcher)
+# recovers resources without touching the deck, so it is not a mill and must stay
+# playable near deckout. The "into your hand" match must not flag it. A card that
+# ALSO searches the deck to hand (Ultra Ball) is still a drill.
+def test_drills_deck_keeps_discard_to_hand_recovery():
+    assert not heuristics._drills_deck(1097)          # Night Stretcher: discard -> hand
+    assert heuristics._drills_deck(1121)              # Ultra Ball: searches the deck
+    assert heuristics._drills_deck(1185)              # Explorer's Guidance: deck -> hand
+
+
+# A contrived discard-to-hand card that also names the deck stays conservative: the
+# "your deck" guard keeps a mixed deck-search card classified as a drill.
+def test_drills_deck_discard_recovery_that_touches_deck_stays_drill(monkeypatch):
+    monkeypatch.setattr(
+        heuristics, "_card_text",
+        lambda cid: "Search your deck, then put a card from your discard pile into your hand.",
+    )
+    assert heuristics._drills_deck(ITEM_DRAW)         # names the deck -> still a drill
+
+
 # An Item or Supporter whose effect text is unavailable stays conservative and is
 # treated as a driller, preserving the prior safe skip-every-trainer behavior.
 def test_drills_deck_conservative_when_text_missing(monkeypatch):
