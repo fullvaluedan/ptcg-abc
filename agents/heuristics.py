@@ -20,6 +20,7 @@ Design choices, all aimed at a never crash agent that beats the random baseline:
 """
 from __future__ import annotations
 
+import os
 import re
 import sys
 from functools import lru_cache
@@ -86,6 +87,17 @@ RESISTANCE_CUT = 30
 
 # Retreat when the active is at or below this fraction of its max HP.
 RETREAT_HP_RATIO = 0.34
+
+# Energy-attach sequencing (PTCG_ENERGY_SEQ, default off). Off, the agent always
+# powers the active first (attach to the active if an option targets it, else the
+# first attach option). On, once the active can already pay for its cheapest
+# attack, extra energy is steered onto the strongest still-underpowered benched
+# attacker so the deck's payoff attacker comes online a turn sooner instead of
+# overloading a front-line active that is already able to attack. Staged behind a
+# flag so every shipped build stays byte-identical (off) until it is A/B'd on the
+# ladder as a clean single-variable change; offline weak-bot gauntlets are not
+# predictive, so the ladder is the judge (see autoloop_status.md).
+_ENERGY_SEQ = os.environ.get("PTCG_ENERGY_SEQ", "0") != "0"
 
 
 def _ensure_cg_on_path() -> None:
@@ -298,6 +310,88 @@ def best_attack(groups, my_active_id, defender_id, defender_hp):
     if best is None:
         return None
     return (best[2], best[1], best[0])
+
+
+def _attack_costs(card_id):
+    """Sorted energy costs of a card's attacks (each cost = the number of energies
+    the attack needs), or an empty list when the card or its attacks are unknown.
+
+    Attack cost is the length of the attack's `energies` list. Pure and defensive:
+    any missing card, attack, or field yields an empty list rather than raising.
+    """
+    try:
+        c = card_index().get(card_id) if card_id else None
+        atks = attack_index()
+    except Exception:
+        return []
+    if c is None:
+        return []
+    costs = []
+    for aid in getattr(c, "attacks", None) or []:
+        a = atks.get(aid)
+        if a is not None:
+            costs.append(len(getattr(a, "energies", None) or []))
+    return sorted(costs)
+
+
+def _attached_count(slot) -> int:
+    """Energy currently attached to a Pokemon slot (0 when none or unknown)."""
+    return len(slot.get("energies") or []) if slot else 0
+
+
+def _choose_attach(attach, me) -> int:
+    """Index of the ATTACH option to take.
+
+    Default (PTCG_ENERGY_SEQ off): power the active, attaching to it when an option
+    targets it, else the first attach option. This is byte-identical to the prior
+    inline attach step.
+
+    With sequencing on, once the active can already pay for its cheapest attack
+    (attaching more to it is not needed to attack this turn), steer the attachment
+    onto the strongest still-underpowered benched attacker: a benched Pokemon whose
+    biggest attack costs more than the active's cheapest attack and that is not yet
+    fully powered for that attack. That brings the deck's payoff attacker online
+    instead of overloading a front-line active that can already attack. Falls back
+    to the active whenever no such bench target has an attach option. Pure, never
+    raises.
+    """
+    active_attach = next(
+        (i for i, op in attach if op.get("inPlayArea") == AREA_ACTIVE), None
+    )
+    default = active_attach if active_attach is not None else attach[0][0]
+    if not _ENERGY_SEQ:
+        return default
+    active = _active(me)
+    if active is None:
+        return default
+    active_costs = _attack_costs(active.get("id"))
+    # Power the active first until it can pay for at least its cheapest attack;
+    # only surplus energy is redirected to develop a bench payoff attacker.
+    if not active_costs or _attached_count(active) < active_costs[0]:
+        return default
+    cheapest_active = active_costs[0]
+    bench = me.get("bench") or []
+    best_opt = None  # (max_attack_cost, -option_index, option_index)
+    for i, op in attach:
+        if op.get("inPlayArea") != AREA_BENCH:
+            continue
+        bi = op.get("inPlayIndex")
+        if bi is None or not (0 <= bi < len(bench)):
+            continue
+        slot = bench[bi]
+        if not slot:
+            continue
+        costs = _attack_costs(slot.get("id"))
+        if not costs:
+            continue
+        max_cost = costs[-1]
+        # A payoff attacker: hits harder than the active's cheapest attack and is
+        # not yet fully powered for its own biggest attack.
+        if max_cost > cheapest_active and _attached_count(slot) < max_cost:
+            cand = (max_cost, -i, i)
+            if best_opt is None or cand > best_opt:
+                best_opt = cand
+    return best_opt[2] if best_opt is not None else default
 
 
 def _active(player):
@@ -811,11 +905,7 @@ def choose(obs) -> list:
         if play_idx is not None:
             return [play_idx]
     if OPT_ATTACH in groups:
-        attach = groups[OPT_ATTACH]
-        active_attach = next(
-            (i for i, op in attach if op.get("inPlayArea") == AREA_ACTIVE), None
-        )
-        return [active_attach if active_attach is not None else attach[0][0]]
+        return [_choose_attach(groups[OPT_ATTACH], me)]
     # 4. Retreat an endangered active before chipping in with a weak attack.
     if OPT_RETREAT in groups and should_retreat(
         my_active, me.get("bench"), lethal

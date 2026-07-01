@@ -57,6 +57,69 @@ def test_attach_prefers_active_target():
     assert heuristic_agent(obs) == [1]
 
 
+# Energy-attach sequencing (PTCG_ENERGY_SEQ). These drive _choose_attach directly
+# with controlled attack costs so the branch logic is checked independently of any
+# specific card's real cost. Attack cost is monkeypatched by card id; attached
+# energy is read from each slot's `energies` list.
+def _attach_opts():
+    return [
+        (0, {"type": heuristics.OPT_ATTACH,
+             "inPlayArea": heuristics.AREA_BENCH, "inPlayIndex": 0}),
+        (1, {"type": heuristics.OPT_ATTACH, "inPlayArea": heuristics.AREA_ACTIVE}),
+    ]
+
+
+def test_energy_seq_off_keeps_active_first(monkeypatch):
+    monkeypatch.setattr(heuristics, "_ENERGY_SEQ", False)
+    me = {"active": [{"id": 100, "energies": ["G"]}],
+          "bench": [{"id": 200, "energies": []}]}
+    assert heuristics._choose_attach(_attach_opts(), me) == 1
+
+
+def test_energy_seq_steers_surplus_to_bench_payoff(monkeypatch):
+    # Active can already pay its cheapest attack (cost 1, one energy attached);
+    # the bench holds a bigger, underpowered payoff attacker (cost 3, no energy).
+    monkeypatch.setattr(heuristics, "_ENERGY_SEQ", True)
+    costs = {100: [1], 200: [3]}
+    monkeypatch.setattr(heuristics, "_attack_costs", lambda cid: costs.get(cid, []))
+    me = {"active": [{"id": 100, "energies": ["G"]}],
+          "bench": [{"id": 200, "energies": []}]}
+    assert heuristics._choose_attach(_attach_opts(), me) == 0
+
+
+def test_energy_seq_powers_active_before_bench(monkeypatch):
+    # Active cannot yet pay its cheapest attack (cost 1, no energy) so it is powered
+    # first even though a bigger bench attacker exists.
+    monkeypatch.setattr(heuristics, "_ENERGY_SEQ", True)
+    costs = {100: [1], 200: [3]}
+    monkeypatch.setattr(heuristics, "_attack_costs", lambda cid: costs.get(cid, []))
+    me = {"active": [{"id": 100, "energies": []}],
+          "bench": [{"id": 200, "energies": []}]}
+    assert heuristics._choose_attach(_attach_opts(), me) == 1
+
+
+def test_energy_seq_ignores_bench_not_bigger(monkeypatch):
+    # A bench attacker no bigger than the active's cheapest attack is not a payoff
+    # target, so the active keeps the energy.
+    monkeypatch.setattr(heuristics, "_ENERGY_SEQ", True)
+    costs = {100: [2], 200: [2]}
+    monkeypatch.setattr(heuristics, "_attack_costs", lambda cid: costs.get(cid, []))
+    me = {"active": [{"id": 100, "energies": ["G", "G"]}],
+          "bench": [{"id": 200, "energies": []}]}
+    assert heuristics._choose_attach(_attach_opts(), me) == 1
+
+
+def test_energy_seq_skips_fully_powered_bench(monkeypatch):
+    # A bench attacker already holding enough energy for its biggest attack is not
+    # underpowered, so no surplus is redirected to it.
+    monkeypatch.setattr(heuristics, "_ENERGY_SEQ", True)
+    costs = {100: [1], 200: [3]}
+    monkeypatch.setattr(heuristics, "_attack_costs", lambda cid: costs.get(cid, []))
+    me = {"active": [{"id": 100, "energies": ["G"]}],
+          "bench": [{"id": 200, "energies": ["G", "G", "G"]}]}
+    assert heuristics._choose_attach(_attach_opts(), me) == 1
+
+
 # Test scenario: a lethal attack is chosen when available, over other actions.
 def test_lethal_attack_is_taken():
     attacks = heuristics.attack_index()
