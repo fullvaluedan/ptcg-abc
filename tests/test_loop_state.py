@@ -1,0 +1,226 @@
+"""The stateful loop memory (plan U12): round trip, re-test gating, bucket ranking.
+
+tools/loop_state.py is the loop's memory: current.md carries the live loss
+distribution plus kings/candidates/ledger, and hypotheses.md is the falsified-
+lever registry with sample sizes and re-test conditions. These tests pin the four
+properties the loop relies on:
+
+  1. both state files round-trip (the json STATE block written == read back),
+  2. a missing state/ is created on first write rather than erroring, and a
+     missing file reads as an empty state rather than raising,
+  3. a hypothesis refuted at sample n is flagged for re-test once a larger-sample
+     or different-deck condition is met, and not before,
+  4. the bucket ranking over fixed replays is stable (deterministic top bucket).
+
+The round-trip and re-test tests write into a tmp state dir by monkeypatching the
+module paths, so a run never clobbers the committed state/ files.
+"""
+import json
+
+import pytest
+
+from tools import loop_state as ls
+
+
+@pytest.fixture
+def tmp_state(tmp_path, monkeypatch):
+    """Point the module's state paths at a throwaway dir for the test."""
+    state_dir = tmp_path / "state"
+    monkeypatch.setattr(ls, "STATE_DIR", state_dir)
+    monkeypatch.setattr(ls, "CURRENT_PATH", state_dir / "current.md")
+    monkeypatch.setattr(ls, "HYPOTHESES_PATH", state_dir / "hypotheses.md")
+    return state_dir
+
+
+def test_current_round_trips(tmp_state):
+    data = {
+        "loss_distribution": {"top_bucket": "early_collapse", "losses": 21,
+                              "buckets": {"early_collapse": 21}, "sample_size": 47},
+        "shadow_king": {"build": "heuristic+trolley", "ref": "54215558", "ladder": 569.6},
+        "reclaim_king": {"build": "heuristic+trolley", "ref": "54215558", "ladder": 569.6},
+        "active_candidates": [{"build": "cand-A", "note": "awaiting slot"}],
+        "ledger": [{"build": "heuristic+trolley", "ladder": 569.6, "sample_size": 47}],
+    }
+    ls.write_current(data)
+    assert ls.CURRENT_PATH.exists()
+    assert ls.read_current() == data
+
+
+def test_hypotheses_round_trips(tmp_state):
+    data = {"hypotheses": [
+        {"name": "bench_dig", "verdict": "refuted", "sample_size": 200,
+         "deck": "trolley", "retest_sample": 400, "retest_condition": "sample >= 400"},
+    ]}
+    ls.write_hypotheses(data)
+    assert ls.HYPOTHESES_PATH.exists()
+    assert ls.read_hypotheses() == data
+
+
+def test_missing_state_dir_created_on_write(tmp_state):
+    assert not tmp_state.exists()
+    ls.write_current({"loss_distribution": {}})
+    assert tmp_state.exists()
+    assert ls.CURRENT_PATH.exists()
+
+
+def test_missing_file_reads_empty_not_error(tmp_state):
+    # Nothing written yet: reads must degrade to {} rather than raise.
+    assert ls.read_current() == {}
+    assert ls.read_hypotheses() == {}
+
+
+def test_malformed_block_reads_empty(tmp_state):
+    tmp_state.mkdir(parents=True)
+    ls.CURRENT_PATH.write_text("# prose only, no json block\n", encoding="utf-8")
+    assert ls.read_current() == {}
+    ls.HYPOTHESES_PATH.write_text("```json STATE\n{ not valid json\n```\n", encoding="utf-8")
+    assert ls.read_hypotheses() == {}
+
+
+def test_prose_edit_does_not_corrupt_state(tmp_state):
+    data = {"shadow_king": {"build": "x", "ladder": 569.6}}
+    ls.write_current(data)
+    # A human edits the prose above the block; the json block is untouched.
+    text = ls.CURRENT_PATH.read_text(encoding="utf-8")
+    edited = "# my own notes\n\nsome hand-written prose\n\n" + text[text.find(ls._BLOCK_OPEN):]
+    ls.CURRENT_PATH.write_text(edited, encoding="utf-8")
+    assert ls.read_current() == data
+
+
+def test_parse_block_extracts_only_the_fenced_json():
+    text = "prose\n```json STATE\n" + json.dumps({"a": 1}) + "\n```\ntrailing prose\n"
+    assert ls.parse_state_block(text) == {"a": 1}
+
+
+def test_round_trip_survives_fence_string_in_a_value(tmp_state):
+    # The prose view is rendered from these values WITHOUT json-escaping, so a
+    # value that quotes the open-fence string plants a decoy fence above the real
+    # block. The parser must anchor to the LAST fence (the appended real block),
+    # not the first, or the state is silently lost. Regression for that bug.
+    data = {
+        "active_candidates": [{"build": "x", "note": "see the ```json STATE block above"}],
+        "shadow_king": {"build": "```json STATE", "ladder": 569.6},
+    }
+    ls.write_current(data)
+    assert ls.read_current() == data
+
+    hyp = {"hypotheses": [{"name": "h", "verdict": "refuted",
+                           "claim": "quotes a ```json STATE fence and a ``` close"}]}
+    ls.write_hypotheses(hyp)
+    assert ls.read_hypotheses() == hyp
+
+
+def test_loss_distribution_from_dirs_happy_path(tmp_path):
+    # Two synthetic replays classified through the module's own dir plumbing (not
+    # classify_batch directly): one empty-bench collapse loss, one win. Pins that
+    # loss_distribution_from_dirs re-keys buckets to BUCKETS, renames games ->
+    # sample_size, and records the source dir.
+    from analysis.loss_classifier import BUCKETS
+
+    d = tmp_path / "replays_synth"
+    d.mkdir()
+    # A minimal replay shape scout.parse_replay accepts: one MAIN decision that
+    # records the board, then rewards decide the outcome. Our seat is 0.
+    def _replay(reward, my_bench, my_deck, my_prize, opp_prize):
+        return {
+            "rewards": reward,
+            "info": {"TeamNames": ["us", "them"]},
+            "steps": [[
+                {"status": "ACTIVE", "action": 0, "observation": {
+                    "select": {"type": 0, "option": [1, 2], "minCount": 1, "maxCount": 1},
+                    "remainingOverageTime": 599.0,
+                    "current": {"yourIndex": 0, "turn": 10, "players": [
+                        {"bench": [0] * my_bench, "deckCount": my_deck, "prize": [0] * my_prize},
+                        {"bench": [0, 0], "deckCount": 20, "prize": [0] * opp_prize},
+                    ]},
+                }},
+                {"status": "INACTIVE", "observation": {}},
+            ]],
+        }
+    (d / "episode-1-replay.json").write_text(
+        json.dumps(_replay([0, 1], my_bench=0, my_deck=20, my_prize=2, opp_prize=1)),
+        encoding="utf-8")
+    (d / "episode-2-replay.json").write_text(
+        json.dumps(_replay([1, 0], my_bench=3, my_deck=15, my_prize=0, opp_prize=3)),
+        encoding="utf-8")
+
+    dist = ls.loss_distribution_from_dirs([d])
+    assert dist["games"] == 2
+    assert dist["wins"] == 1
+    assert dist["losses"] == 1
+    assert dist["sample_size"] == dist["games"]
+    assert set(dist["buckets"].keys()) == set(BUCKETS)
+    assert dist["top_bucket"] == "early_collapse"
+    assert dist["sources"] == [str(d)]
+
+
+def test_retest_flags_on_sample_growth():
+    hyp = {"name": "bench_dig", "verdict": "refuted", "sample_size": 200,
+           "deck": "trolley", "retest_sample": 400}
+    assert ls.needs_retest(hyp, current_sample=200, current_deck="trolley") is False
+    assert ls.needs_retest(hyp, current_sample=399, current_deck="trolley") is False
+    assert ls.needs_retest(hyp, current_sample=400, current_deck="trolley") is True
+    assert ls.needs_retest(hyp, current_sample=800, current_deck="trolley") is True
+
+
+def test_retest_flags_on_deck_change_only_when_opted_in():
+    opted = {"name": "thin_bench", "verdict": "refuted", "deck": "trolley",
+             "retest_on_deck_change": True}
+    assert ls.needs_retest(opted, current_sample=None, current_deck="trolley") is False
+    assert ls.needs_retest(opted, current_sample=None, current_deck="trolley_thick") is True
+    # A lever refuted on the meta decks is NOT re-licensed just by being on trolley.
+    not_opted = {"name": "meta_copy", "verdict": "refuted", "deck": "meta_archaludon"}
+    assert ls.needs_retest(not_opted, current_sample=None, current_deck="trolley") is False
+
+
+def test_retest_never_flags_non_refuted():
+    for verdict in ("active", "confirmed", "resolved"):
+        hyp = {"name": "x", "verdict": verdict, "deck": "trolley", "retest_sample": 1}
+        assert ls.needs_retest(hyp, current_sample=999, current_deck="other") is False
+
+
+def test_retest_candidates_lists_only_met():
+    data = {"hypotheses": [
+        {"name": "grown", "verdict": "refuted", "deck": "trolley", "retest_sample": 100},
+        {"name": "standing", "verdict": "refuted", "deck": "trolley", "retest_sample": 10_000},
+        {"name": "done", "verdict": "resolved", "deck": "trolley", "retest_sample": 1},
+    ]}
+    names = ls.retest_candidates(data, current_sample=200, current_deck="trolley")
+    assert names == ["grown"]
+
+
+def _digest(outcome, bucket_shape):
+    """A minimal digest classify_batch will bucket the way we want.
+
+    bucket_shape sets the board-end fields loss_classifier reads. For an
+    early_collapse we leave an empty bench with cards still in deck; for a deckout
+    we zero the deck.
+    """
+    d = {"outcome": outcome, "our_decisions": [], "rewards": [0, 1] if outcome == "loss" else [1, 0],
+         "our_index": 0, "n_turns": 12}
+    d.update(bucket_shape)
+    return d
+
+
+def test_bucket_ranking_is_stable():
+    # Three empty-bench collapses and one deckout: early_collapse must rank top,
+    # and re-running on the same digests must return the same top bucket.
+    collapse = {"my_deck_end": 20, "my_bench_end": 0, "my_prize_end": 2, "opp_prize_end": 0}
+    deckout = {"my_deck_end": 0, "my_bench_end": 3, "my_prize_end": 3, "opp_prize_end": 1}
+    digests = [_digest("loss", collapse) for _ in range(3)] + [_digest("loss", deckout)]
+    digests.append(_digest("win", {"my_deck_end": 10, "my_bench_end": 3}))
+    from analysis.loss_classifier import classify_batch
+    first = classify_batch(digests)
+    second = classify_batch(list(digests))
+    assert first["top_bucket"] == "early_collapse"
+    assert first["ranked"] == second["ranked"]
+    assert first["buckets"]["early_collapse"] == 3
+    assert first["buckets"]["deckout"] == 1
+
+
+def test_classify_dirs_missing_dir_contributes_nothing(tmp_path):
+    rep = ls.classify_dirs([tmp_path / "does_not_exist"])
+    assert rep["games"] == 0
+    assert rep["sample_size"] == 0
+    assert rep["sources"] == []
+    assert rep["top_bucket"] is None
