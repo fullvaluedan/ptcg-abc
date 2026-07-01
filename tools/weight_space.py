@@ -30,6 +30,20 @@ PARAM_SPACE = (
     ("PTCG_W_RETREAT_HP_RATIO", 0.34, 0.1, 0.6, float),
     ("PTCG_W_DECKOUT_THRESHOLD", 5, 2, 12, int),
     ("PTCG_W_DRAW_CONSERVE_THRESHOLD", 8, 3, 15, int),
+    # Pilot category ordering priorities (agents/heuristics.py choose()). These are
+    # the load-bearing pilot levers: the dominant driver of MAIN decisions, and the
+    # ones the U6 gradient diagnostic showed the genome was missing
+    # (analysis/cem_signal_flat.md). Defaults descend in the historical fixed-ladder
+    # order (candy > evolve > play > attach > ability > retreat > attack) so an
+    # un-tuned vector is byte-identical; the shared [0.0, 10.0] range lets CEM move
+    # any category to any rank.
+    ("PTCG_W_PRIO_CANDY", 6.0, 0.0, 10.0, float),
+    ("PTCG_W_PRIO_EVOLVE", 5.0, 0.0, 10.0, float),
+    ("PTCG_W_PRIO_PLAY", 4.0, 0.0, 10.0, float),
+    ("PTCG_W_PRIO_ATTACH", 3.0, 0.0, 10.0, float),
+    ("PTCG_W_PRIO_ABILITY", 2.0, 0.0, 10.0, float),
+    ("PTCG_W_PRIO_RETREAT", 1.0, 0.0, 10.0, float),
+    ("PTCG_W_PRIO_ATTACK", 0.0, 0.0, 10.0, float),
     # Leaf eval: search/eval.py. These tune the offline teacher's leaf value
     # (KTD3); they shape label generation and validation, not the shipped pilot
     # path, so they are searched too but are not what the live rating turns on.

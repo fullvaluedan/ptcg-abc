@@ -62,8 +62,9 @@ def _distance_fitness(target):
 
 
 def test_cem_converges_to_a_known_optimum():
-    # A target away from the defaults, inside bounds on every dim.
-    target = [3, 0.5, 9, 12, 0.8, 0.3, 0.85, 0.15, 0.15, 0.15, 4]
+    # A target away from the defaults, inside bounds on every dim. Derived from the
+    # genome (60% of each dim's range) so it tracks PARAM_SPACE growth automatically.
+    target = [low + 0.6 * (high - low) for _k, _d, low, high, _c in ws.PARAM_SPACE]
     assert len(target) == len(ws.PARAM_SPACE)
     cfg = ct.CEMConfig(
         population=40, elite=8, iterations=30, init_std=0.3,

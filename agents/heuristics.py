@@ -170,6 +170,33 @@ _BENCH_DIG = os.environ.get("PTCG_BENCH_DIG", "0") != "0"
 # weak-bot gauntlets are not predictive, so the ladder is the judge.
 _ABILITY = os.environ.get("PTCG_ABILITY", "0") != "0"
 
+# Category ordering priorities for the pilot's MAIN decision. CEM-tunable: these
+# are the genome levers the U6 gradient diagnostic showed were missing (both
+# fitness channels were flat because the dominant decision driver, choose()'s
+# category priority order, was not in the genome; analysis/cem_signal_flat.md).
+# choose() scores each available action category by its priority and takes the
+# highest-priority one that yields a legal move, so the optimizer can finally
+# reorder the categories the expert move-ranking breakdown flagged (the ABILITY
+# gap, the EVOLVE ordering) -- the driver of the overwhelming majority of MAIN
+# decisions, which the narrow threshold knobs above could not reach.
+#
+# The shipped DEFAULTS descend in the exact order of the historical fixed ladder
+# (rare-candy -> evolve -> play -> attach -> ability -> retreat -> attack), so an
+# un-tuned build is byte-identical: each PTCG_W_PRIO_* is unset and returns its
+# default, the defaults reproduce the old order, and weight_space.vector_to_env
+# emits nothing. The lethal knockout (safety-1) stays hard-first ahead of all of
+# these and END stays the last fallback; neither is tunable. Loop-safety does not
+# depend on the order: every category is either resource-consuming
+# (evolve/play/attach) or turn-ending (attack), and only a once-per-turn ability
+# is ever taken, so any priority ordering still terminates the turn.
+PRIO_CANDY = _env_num("PTCG_W_PRIO_CANDY", 6.0, float)
+PRIO_EVOLVE = _env_num("PTCG_W_PRIO_EVOLVE", 5.0, float)
+PRIO_PLAY = _env_num("PTCG_W_PRIO_PLAY", 4.0, float)
+PRIO_ATTACH = _env_num("PTCG_W_PRIO_ATTACH", 3.0, float)
+PRIO_ABILITY = _env_num("PTCG_W_PRIO_ABILITY", 2.0, float)
+PRIO_RETREAT = _env_num("PTCG_W_PRIO_RETREAT", 1.0, float)
+PRIO_ATTACK = _env_num("PTCG_W_PRIO_ATTACK", 0.0, float)
+
 
 def _ensure_cg_on_path() -> None:
     try:
@@ -1004,54 +1031,79 @@ def choose(obs) -> list:
     ba = best_attack(groups, my_active_id, opp_active_id, opp_active_hp)
     lethal = ba is not None and ba[2]
 
-    # 1. Take a knockout immediately.
+    # 1. Take a knockout immediately (safety-1, never reordered).
     if lethal:
         return [ba[0]]
-    # 2. Drive the evolution line to its payoff. A Rare Candy accelerator evolves a
-    #    Basic straight to its Stage 2 (skipping Stage 1), bringing the deck's payoff
-    #    attacker online a turn sooner; evolving that Basic to Stage 1 first would
-    #    consume it and waste the accelerator, so prefer it before the greedy evolve.
-    #    Held back when the bench is thin (surviving the empty-bench collapse, the #1
-    #    loss bucket, outranks tempo) and inert on decks with no such card (trolley).
-    if OPT_PLAY in groups and not _bench_is_thin(obs):
-        candy = _first_rare_candy_play(groups[OPT_PLAY], me)
-        if candy is not None:
-            return [candy]
-    # 3. Evolve, then develop the hand, then power up the attacker.
-    if OPT_EVOLVE in groups:
-        return [groups[OPT_EVOLVE][0][0]]
-    if OPT_PLAY in groups:
-        play_idx = choose_play(groups[OPT_PLAY], me, obs)
-        if play_idx is not None:
-            return [play_idx]
-    if OPT_ATTACH in groups:
-        return [_choose_attach(groups[OPT_ATTACH], me)]
-    # 3b. Fire a once-per-turn ability engine (the draw/search/damage abilities that
-    #     are 12% of the top players' MAIN actions and that the pilot has never used,
-    #     0/554; see analysis/move_ranking_diverges_ability_gap.md). Placed AFTER the
-    #     develop steps (evolve, play, attach) so it never diverts from those: the
-    #     top players develop the board first and spend the ability once nothing is
-    #     left to build, and placing it above evolve regressed EVOLVE hard on the
-    #     move-ranking breakdown. It stays ahead of retreat and the non-lethal attack
-    #     so a dig-then-attack turn still fires the ability. Loop-safe because only a
-    #     "once during your turn" ability is taken: the engine flags it used so it is
-    #     never re-offered and the turn still terminates. Flag-guarded (default off)
-    #     so shipped builds stay byte-identical until validated and A/B'd.
-    if _ABILITY and OPT_ABILITY in groups:
-        ability = _once_per_turn_ability(groups[OPT_ABILITY], sel, obs)
-        if ability is not None:
-            return [ability]
-    # 4. Retreat an endangered active before chipping in with a weak attack.
-    if OPT_RETREAT in groups and should_retreat(
-        my_active, me.get("bench"), lethal
-    ):
-        return [groups[OPT_RETREAT][0][0]]
-    # 5. Otherwise attack with the strongest option available.
-    if ba is not None and ba[1] > 0:
-        return [ba[0]]
-    if OPT_ATTACK in groups:
-        return [groups[OPT_ATTACK][0][0]]
-    # 6. End the turn, or fall back to any legal selection.
+
+    # 2. A genome-scored category ordering. At the shipped default priorities this
+    #    reproduces the historical fixed ladder EXACTLY (rare-candy -> evolve ->
+    #    play -> attach -> ability -> retreat -> attack); CEM tunes the per-category
+    #    PRIO_* weights so the optimizer can reach the ordering levers the expert
+    #    move-ranking breakdown flagged (the ABILITY gap, the EVOLVE ordering),
+    #    which the threshold knobs could not move (analysis/cem_signal_flat.md).
+    #    Each resolver returns a legal option index or None (its category is absent
+    #    or its gate declines); the highest-priority resolver that yields a move
+    #    wins, and the default order breaks ties so a tuned vector stays
+    #    deterministic. Loop-safety is order-independent: each category consumes a
+    #    resource (evolve/play/attach) or ends the turn (attack), and only a
+    #    once-per-turn ability is ever taken, so any ordering terminates the turn.
+    def _resolve_candy():
+        # Rare Candy evolves a Basic straight to its Stage 2 (skipping Stage 1),
+        # bringing the payoff attacker online a turn sooner; evolving to Stage 1
+        # first would consume the Basic and waste the accelerator. Held back when
+        # the bench is thin (surviving the empty-bench collapse outranks tempo) and
+        # inert on decks with no such card (trolley).
+        if OPT_PLAY in groups and not _bench_is_thin(obs):
+            return _first_rare_candy_play(groups[OPT_PLAY], me)
+        return None
+
+    def _resolve_evolve():
+        return groups[OPT_EVOLVE][0][0] if OPT_EVOLVE in groups else None
+
+    def _resolve_play():
+        return choose_play(groups[OPT_PLAY], me, obs) if OPT_PLAY in groups else None
+
+    def _resolve_attach():
+        return _choose_attach(groups[OPT_ATTACH], me) if OPT_ATTACH in groups else None
+
+    def _resolve_ability():
+        # A once-per-turn ability engine (draw/search/damage abilities are 12% of
+        # the top players' MAIN actions and the pilot has never used one, 0/554;
+        # see analysis/move_ranking_diverges_ability_gap.md). Flag-guarded (default
+        # off) so shipped builds stay byte-identical until validated and A/B'd;
+        # loop-safe because only a "once during your turn" ability is taken.
+        if _ABILITY and OPT_ABILITY in groups:
+            return _once_per_turn_ability(groups[OPT_ABILITY], sel, obs)
+        return None
+
+    def _resolve_retreat():
+        if OPT_RETREAT in groups and should_retreat(my_active, me.get("bench"), lethal):
+            return groups[OPT_RETREAT][0][0]
+        return None
+
+    def _resolve_attack():
+        if ba is not None and ba[1] > 0:
+            return ba[0]
+        if OPT_ATTACK in groups:
+            return groups[OPT_ATTACK][0][0]
+        return None
+
+    # (priority, default-order tiebreak, resolver).
+    ladder = (
+        (PRIO_CANDY, 0, _resolve_candy),
+        (PRIO_EVOLVE, 1, _resolve_evolve),
+        (PRIO_PLAY, 2, _resolve_play),
+        (PRIO_ATTACH, 3, _resolve_attach),
+        (PRIO_ABILITY, 4, _resolve_ability),
+        (PRIO_RETREAT, 5, _resolve_retreat),
+        (PRIO_ATTACK, 6, _resolve_attack),
+    )
+    for _prio, _tb, resolve in sorted(ladder, key=lambda e: (-e[0], e[1])):
+        idx = resolve()
+        if idx is not None:
+            return [idx]
+
+    # 3. End the turn, or fall back to any legal selection.
     if OPT_END in groups:
         return [groups[OPT_END][0][0]]
     return _first_legal(sel)

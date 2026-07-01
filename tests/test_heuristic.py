@@ -556,6 +556,59 @@ def test_lethal_taken_before_ability(monkeypatch):
     assert heuristic_agent(obs) == [1]  # the knockout, not the ability
 
 
+# --- CEM-tunable category ordering (PTCG_W_PRIO_*, the U6 gradient levers) --------
+# choose() scores each action category by its PRIO_* weight and takes the highest
+# that yields a legal move. At the shipped defaults this reproduces the historical
+# fixed ladder (candy > evolve > play > attach > ability > retreat > attack); a
+# tuned vector can reorder the categories the expert breakdown flagged.
+
+# Default weights: evolve (5.0) outranks ability (2.0), so the fixed-ladder order
+# holds and the shipped build is byte-identical to the pre-genome behavior.
+def test_priority_default_keeps_evolve_above_ability(monkeypatch):
+    monkeypatch.setattr(heuristics, "_ABILITY", True)
+    opts = [
+        {"type": heuristics.OPT_EVOLVE, "index": 0},
+        {"type": heuristics.OPT_ABILITY, "area": heuristics.AREA_ACTIVE, "index": 0},
+        {"type": heuristics.OPT_END},
+    ]
+    obs = _main_obs(opts, my_active=_pokemon(ABILITY_ONCE, 90),
+                    opp_active=_pokemon(722, 90))
+    assert heuristic_agent(obs) == [0]  # evolve, the default ladder order
+
+
+# Reorder: lift ABILITY above EVOLVE and the same state now fires the ability. This
+# is the gradient the U6 diagnostic said the genome lacked (the ABILITY gap).
+def test_priority_reorder_prefers_ability_over_evolve(monkeypatch):
+    monkeypatch.setattr(heuristics, "_ABILITY", True)
+    monkeypatch.setattr(heuristics, "PRIO_ABILITY", 9.0)
+    opts = [
+        {"type": heuristics.OPT_EVOLVE, "index": 0},
+        {"type": heuristics.OPT_ABILITY, "area": heuristics.AREA_ACTIVE, "index": 0},
+        {"type": heuristics.OPT_END},
+    ]
+    obs = _main_obs(opts, my_active=_pokemon(ABILITY_ONCE, 90),
+                    opp_active=_pokemon(722, 90))
+    assert heuristic_agent(obs) == [1]  # the ability, now outranking evolve
+
+
+# Reorder: lift ATTACK to the top and a non-lethal attack is taken ahead of evolve
+# (default PRIO_ATTACK is 0.0, the bottom of the ladder, so this only bites when
+# tuned).
+def test_priority_reorder_prefers_attack_over_evolve(monkeypatch):
+    monkeypatch.setattr(heuristics, "PRIO_ATTACK", 9.0)
+    attacks = heuristics.attack_index()
+    aid, attack = next((k, a) for k, a in attacks.items() if (a.damage or 0) > 30)
+    attacker_id = next(iter(heuristics.card_index()))
+    opp = _pokemon(722, 999)  # very high HP: the attack is non-lethal
+    opts = [
+        {"type": heuristics.OPT_EVOLVE, "index": 0},
+        {"type": heuristics.OPT_ATTACK, "attackId": aid},
+        {"type": heuristics.OPT_END},
+    ]
+    obs = _main_obs(opts, my_active=_pokemon(attacker_id, 90), opp_active=opp)
+    assert heuristic_agent(obs) == [1]  # attack now outranks evolve
+
+
 # Boundary: at exactly the threshold the guard is active (<=, not <), so a draw
 # trainer is still declined in favor of developing a Pokemon.
 def test_play_conserves_at_threshold_boundary():

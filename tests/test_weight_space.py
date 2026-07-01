@@ -110,6 +110,13 @@ def test_pilot_defaults_match_heuristics_constants():
         "PTCG_W_RETREAT_HP_RATIO": heuristics.RETREAT_HP_RATIO,
         "PTCG_W_DECKOUT_THRESHOLD": heuristics.DECKOUT_THRESHOLD,
         "PTCG_W_DRAW_CONSERVE_THRESHOLD": heuristics.DRAW_CONSERVE_THRESHOLD,
+        "PTCG_W_PRIO_CANDY": heuristics.PRIO_CANDY,
+        "PTCG_W_PRIO_EVOLVE": heuristics.PRIO_EVOLVE,
+        "PTCG_W_PRIO_PLAY": heuristics.PRIO_PLAY,
+        "PTCG_W_PRIO_ATTACH": heuristics.PRIO_ATTACH,
+        "PTCG_W_PRIO_ABILITY": heuristics.PRIO_ABILITY,
+        "PTCG_W_PRIO_RETREAT": heuristics.PRIO_RETREAT,
+        "PTCG_W_PRIO_ATTACK": heuristics.PRIO_ATTACK,
     }
     space = {k: d for k, d, *_ in ws.PARAM_SPACE}
     for key, live in expected.items():
@@ -144,6 +151,35 @@ def test_env_override_reaches_pilot_constant():
     # restored to the shipped default after the finally block reloads
     from agents import heuristics
     assert heuristics.THIN_BENCH == 2
+
+
+def test_priority_defaults_descend_in_fixed_ladder_order():
+    # The un-tuned build must reproduce the historical fixed ladder, so the shipped
+    # PRIO defaults have to descend candy > evolve > play > attach > ability >
+    # retreat > attack. If this ordering ever breaks, a "default" vector would
+    # silently reorder the pilot.
+    space = {k: d for k, d, *_ in ws.PARAM_SPACE}
+    order = [
+        "PTCG_W_PRIO_CANDY",
+        "PTCG_W_PRIO_EVOLVE",
+        "PTCG_W_PRIO_PLAY",
+        "PTCG_W_PRIO_ATTACH",
+        "PTCG_W_PRIO_ABILITY",
+        "PTCG_W_PRIO_RETREAT",
+        "PTCG_W_PRIO_ATTACK",
+    ]
+    vals = [space[k] for k in order]
+    assert vals == sorted(vals, reverse=True)
+    assert len(set(vals)) == len(vals), "priority defaults must be strictly ordered"
+
+
+def test_env_override_reaches_priority_constant():
+    snap = _constants_with(
+        {"PTCG_W_PRIO_ATTACK": "9.0"}, "agents.heuristics", ["PRIO_ATTACK"]
+    )
+    assert snap["PRIO_ATTACK"] == 9.0
+    from agents import heuristics
+    assert heuristics.PRIO_ATTACK == 0.0  # restored to the shipped default
 
 
 def test_env_override_reaches_eval_constant():
