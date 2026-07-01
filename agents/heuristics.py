@@ -424,36 +424,63 @@ def play_card_id(opt, me):
     return None
 
 
+def _first_pokemon_play(play_opts, me):
+    """Option index of the first PLAY that benches a Pokemon, or None.
+
+    A PLAY option whose card id resolves to a Pokemon type is a Basic being put
+    onto the bench (evolutions are handled by the EVOLVE branch before PLAY, so
+    they never reach here). Unresolvable ids are skipped, never mistaken for a
+    Pokemon. Shared by the bench-development guard and the near-deckout milling
+    guard so both prefer the same develop play.
+    """
+    return next(
+        (oi for oi, opt in play_opts
+         if _card_type(play_card_id(opt, me)) == CARD_POKEMON),
+        None,
+    )
+
+
 def choose_play(play_opts, me, obs):
-    """Pick which card to PLAY, conserving deck near a self-deckout.
+    """Pick which card to PLAY, developing the bench and conserving deck near a self-deckout.
 
     play_opts is the list of (option_index, option) PLAY pairs. In normal play it
-    keeps the prior behavior (the first play option). When our deck is critically
-    low it refuses to mill: it develops a Pokemon if one can be played, otherwise
-    any play it can confirm does not drill the deck (an energy attach, a
-    bench-develop trainer), and returns None when only deck-drilling or
-    unidentifiable plays remain so the caller ends the turn instead of drawing us
-    out. A play whose card id cannot be resolved from the observation is treated
-    as a potential driller near deckout: the guard cannot confirm it is safe, so
-    it must not fail open and mill us (this matches _drills_deck staying
-    conservative when a trainer's text is missing). In real play your own hand
-    carries card ids, so this branch is inert; it only bites a degenerate
-    observation, never a normal develop play. Never raises.
+    benches a Basic Pokemon first whenever the bench is thin (guarding the
+    early_collapse loss bucket), otherwise it keeps the prior behavior (the first
+    play option). When our deck is critically low it refuses to mill: it develops
+    a Pokemon if one can be played, otherwise any play it can confirm does not
+    drill the deck (an energy attach, a bench-develop trainer), and returns None
+    when only deck-drilling or unidentifiable plays remain so the caller ends the
+    turn instead of drawing us out. A play whose card id cannot be resolved from
+    the observation is treated as a potential driller near deckout: the guard
+    cannot confirm it is safe, so it must not fail open and mill us (this matches
+    _drills_deck staying conservative when a trainer's text is missing). In real
+    play your own hand carries card ids, so this branch is inert; it only bites a
+    degenerate observation, never a normal develop play. Never raises.
     """
     if not play_opts:
         return None
     deck_n = own_deck_count(obs)
-    if deck_n is None or deck_n > DRAW_CONSERVE_THRESHOLD:
+    near_deckout = deck_n is not None and deck_n <= DRAW_CONSERVE_THRESHOLD
+    if not near_deckout:
+        # Bench development guards the #1 ladder loss bucket (early_collapse: our
+        # lone active gets knocked out with an empty bench and no promote, losing
+        # with prizes untouched). When the bench is thin, bench a Basic Pokemon
+        # before any other play. Nothing is sacrificed: other PLAY options remain
+        # legal on later decisions this same turn, since PLAY is not once-per-turn.
+        bench = my_bench_count(obs)
+        if bench is not None and bench < THIN_BENCH:
+            poke = _first_pokemon_play(play_opts, me)
+            if poke is not None:
+                return poke
         return play_opts[0][0]
-    pokemon_play = non_draw_play = None
-    for oi, opt in play_opts:
-        cid = play_card_id(opt, me)
-        if _card_type(cid) == CARD_POKEMON and pokemon_play is None:
-            pokemon_play = oi
-        if cid is not None and not _drills_deck(cid) and non_draw_play is None:
-            non_draw_play = oi
+    pokemon_play = _first_pokemon_play(play_opts, me)
     if pokemon_play is not None:
         return pokemon_play
+    non_draw_play = next(
+        (oi for oi, opt in play_opts
+         if (cid := play_card_id(opt, me)) is not None and not _drills_deck(cid)),
+        None,
+    )
     return non_draw_play  # None when only drilling/unknown plays remain -> skip
 
 

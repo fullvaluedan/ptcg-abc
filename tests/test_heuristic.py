@@ -206,10 +206,11 @@ ITEM_DEVELOP = 1126
 POKEMON_PLAY = 722
 
 
-def _play_main_obs(hand_ids, deck_n, *, your_index=0):
+def _play_main_obs(hand_ids, deck_n, *, your_index=0, bench=None):
     """A MAIN observation whose PLAY options index a hand of the given cards."""
     hand = [_card(c, your_index) for c in hand_ids]
-    me = {"active": [None], "bench": [], "hand": hand, "deckCount": deck_n}
+    me = {"active": [None], "bench": bench or [],
+          "hand": hand, "deckCount": deck_n}
     opp = {"active": [None], "bench": []}
     players = [me, opp] if your_index == 0 else [opp, me]
     opts = [
@@ -242,12 +243,32 @@ def test_play_prefers_pokemon_over_draw_trainer_near_deckout():
     assert move == [1]                  # the Pokemon play, not the supporter
 
 
-# With a healthy deck the conservation is inert and the first play option wins,
-# preserving the prior develop-the-hand behavior.
-def test_play_unchanged_when_deck_healthy():
+# With a healthy deck and a thin bench, benching a Basic Pokemon comes first even
+# though a draw supporter is the first play option: developing the board guards
+# the early_collapse loss bucket (empty bench, one knockout ends the game), and
+# nothing is lost since the supporter stays legal on a later decision this turn.
+def test_play_benches_basic_first_when_bench_thin():
     obs = _play_main_obs([SUPPORTER_DRAW, POKEMON_PLAY], deck_n=30)
     move = heuristic_agent(obs)
-    assert move == [0]                  # first play option, as before
+    assert move == [1]                  # the Pokemon play, not the supporter
+
+
+# With a healthy deck and a bench that is no longer thin, the bench-development
+# guard is inert and the first play option wins, preserving prior behavior.
+def test_play_unchanged_when_bench_stocked():
+    stocked = [_pokemon(POKEMON_PLAY, 90), _pokemon(POKEMON_PLAY, 90)]
+    obs = _play_main_obs([SUPPORTER_DRAW, POKEMON_PLAY], deck_n=30, bench=stocked)
+    move = heuristic_agent(obs)
+    assert move == [0]                  # first play option, guard inert
+
+
+# Thin bench but no benchable Pokemon among the plays: the bench-development guard
+# finds nothing to develop and falls through to the first play option, so a hand
+# of only trainers is still played rather than skipped.
+def test_play_first_option_when_bench_thin_but_no_pokemon():
+    obs = _play_main_obs([SUPPORTER_DRAW, ITEM_DRAW], deck_n=30)  # empty bench
+    move = heuristic_agent(obs)
+    assert move == [0]                  # first play option, no Pokemon to bench
 
 
 # Boundary: at exactly the threshold the guard is active (<=, not <), so a draw
@@ -259,14 +280,15 @@ def test_play_conserves_at_threshold_boundary():
     assert move == [1]                  # the Pokemon, not the supporter
 
 
-# When deckCount is absent the guard cannot judge the deck size, so it stays
-# inert and the prior first-play behavior holds.
-def test_play_unchanged_when_deck_count_missing():
+# When deckCount is absent the deckout conservation cannot judge the deck size and
+# stays inert, but bench development does not depend on the deck count, so a thin
+# bench still benches the Basic first.
+def test_play_benches_basic_when_deck_count_missing():
     obs = _play_main_obs([SUPPORTER_DRAW, POKEMON_PLAY], deck_n=30)
     # Drop deckCount so own_deck_count returns None.
     obs["current"]["players"][0].pop("deckCount")
     move = heuristic_agent(obs)
-    assert move == [0]                  # first play option, guard inert
+    assert move == [1]                  # bench the Pokemon, deck-size guard inert
 
 
 # Near deckout a trainer that develops the board rather than drilling the deck is
