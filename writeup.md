@@ -124,7 +124,7 @@ reduced damage than the extra basic saved, and an Ultra Ball fetch measured
 even but was retired because its discard cost cannot be afforded by turn three, when
 the collapse lands. The chosen lever is Precious Trolley, an item that puts a Basic
 straight onto the bench for free, when the collapse fires, so the combo is untouched.
-On its scored slot it debuted near 850, then settled into the upper-500s, inside the
+On its scored slot it debuted near 850, then settled into the upper-600s, inside the
 noisy heuristic band; we trust the loss-bucket shift over the number. The leak is in
 the deck, not the code. Then the honest coda: we staged a guard that benches a Basic
 before any other play when the bench runs thin, and it landed. A walk of every
