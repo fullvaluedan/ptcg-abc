@@ -25,6 +25,7 @@ The split that matters for the shipped build:
     - rollout depth cut-off None -> terminal rollouts (agent_search._ROLLOUT_DEPTH)
     - convex empty-bench leaf floor off    (eval._BENCH_FLOOR)  [REFUTED, keep off]
     - energy-attach resequencing off       (heuristics._ENERGY_SEQ)
+    - dig-for-a-Basic when thin off        (heuristics._BENCH_DIG)  [REFUTED, keep off]
 
 Keystone coupling: the leaf-eval terms (the empty-bench floor, plus the
 active-weighted and attached-energy health terms) are only read at a rollout LEAF.
@@ -79,6 +80,10 @@ def test_staged_levers_are_inert_on_the_shipped_build():
     assert agent_search._MAX_DETS is None
     assert leaf_eval._BENCH_FLOOR is False
     assert heuristics._ENERGY_SEQ is False
+    # Refuted at scale: the dig-for-a-Basic lever cut board-out at small n but the
+    # effect vanished at n=360 (see analysis/bench_dig_refuted_at_scale.md). Kept
+    # off permanently; the empty-bench collapse is a deck-density problem.
+    assert heuristics._BENCH_DIG is False
 
 
 def test_thin_bench_defer_is_unconditional():

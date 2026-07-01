@@ -375,6 +375,38 @@ def test_benches_basic_from_deck_predicate_by_effect_text():
     assert not heuristics._benches_basic_from_deck(POKEMON_PLAY)    # a Pokemon
 
 
+# Dig-for-a-Basic lever (PTCG_BENCH_DIG). Thin bench, no Basic in hand and no
+# direct bench-fetch trainer (Precious Trolley), but the hand holds a non-digging
+# play (Waitress, attaches an Energy) ahead of a draw/search trainer (Cyrano). Off,
+# the guard falls through to the first play option (Waitress). On, it prefers the
+# drill trainer to dig for a Basic this turn, the untried consistency lever against
+# the empty-bench draw-variance collapse.
+def test_bench_dig_prefers_drill_when_thin_and_no_basic(monkeypatch):
+    monkeypatch.setattr(heuristics, "_BENCH_DIG", True)
+    obs = _play_main_obs([SUPPORTER_ENERGY, SUPPORTER_DRAW], deck_n=30)  # empty bench
+    move = heuristic_agent(obs)
+    assert move == [1]                  # the draw/search trainer, to find a Basic
+
+
+# Default off: byte-identical to the shipped guard. The same thin-bench, no-Basic
+# position falls through to the first play option, so no shipped build changes.
+def test_bench_dig_inert_by_default(monkeypatch):
+    monkeypatch.setattr(heuristics, "_BENCH_DIG", False)
+    obs = _play_main_obs([SUPPORTER_ENERGY, SUPPORTER_DRAW], deck_n=30)  # empty bench
+    move = heuristic_agent(obs)
+    assert move == [0]                  # first play option, dig lever inert
+
+
+# A Basic in hand still beats the dig even with the lever on: developing the board
+# directly is the cheaper answer than drilling for one, so dig only fires when no
+# Basic and no direct bench-fetch are available.
+def test_bench_dig_yields_to_direct_basic(monkeypatch):
+    monkeypatch.setattr(heuristics, "_BENCH_DIG", True)
+    obs = _play_main_obs([SUPPORTER_DRAW, POKEMON_PLAY], deck_n=30)  # empty bench
+    move = heuristic_agent(obs)
+    assert move == [1]                  # bench the Basic, not dig with the Supporter
+
+
 # Rare Candy evolution-line driver.
 #   1079 Rare Candy               Item: evolve a Basic to Stage 2, skipping Stage 1
 #   646  Marnie's Impidimp        Basic

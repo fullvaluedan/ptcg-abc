@@ -99,6 +99,25 @@ RETREAT_HP_RATIO = 0.34
 # predictive, so the ladder is the judge (see autoloop_status.md).
 _ENERGY_SEQ = os.environ.get("PTCG_ENERGY_SEQ", "0") != "0"
 
+# Dig-for-a-Basic when the bench is thin (PTCG_BENCH_DIG, default off). The
+# empty-bench collapse loss is a draw/search-consistency failure, not a play-order
+# one: in the ladder replays that collapsed, in 94% of the empty-bench decision
+# moments we held NO benchable Basic to reorder onto the bench (see
+# analysis/empty_bench_is_draw_variance.md), so the bench-first guard has nothing
+# to bench. This lever attacks the OTHER half of that finding: when the bench is
+# thin and we hold no Basic and no direct bench-fetch trainer (Precious Trolley),
+# prefer a draw/search trainer that drills the deck (Ultra Ball, Cyrano, a draw
+# Supporter) to FIND a Basic this turn, before spending the turn on an energy
+# attach or a non-digging item. Distinct from the retired bench-ordering guard
+# (that reorders a Basic you already hold; this digs when you hold none) and safe:
+# the not-near-deckout branch only, so the drill never mills us toward a deckout.
+# REFUTED at scale and kept off: a -7.5pp point estimate at n=160 vanished to +1.9pp
+# at n=360 (analysis/bench_dig_refuted_at_scale.md), confirming the empty-bench
+# collapse is a deck-density problem, not a pilot play-access one. The flag and its
+# measurement (tools/measure_bench_dig.py) are kept so the refutation is re-runnable;
+# default off means every shipped build stays byte-identical.
+_BENCH_DIG = os.environ.get("PTCG_BENCH_DIG", "0") != "0"
+
 
 def _ensure_cg_on_path() -> None:
     try:
@@ -729,6 +748,19 @@ def choose_play(play_opts, me, obs):
             fetch = _first_bench_fetch_play(play_opts, me)
             if fetch is not None:
                 return fetch
+            # No Basic in hand and no direct bench-fetch trainer: dig for one. A
+            # draw/search trainer that drills the deck (_drills_deck) can turn up a
+            # Basic this turn, the untried consistency lever the empty-bench draw-
+            # variance finding points at. Preferred over an energy attach or a non-
+            # digging item so the thin-bench turn spends its play on finding backup.
+            if _BENCH_DIG:
+                dig = next(
+                    (oi for oi, opt in play_opts
+                     if _drills_deck(play_card_id(opt, me))),
+                    None,
+                )
+                if dig is not None:
+                    return dig
         return play_opts[0][0]
     pokemon_play = _first_pokemon_play(play_opts, me)
     if pokemon_play is not None:
