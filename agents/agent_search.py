@@ -74,6 +74,13 @@ _MAX_DETS = int(os.environ.get("PTCG_SEARCH_DETS", "0")) or None
 # terminal result; a positive value stops early and trusts the board value
 # function, trading rollout accuracy for more samples per decision.
 _ROLLOUT_DEPTH = int(os.environ.get("PTCG_ROLLOUT_DEPTH", "0")) or None
+# Robustness penalty on the argmax over determinizations (U-search-strength):
+# rank a candidate first move by its mean rollout value minus this coefficient
+# times the world-to-world spread of that value, so a move that wins only under a
+# favorable (and possibly wrong, mirror-prior) hidden world is demoted in favor of
+# one that is robustly good across the sampled worlds. 0 reproduces the plain mean
+# argmax; the gauntlet can A/B it via PTCG_SEARCH_ROBUST.
+_ROBUST_COEF = float(os.environ.get("PTCG_SEARCH_ROBUST", "0.25"))
 # Endgame solver (U9): in a small, near-decided position, spend a larger slice of
 # the bank and more determinizations on the pivotal decision. On by default; the
 # gauntlet can disable it (PTCG_ENDGAME=0) to A/B the effect.
@@ -157,6 +164,7 @@ def agent(obs):
                 move = rollout.search_decision(
                     obs, _DECK, budget, _RNG, determinize, opponent_prior=prior,
                     max_determinizations=dets, value_depth=_ROLLOUT_DEPTH,
+                    robust_coef=_ROBUST_COEF,
                 )
                 _BUDGET.record(time.perf_counter() - start)
                 if move is not None and _is_legal(move, sel):

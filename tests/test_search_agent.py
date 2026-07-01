@@ -80,6 +80,71 @@ def test_legal_rejects_out_of_range_and_duplicates():
     assert not rollout._legal("x", sel)       # not a list
 
 
+# --- robust candidate selection (variance-penalized argmax) -------------------
+
+def test_best_candidate_zero_coef_is_mean_argmax():
+    # coef 0 is the plain mean argmax, and ties break toward the lower index,
+    # byte-identical to the prior max((mean, -i, i)) selection.
+    assert rollout._best_candidate([0.5, 1.0], [0.0, 0.0], [1, 1], 0.0) == 1
+    assert rollout._best_candidate([1.0, 1.0], [0.0, 0.0], [1, 1], 0.0) == 0
+
+
+def test_best_candidate_penalizes_world_to_world_spread():
+    # Both candidates average 0, but candidate 0 swings wildly across worlds
+    # (values 1,1,-1,-1) while candidate 1 is steady (0.2,0.2,-0.2,-0.2). The mean
+    # argmax breaks the tie to index 0; the robust penalty prefers the steady move.
+    totals = [0.0, 0.0]
+    sqtotals = [4.0, 0.16]
+    counts = [4, 4]
+    assert rollout._best_candidate(totals, sqtotals, counts, 0.0) == 0
+    assert rollout._best_candidate(totals, sqtotals, counts, 0.25) == 1
+
+
+def test_best_candidate_keeps_a_clear_winner():
+    # Candidate 0 has a clearly higher mean (0.5) despite higher variance;
+    # candidate 1 is a steady but weak 0.1. A modest coef must not override the
+    # clear lead: 0.5 - 0.25*std still beats 0.1.
+    totals = [2.0, 0.4]
+    sqtotals = [4.0, 0.04]     # cand0 var 0.75 std ~0.866; cand1 var 0
+    counts = [4, 4]
+    assert rollout._best_candidate(totals, sqtotals, counts, 0.25) == 0
+
+
+def test_best_candidate_none_when_nothing_sampled():
+    assert rollout._best_candidate([0.0, 0.0], [0.0, 0.0], [0, 0], 0.25) is None
+
+
+def test_agent_passes_robust_coef_to_search(monkeypatch):
+    """The search agent forwards its PTCG_SEARCH_ROBUST coefficient to the driver."""
+    from agents import heuristics
+
+    sel = {
+        "type": heuristics.SEL_MAIN, "minCount": 1, "maxCount": 1,
+        "option": [{"type": heuristics.OPT_END}, {"type": heuristics.OPT_PLAY}],
+    }
+    state = {
+        "yourIndex": 0,
+        "players": [
+            {"active": [None], "bench": [], "deckCount": 40,
+             "prize": [None] * 5, "hand": []},
+            {"active": [None], "bench": [], "prize": [None] * 5},
+        ],
+    }
+    obs = {"select": sel, "current": state, "search_begin_input": "x"}
+
+    captured = {}
+
+    def spy(*a, **k):
+        captured.update(k)
+        return [0]
+
+    monkeypatch.setattr(agent_search, "_BUDGET", TimeBudget(soft_cap=0.5))
+    monkeypatch.setattr(agent_search.rollout, "search_api_available", lambda: True)
+    monkeypatch.setattr(agent_search.rollout, "search_decision", spy)
+    agent_search.agent(obs)
+    assert captured.get("robust_coef") == agent_search._ROBUST_COEF
+
+
 # --- integration: capture a real MAIN observation ----------------------------
 
 def _capture_main_obs(attempts=8):

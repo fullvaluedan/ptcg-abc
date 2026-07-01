@@ -303,17 +303,52 @@ def rollout(search_id, first_select, your_index, search_step,
     return ev.shaped_value(asdict(state), your_index)
 
 
+def _best_candidate(totals, sqtotals, counts, robust_coef=0.0):
+    """Index of the highest-scoring candidate, or None if none was sampled.
+
+    Score is the mean rollout value minus robust_coef times the standard deviation
+    of that candidate's per-determinization values. The penalty demotes a move that
+    wins only under some determinizations: averaging determinized rollouts suffers
+    strategy fusion, where a raw mean overvalues a move that is great in a favorable
+    hidden world we cannot count on actually being in. Penalizing the world-to-world
+    value spread prefers a move that is robustly good across the sampled worlds,
+    which is the defensively correct choice when the determinization prior is noisy
+    or biased (the mirror-prior condition on the ladder). With robust_coef 0.0 this
+    is exactly the mean argmax; ties break toward the lower option index, matching
+    the prior max((mean, -i, i)) selection so a zero coefficient is byte-identical.
+    """
+    scored = []
+    for i in range(len(counts)):
+        c = counts[i]
+        if c <= 0:
+            continue
+        mean = totals[i] / c
+        if robust_coef:
+            var = max(0.0, sqtotals[i] / c - mean * mean)
+            score = mean - robust_coef * (var ** 0.5)
+        else:
+            score = mean
+        scored.append((score, -i, i))
+    if not scored:
+        return None
+    return max(scored)[2]
+
+
 def search_decision(obs, your_full_deck, budget_seconds, rng, determinize,
                     opponent_prior=None, max_steps=ROLLOUT_MAX_STEPS,
-                    max_determinizations=None, clock=None, value_depth=None):
+                    max_determinizations=None, clock=None, value_depth=None,
+                    robust_coef=0.0):
     """Score each candidate first move by determinized rollouts; return the best.
 
-    Returns a single-element index list for the highest mean-value first move, or
-    None if no rollout completed (the caller should then use the heuristic). Each
+    Returns a single-element index list for the best first move, or None if no
+    rollout completed (the caller should then use the heuristic). Each
     (determinization, candidate) pair opens its own search state because the
     native model has no fork: a state can only be stepped forward, then released.
     A fixed max_determinizations bounds the work (and makes selection reproducible
     under a fixed seed) independent of wall-clock noise.
+
+    robust_coef penalizes each candidate's world-to-world value spread when picking
+    the argmax (see _best_candidate); 0.0 keeps the plain mean selection.
     """
     if clock is None:
         from time import perf_counter as clock
@@ -323,6 +358,7 @@ def search_decision(obs, your_full_deck, budget_seconds, rng, determinize,
     n = len(sel["option"])
     your_index = obs["current"]["yourIndex"]
     totals = [0.0] * n
+    sqtotals = [0.0] * n
     counts = [0] * n
     obs_class = to_obs(obs)
     start = clock()
@@ -362,6 +398,7 @@ def search_decision(obs, your_full_deck, budget_seconds, rng, determinize,
                     except Exception:
                         pass
                 totals[ci] += value
+                sqtotals[ci] += value * value
                 counts[ci] += 1
     finally:
         try:
@@ -369,7 +406,7 @@ def search_decision(obs, your_full_deck, budget_seconds, rng, determinize,
         except Exception:
             pass
 
-    scored = [(totals[i] / counts[i], -i, i) for i in range(n) if counts[i] > 0]
-    if not scored:
+    best = _best_candidate(totals, sqtotals, counts, robust_coef)
+    if best is None:
         return None
-    return [max(scored)[2]]
+    return [best]
