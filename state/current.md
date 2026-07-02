@@ -51,7 +51,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
 
 | build | oracle | move-agree delta | ladder | sample | note |
 | --- | --- | --- | --- | --- | --- |
-| heuristic+trolley (reclaim) | n/a | n/a | 600.0 | 0 | U20 slot-1 king reclaim; byte-identical to the 569.6 king; settled 600.0, drifted to 594.7 on 2026-07-02 board check => same-build noise band ~25-30/side (KD2 calibration) Board 2026-07-02: 556.7 (600.0 settled then 594.7 then 556.7; same-build drift within the ~30/side band). |
+| heuristic+trolley (reclaim) | n/a | n/a | 600.0 | 0 | U20 slot-1 king reclaim; byte-identical to the 569.6 king; settled 600.0, drifted to 594.7 on 2026-07-02 board check => same-build noise band ~25-30/side (KD2 calibration) Board 2026-07-02 04:21 UTC: 524.0 (600.0 settled -> 594.7 -> 556.7 -> 524.0; same-build drift, best-ever 600.0 still clears the 540 floor guard so it does not fire). |
 | heuristic+trolley | n/a | n/a | 569.6 | 47 | SHADOW+RECLAIM king; top loss early_collapse |
 | heuristic+benchguard | n/a | n/a | 554.5 | 14 | bench-width guard build; below trolley floor |
 | search+trolley | n/a | n/a | 514.7 |  | search FORCE-LOADED and actually ran; still < heuristic |
@@ -72,9 +72,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
     }
   ],
   "in_flight": {
-    "board_reading": 497.1,
+    "board_reading": 522.7,
     "build": "heuristic+trolley_thick",
-    "note": "U20 slot-2 deck A/B SUBMITTED (ref 54252291, 2026-07-02) after U22 gate ALLOW and grader exec test green on the exact tarball; evicts below-floor meta copy grimmsnarl 489.6. Pre-registered vs the trolley king (594.7): direction up, M=60, N>=30, settle-by 2026-07-06. Settlement needs >=30 rated episodes AND >=24h; early-evict under 35% raw win rate after 15 episodes. WIN>=king+60 promote; LOSS<=king-60 evict+revert to king copy; BAND one repeat then U23 scoreboard. BOARD 2026-07-02: reads COMPLETE 497.1 vs reclaim king 556.7 (gap 59.6 approx king-60, trending LOSS); NOT yet settled (sub <24h old, need >=30 episodes AND >=24h, earliest 2026-07-03).",
+    "note": "U20 slot-2 deck A/B SUBMITTED (ref 54252291, 2026-07-02) after U22 gate ALLOW and grader exec test green on the exact tarball; evicts below-floor meta copy grimmsnarl 489.6. Pre-registered vs the trolley king (594.7): direction up, M=60, N>=30, settle-by 2026-07-06. Settlement needs >=30 rated episodes AND >=24h; early-evict under 35% raw win rate after 15 episodes. WIN>=king+60 promote; LOSS<=king-60 evict+revert to king copy; BAND one repeat then U23 scoreboard. BOARD 2026-07-02 04:21 UTC: thick reads COMPLETE 522.7 vs reclaim king 54252006 524.0 (gap 1.3, deep in BAND); converged up from the earlier 497.1 read. Still NOT settled: sub is ~21 min old (03:59 UTC), settlement needs >=30 rated episodes AND >=24h, earliest 2026-07-03 04:00 UTC.",
     "ref": "54252291"
   },
   "ledger": [
@@ -82,7 +82,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "build": "heuristic+trolley (reclaim)",
       "ladder": 600.0,
       "move_agreement_delta": "n/a",
-      "note": "U20 slot-1 king reclaim; byte-identical to the 569.6 king; settled 600.0, drifted to 594.7 on 2026-07-02 board check => same-build noise band ~25-30/side (KD2 calibration) Board 2026-07-02: 556.7 (600.0 settled then 594.7 then 556.7; same-build drift within the ~30/side band).",
+      "note": "U20 slot-1 king reclaim; byte-identical to the 569.6 king; settled 600.0, drifted to 594.7 on 2026-07-02 board check => same-build noise band ~25-30/side (KD2 calibration) Board 2026-07-02 04:21 UTC: 524.0 (600.0 settled -> 594.7 -> 556.7 -> 524.0; same-build drift, best-ever 600.0 still clears the 540 floor guard so it does not fire).",
       "oracle": "n/a",
       "ref": "54252006",
       "sample_size": 0
