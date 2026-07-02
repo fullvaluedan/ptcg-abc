@@ -30,12 +30,17 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
       offline before a slot.
 
 ### TRACK S (STRATEGY prize = the $30k model-approach award; offline; NEVER claims ladder progress)
-Continue the learned-eval + top-player + parallel-gauntlet work as the Strategy-prize deliverable (scored 70%
-model approach): next is U60 (parallel gauntlet), then U6 retrain, U7 writeup, then U62/U63 (top-player loss
-corpus + win-vs-loss study; U63 supersedes Phase B U10), then U64+U65 (ship together), then Phase B
-(U8, U9, U11, U12). This work is real and on-target FOR THAT PRIZE. It does NOT move the ladder as shipped, so
-it may NEVER be logged as ladder progress and NEVER spends a ladder slot unless first wired into a SHIPPED
-agent and PROVEN >569.6 offline. Specs: docs/plans/2026-07-02-combined-learned-eval-plan-v2.md and
+U60-U65 and the Phase A DoD (U1-U7 committed, writeup current) are DONE as of 8a0bea5. Phase B is now open on
+branch feat/phase3-followon. NEXT IS U8a, per docs/plans/2026-07-03-addendum-u8-move-prior-v1.md (U8's own
+"reuses U1-U3b data" turned out not to be free: the candidate-move/chosen-move schema does not exist in any
+CSV yet and must be captured first; the addendum also found a reusable, untested, parked per-option featurizer
+at agents/imitation_features.py from an earlier abandoned plan (U40/U41) that U8a should adopt rather than
+rebuild). Order: U8a (data capture) then U8b (train + export search/move_prior.json) then U8c (pure-Python
+scorer + search wiring + 400-game gauntlet A/B gate), then U9, U11, U12 (U10 already superseded by U62/U63).
+This work is real and on-target FOR THAT PRIZE. It does NOT move the ladder as shipped, so it may NEVER be
+logged as ladder progress and NEVER spends a ladder slot unless first wired into a SHIPPED agent and PROVEN
+>569.6 offline. Specs: docs/plans/2026-07-02-combined-learned-eval-plan-v2.md,
+docs/plans/2026-07-03-addendum-u8-move-prior-v1.md, and
 docs/plans/2026-07-02-003-feat-offline-match-scale-topplayer-mining-plan.md.
 
 ### Shared rules
@@ -60,8 +65,8 @@ docs/plans/2026-07-02-003-feat-offline-match-scale-topplayer-mining-plan.md.
 ## EACH ITERATION (one increment, then stop)
 1. git log --oneline to find the last completed unit, then pick per the TWO-TRACK RESUME STATE above: if a
    ladder slot is free and a TRACK L action (L1 ability A/B, L2 settle trolley_thick, L3 shipped tuning) is
-   ready, do TRACK L; otherwise prep the next TRACK L step offline and/or advance TRACK S (U60, then U6, U7,
-   U62, U63, U64+U65, then Phase B). TRACK L is the rank lever; TRACK S is the Strategy-prize deliverable.
+   ready, do TRACK L; otherwise prep the next TRACK L step offline and/or advance TRACK S (U8a, U8b, U8c, then
+   U9, U11, U12 on feat/phase3-followon). TRACK L is the rank lever; TRACK S is the Strategy-prize deliverable.
 2. Implement the NEXT undone unit exactly as the plan specifies. Mirror existing patterns in src/, agents/, search/, tools/.
 3. Write or update that unit's tests. Run python -m pytest tests -q. Must pass before committing.
 4. Review your own diff; apply only safe, verified fixes.
