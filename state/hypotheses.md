@@ -8,7 +8,7 @@ block at the bottom.
 
 | lever | verdict | sample | deck | re-test when | source |
 | --- | --- | --- | --- | --- | --- |
-| meta_deck_copy | refuted | 2 ladder A/Bs | meta_archaludon/meta_grimmsnarl | only if U13 cloned-opponent search shows the pilot can execute complex lines | analysis/meta_decks_underperform_on_ladder.md |
+| meta_deck_copy | refuted | 2 ladder A/Bs | meta_archaludon/meta_grimmsnarl | a deck-AWARE pilot on the same meta deck was NEVER measured (382.5/510.1 used the GENERIC pilot; review P0-1 / KD9): re-test via U38 step 1 once a deck-aware differentiator exists (a concentrated win-vs-loss seed, a card_effects/ability lever that changes meta-card decisions, or the U40/U41 learned per-archetype pilot). Also still stands: U13 cloned-opponent search showing the pilot can execute complex lines. | analysis/meta_decks_underperform_on_ladder.md |
 | search_active_beats_heuristic | refuted | ladder A/B pair | trolley | MET 2026-07-02: the U27 PIMC determinization diagnostic is FAVORABLE (analysis/pimc_diagnostic.md), so the P3 U45 belief-weighted-search lane may re-confirm 514.7 vs 569.6 under the protocol as part of that lane, never before. | analysis/ladder_search_inert.md + analysis/ladder_scored_pair_reclaim.md |
 | bench_floor_leaf_term | refuted | depth sweep | trolley | n/a in search leaf; the term was RE-HOMED into agents/heuristics.py (P1/U2) | analysis/bench_floor_search_lever_squeezed.md |
 | thin_bench_threshold | refuted | guard sweep on trolley | trolley | MET by a higher-basic-density deck (P1/U3): the floor is deck-set, so re-measure on trolley_thick | analysis/thin_bench_threshold_is_flat.md |
@@ -24,6 +24,17 @@ block at the bottom.
 ### meta_deck_copy (refuted)
 - claim: Copying a proven 1300+ meta decklist lets the heuristic ride a higher ceiling past the ~570 floor.
 - evidence: Archaludon 382.5 and Grimmsnarl 510.1 both landed WELL BELOW the trolley floor 569.6; the simple pilot cannot extract a meta deck's ceiling and plays WORSE with one.
+- KD9 re-walk (2026-07-02, U38): amended before any attribution candidate runs. Both refuted copies used
+  the GENERIC pilot; a deck-AWARE pilot on the same meta deck has NEVER been measured (review P0-1). U38
+  step 1 (target deck + aware pilot vs same deck + generic pilot) is the registered re-test. CAVEAT
+  surfaced this iteration: the hand-coded aware pilot (U37 seeds + guard stack) is currently
+  BYTE-IDENTICAL to the generic pilot on both live meta decks -- the mined seeds channel is empty for
+  grimmsnarl and the one archaludon evolve seed is unconsumed (only ATTACH is wired and neither family
+  emits an attach seed), and the guard stack already shipped inside the 382.5/510.1 copies. So step 1 has
+  NO hand-coded content to measure yet; its first measurable candidate is a real deck-aware
+  differentiator (a concentrated win-vs-loss seed per gameplan_seeds_diffuse re-test, a card_effects /
+  ability lever that changes meta-card decisions, or the U40/U41 learned per-archetype pilot). Re-walks
+  are registered, never asserted.
 
 ### search_active_beats_heuristic (refuted)
 - claim: Running determinized search on the ladder beats the plain heuristic.
@@ -94,7 +105,9 @@ block at the bottom.
       "deck": "meta_archaludon/meta_grimmsnarl",
       "evidence": "Archaludon 382.5 and Grimmsnarl 510.1 both landed WELL BELOW the trolley floor 569.6; the simple pilot cannot extract a meta deck's ceiling and plays WORSE with one.",
       "name": "meta_deck_copy",
-      "retest_condition": "only if U13 cloned-opponent search shows the pilot can execute complex lines",
+      "retest_condition": "a deck-AWARE pilot on the same meta deck was NEVER measured (382.5/510.1 used the GENERIC pilot; review P0-1 / KD9): re-test via U38 step 1 once a deck-aware differentiator exists (a concentrated win-vs-loss seed, a card_effects/ability lever that changes meta-card decisions, or the U40/U41 learned per-archetype pilot). Also still stands: U13 cloned-opponent search showing the pilot can execute complex lines.",
+      "retest_kd9_amended": "2026-07-02",
+      "retest_caveat": "the hand-coded aware pilot (U37 seeds + guards) is byte-identical to the generic pilot on both live meta decks (empty seeds channel, unconsumed archaludon seed, guards already shipped in the 382.5/510.1 copies), so step 1 has no hand-coded content to measure yet; first candidate is a real deck-aware differentiator.",
       "sample_size": "2 ladder A/Bs",
       "source": "analysis/meta_decks_underperform_on_ladder.md",
       "verdict": "refuted"

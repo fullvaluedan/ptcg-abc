@@ -77,6 +77,39 @@ _none calibrated; every proxy gate is refused (default-deny)_
 - BYTE-IDENTICAL: doc + tests only, zero production-logic change (the monkeypatched PRIO_* overrides live in the tests, never in a shipped build). Full suite 574 pass (was 571); grader exec-without-__file__ load green (baseline/trolley/trolley_thick); zero em/en dashes in touched files.
 - U37 is now COMPLETE (seeds consumer piece 1 + guard-stack piece 2). Its remaining verification line -- "one pre-registered seeds-build A/B" -- stays BLOCKED by the empty seeds channel (gameplan_seeds_diffuse); no seeds A/B until a concentrated win-vs-loss-discriminating seed exists.
 
+## Two-step attribution protocol (U38, Phase 2)
+
+- KD9 REGISTRY AMENDMENT LANDED this iteration (the gate "before any attribution candidate runs"): the
+  meta_deck_copy row in state/hypotheses.md now records the review-P0-1 re-walk -- a deck-AWARE pilot on
+  the same meta deck was never measured (382.5/510.1 used the GENERIC pilot). Re-walk registered, not
+  asserted.
+- PROTOCOL (both margins pre-registered before either candidate runs):
+  - Step 1 (attribution, the go/no-go for U40/U41 ladder spend): target meta deck + AWARE pilot vs the
+    SAME meta deck + GENERIC pilot. Direction up, margin M=60 (v1 noise model), N>=30 rated episodes,
+    settle >=24h. Isolates the pilot factor with the deck held fixed. Recovery => continue ML ladder
+    spend; no recovery within 2 settled A/Bs or by Aug 3 => the DECK-AWARE-PILOT-UNDERPERFORMS
+    contingency fires (kill the bet's ladder spend, slots move to U39/U35).
+  - Step 2 (the success gate): best AWARE build vs the trolley incumbent king. Direction up, M=60,
+    N>=30. Only runs after step 1 settles (attribution order, protocol rule 9).
+- DEGENERACY FINDING (this iteration, honest): step 1 has NO hand-coded content to measure yet. The
+  hand-coded aware pilot (U37 seeds consumer + guard stack) is BYTE-IDENTICAL to the generic pilot on
+  both live meta decks:
+  * seeds channel is EMPTY for grimmsnarl (0 seeds) and archaludon's single evolve_target=190 seed is a
+    deck-identity fact that is also UNCONSUMED (only ATTACH targeting is wired in the U37 consumer and
+    neither family emits an attach_target seed) -- so the seeds lever changes zero decisions on these
+    decks;
+  * the ordered guard stack (thin-bench force, deckout veto, ability veto, lethal force) is deck-agnostic
+    and already shipped inside the 382.5/510.1 meta copies (same c94f927 heuristic), so it is NOT an
+    aware-vs-generic differentiator either.
+- IMPLICATION: the first MEASURABLE step-1 candidate must be a real deck-aware differentiator, one of:
+  (a) a concentrated win-vs-loss seed (gameplan_seeds_diffuse re-test: narrower cohort or a new
+  concentrating block shape), (b) a card_effects / ability lever that changes meta-card decisions
+  (U34 ability A/B, not yet built), or (c) the U40/U41 learned per-archetype pilot. Until one exists,
+  step 1 cannot spend a slot (submitting an aware build byte-identical to the generic one measures
+  nothing). No plan rewrite needed -- U38's structure and gate stand; only its "step 1 can run on the
+  hand-coded aware pilot" assumption is empirically empty on the current decks, which this record
+  captures for when a differentiator lands.
+
 ## Search-branch verdict (U27)
 
 - PIMC diagnostic verdict: **FAVORABLE** -> **U45 belief-weighted search** (analysis/pimc_diagnostic.md)
@@ -122,6 +155,15 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "note": "REAL U35 run executed (seed 0, agreement-only, --split train; analysis/cem_run_prio.md, artifact analysis/cem_runs/cem_run_prio_train_seed0.json). Best genome raises PRIO_ATTACK 0->3.13 and PRIO_ATTACH 3->3.74; gains +0.060 agreement on train (25->32/116) but LOSES -0.067 on the held-out test bucket (7->5/30). best_fitness flat across all 12 iterations (weak gradient). Held-out agreement delta NEGATIVE => pre-registered offline filter BLOCKS: no ladder A/B, ship byte-identical. CEM candidate 1 of the 2 failing/neutral that trip the CEM-plateau contingency (~Jul 15). Re-test only with a larger expert sample, the two-channel fitness on (--pool-matches>0), or a genome with a non-flat held-out gradient."
     }
   ],
+  "attribution_u38": {
+    "kd9_amended": "2026-07-02",
+    "step1": "target meta deck + AWARE pilot vs SAME meta deck + GENERIC pilot; direction up, M=60, N>=30, settle >=24h; go/no-go for U40/U41 ladder spend",
+    "step2": "best AWARE build vs the trolley incumbent king; direction up, M=60, N>=30; only after step 1 settles (attribution order rule 9)",
+    "degeneracy": "step 1 has NO hand-coded content to measure: the U37 aware pilot (seeds consumer + guard stack) is BYTE-IDENTICAL to the generic pilot on both live meta decks (grimmsnarl 0 seeds; archaludon evolve seed unconsumed since only ATTACH is wired and no attach seed exists; guards deck-agnostic and already shipped in the 382.5/510.1 copies)",
+    "first_measurable_candidate": "a real deck-aware differentiator: (a) a concentrated win-vs-loss seed (gameplan_seeds_diffuse re-test), (b) a card_effects/ability lever changing meta-card decisions (U34), or (c) the U40/U41 learned per-archetype pilot",
+    "recorded": "2026-07-02",
+    "source": "state/hypotheses.md meta_deck_copy row + docs/plans U38"
+  },
   "census": {
     "cohort": "winning seat (U25 resolved fork)",
     "dataset": "2026-06-30 (5734 episodes)",
@@ -143,7 +185,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
   "in_flight": {
     "board_reading": 470.9,
     "build": "heuristic+trolley_thick",
-    "note": "U20 slot-2 deck A/B SUBMITTED (ref 54252291, 2026-07-02 03:59 UTC) after U22 gate ALLOW and grader exec test green. Pre-registered vs the trolley king: direction up, M=60, N>=30, settle-by 2026-07-06. Settlement needs >=30 rated episodes AND >=24h; early-evict under 35% raw win rate after 15 episodes. WIN>=king+60 promote; LOSS<=king-60 evict+revert to king copy; BAND one repeat then U23 scoreboard. BOARD 2026-07-02 (U27 iter): thick COMPLETE 536.4 vs reclaim king 54252006 491.7 (gap +44.7 in favor of thick, still inside BAND M=60). NOT settled: sub is <24h old, earliest settle 2026-07-03 04:00 UTC. BOARD 2026-07-02 (U28 iter): thick COMPLETE 552.0 vs reclaim king 54252006 472.1 (gap +79.9, now OUTSIDE BAND M=60 in favor of thick). Still NOT settled: sub is <24h old, earliest settle 2026-07-03 04:00 UTC; also needs >=30 rated episodes. No submit this iter. BOARD 2026-07-02 (U29 iter): thick COMPLETE 551.8 vs reclaim king 54252006 497.2 (gap +54.6, back inside BAND M=60). Still NOT settled: sub <24h old (earliest 2026-07-03 04:00 UTC) and needs >=30 rated episodes. No submit this iter. BOARD 2026-07-02 (U32 iter): thick COMPLETE 488.9 vs reclaim king 54252006 507.0 (gap -18.1, king now leads, still well inside BAND M=60; reading reversed from prior readings, consistent with same-build drift). Still NOT settled: sub <24h old (earliest 2026-07-03 04:00 UTC) and needs >=30 rated episodes. No submit this iter. BOARD 2026-07-02 (U33 iter): unchanged from U32, thick COMPLETE 488.9 vs reclaim king 54252006 507.0 (gap -18.1, king leads, well inside BAND M=60); no public-score movement. Still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched. BOARD 2026-07-02 (U35-prep iter): thick COMPLETE 480.6 vs reclaim king 54252006 507.0 (gap -26.4, king leads, well inside BAND M=60; same-build/deck drift continues). Still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched. BOARD 2026-07-02 (U35 iter): thick COMPLETE 470.9 vs reclaim king 54252006 512.2 (gap -41.3, king leads, inside BAND M=60; same-build/deck drift continues). Still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched. BOARD 2026-07-02 (U36 selector iter): unchanged from U35, thick COMPLETE 470.9 vs reclaim king 54252006 512.2 (gap -41.3, king leads, inside BAND M=60; no public-score movement). Still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched. BOARD 2026-07-02 (U36 emitter iter): unchanged, thick COMPLETE 470.9 vs reclaim king 54252006 512.2 (gap -41.3, king leads, inside BAND M=60; no public-score movement). Still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched. BOARD 2026-07-02 09:12 UTC (U37 guard-stack iter): reclaim king 54252006 517.6, thick 54252291 470.9 (gap -47.1, king leads, inside BAND M=60; unchanged). Thick sub 03:59 today so ~5h old: still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched.",
+    "note": "U20 slot-2 deck A/B SUBMITTED (ref 54252291, 2026-07-02 03:59 UTC) after U22 gate ALLOW and grader exec test green. Pre-registered vs the trolley king: direction up, M=60, N>=30, settle-by 2026-07-06. Settlement needs >=30 rated episodes AND >=24h; early-evict under 35% raw win rate after 15 episodes. WIN>=king+60 promote; LOSS<=king-60 evict+revert to king copy; BAND one repeat then U23 scoreboard. BOARD 2026-07-02 (U27 iter): thick COMPLETE 536.4 vs reclaim king 54252006 491.7 (gap +44.7 in favor of thick, still inside BAND M=60). NOT settled: sub is <24h old, earliest settle 2026-07-03 04:00 UTC. BOARD 2026-07-02 (U28 iter): thick COMPLETE 552.0 vs reclaim king 54252006 472.1 (gap +79.9, now OUTSIDE BAND M=60 in favor of thick). Still NOT settled: sub is <24h old, earliest settle 2026-07-03 04:00 UTC; also needs >=30 rated episodes. No submit this iter. BOARD 2026-07-02 (U29 iter): thick COMPLETE 551.8 vs reclaim king 54252006 497.2 (gap +54.6, back inside BAND M=60). Still NOT settled: sub <24h old (earliest 2026-07-03 04:00 UTC) and needs >=30 rated episodes. No submit this iter. BOARD 2026-07-02 (U32 iter): thick COMPLETE 488.9 vs reclaim king 54252006 507.0 (gap -18.1, king now leads, still well inside BAND M=60; reading reversed from prior readings, consistent with same-build drift). Still NOT settled: sub <24h old (earliest 2026-07-03 04:00 UTC) and needs >=30 rated episodes. No submit this iter. BOARD 2026-07-02 (U33 iter): unchanged from U32, thick COMPLETE 488.9 vs reclaim king 54252006 507.0 (gap -18.1, king leads, well inside BAND M=60); no public-score movement. Still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched. BOARD 2026-07-02 (U35-prep iter): thick COMPLETE 480.6 vs reclaim king 54252006 507.0 (gap -26.4, king leads, well inside BAND M=60; same-build/deck drift continues). Still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched. BOARD 2026-07-02 (U35 iter): thick COMPLETE 470.9 vs reclaim king 54252006 512.2 (gap -41.3, king leads, inside BAND M=60; same-build/deck drift continues). Still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched. BOARD 2026-07-02 (U36 selector iter): unchanged from U35, thick COMPLETE 470.9 vs reclaim king 54252006 512.2 (gap -41.3, king leads, inside BAND M=60; no public-score movement). Still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched. BOARD 2026-07-02 (U36 emitter iter): unchanged, thick COMPLETE 470.9 vs reclaim king 54252006 512.2 (gap -41.3, king leads, inside BAND M=60; no public-score movement). Still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched. BOARD 2026-07-02 09:12 UTC (U37 guard-stack iter): reclaim king 54252006 517.6, thick 54252291 470.9 (gap -47.1, king leads, inside BAND M=60; unchanged). Thick sub 03:59 today so ~5h old: still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched. BOARD 2026-07-02 (U38 attribution iter): reclaim king 54252006 534.4, thick 54252291 470.9 (gap -63.6, king leads, now just OUTSIDE BAND M=60 in favor of the king; same-build/deck drift). Still NOT settled (thick sub <24h, earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched (5/day intact).",
     "ref": "54252291"
   },
   "ledger": [
