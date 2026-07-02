@@ -239,6 +239,24 @@ def _render_current_md(data: dict) -> str:
         lines.append("_none calibrated; every proxy gate is refused (default-deny)_")
     lines.append("")
 
+    census = data.get("census") or {}
+    if census:
+        lines.append("## Expert census tier (U25)")
+        lines.append("")
+        lines.append(
+            f"- cohort = {census.get('cohort', '?')}; dataset "
+            f"{census.get('dataset', '?')}"
+        )
+        lines.append(
+            f"- {census.get('episodes_scored', '?')} episodes scored, "
+            f"{census.get('ranking_groups', '?')} ranking groups"
+        )
+        lines.append(
+            f"- target family **{census.get('target_family', '?')}** -> tier "
+            f"**{census.get('target_tier', '?')}** ({census.get('source', '')})"
+        )
+        lines.append("")
+
     ledger = data.get("ledger") or []
     lines.append("## Per-build ledger")
     lines.append("")

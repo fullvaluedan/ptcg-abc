@@ -47,6 +47,12 @@ A proxy may BLOCK a slot (never promote) only after it retrodicts the known five
 
 _none calibrated; every proxy gate is refused (default-deny)_
 
+## Expert census tier (U25)
+
+- cohort = winning seat (U25 resolved fork); dataset 2026-06-30 (5734 episodes)
+- 5732 episodes scored, 167531 ranking groups
+- target family **meta_grimmsnarl** -> tier **full** (analysis/expert_census.md)
+
 ## Per-build ledger
 
 | build | oracle | move-agree delta | ladder | sample | note |
@@ -71,6 +77,16 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "note": "genome grown so CEM has a gradient (analysis/cem_gradient_restored.md); a real tools/cem_tune.py run is the pending next step, then offline-filter and gate on ladder A/B. Un-tuned build ships byte-identical."
     }
   ],
+  "census": {
+    "cohort": "winning seat (U25 resolved fork)",
+    "dataset": "2026-06-30 (5734 episodes)",
+    "episodes_scored": 5732,
+    "ranking_groups": 167531,
+    "recorded": "2026-07-02",
+    "source": "analysis/expert_census.md",
+    "target_family": "meta_grimmsnarl",
+    "target_tier": "full"
+  },
   "in_flight": {
     "board_reading": 522.7,
     "build": "heuristic+trolley_thick",

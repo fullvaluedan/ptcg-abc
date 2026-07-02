@@ -391,3 +391,25 @@ def test_proxy_calibration_round_trips_through_current_md(tmp_state):
                                 note="illustrative perfect proxy")
     ls.write_current(data)
     assert ls.read_current()["calibrated_proxies"] == data["calibrated_proxies"]
+
+
+def test_census_round_trips_and_renders(tmp_state):
+    """The U25 census tier survives the round trip and shows in the prose view."""
+    data = {
+        "loss_distribution": {},
+        "census": {
+            "cohort": "winning seat",
+            "dataset": "2026-06-30 (5734 episodes)",
+            "episodes_scored": 5732,
+            "ranking_groups": 167531,
+            "target_family": "meta_grimmsnarl",
+            "target_tier": "full",
+            "source": "analysis/expert_census.md",
+        },
+    }
+    ls.write_current(data)
+    assert ls.read_current()["census"] == data["census"]
+    prose = ls.CURRENT_PATH.read_text(encoding="utf-8")
+    assert "Expert census tier (U25)" in prose
+    assert "meta_grimmsnarl" in prose
+    assert "tier **full**" in prose
