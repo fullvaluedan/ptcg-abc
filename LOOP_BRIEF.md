@@ -30,17 +30,23 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
       offline before a slot.
 
 ### TRACK S (STRATEGY prize = the $30k model-approach award; offline; NEVER claims ladder progress)
-U60-U65 and the Phase A DoD (U1-U7 committed, writeup current) are DONE as of 8a0bea5. Phase B is now open on
-branch feat/phase3-followon. NEXT IS U8a, per docs/plans/2026-07-03-addendum-u8-move-prior-v1.md (U8's own
-"reuses U1-U3b data" turned out not to be free: the candidate-move/chosen-move schema does not exist in any
-CSV yet and must be captured first; the addendum also found a reusable, untested, parked per-option featurizer
-at agents/imitation_features.py from an earlier abandoned plan (U40/U41) that U8a should adopt rather than
-rebuild). Order: U8a (data capture) then U8b (train + export search/move_prior.json) then U8c (pure-Python
-scorer + search wiring + 400-game gauntlet A/B gate), then U9, U11, U12 (U10 already superseded by U62/U63).
-This work is real and on-target FOR THAT PRIZE. It does NOT move the ladder as shipped, so it may NEVER be
-logged as ladder progress and NEVER spends a ladder slot unless first wired into a SHIPPED agent and PROVEN
->569.6 offline. Specs: docs/plans/2026-07-02-combined-learned-eval-plan-v2.md,
-docs/plans/2026-07-03-addendum-u8-move-prior-v1.md, and
+U60-U65, the Phase A DoD, and U8 (U8a/U8b/U8c) are all DONE as of 019dfa2 (move-prior default flipped on after
+its gauntlet A/B: 68.5% vs 63.5%, +5.00pp). NEXT IS U9a, per
+docs/plans/2026-07-03-addendum-u9-archetype-detection-v1.md (U9's own "matchup-specific heuristics already
+scaffolded in analysis/archetype.py" turned out not to exist: the only pre-reveal scaffolding is one hardcoded
+fallback decklist guess, `_field_default_decklist()`; and "early-game observable features" like bench
+composition/energy types are not captured anywhere yet, same gap shape U8 had. The addendum found the ground
+truth label already exists for free though: analysis/opponent_archetype.py's archetype_label() over a whole
+finished replay, so U9a is a distillation-style data unit, not a fresh labeling scheme. It also found the real
+ladder replay data (143 files) is long-tailed across 20+ archetypes at n=140 usable games, so U9a must collapse
+rare labels into an "other" bucket, mirroring tools/archetype_select.py's own MIN_GAMES/OTHER pattern). Order:
+U9a (early-turn feature capture + silver-label rows) then U9b (train + export analysis/archetype_prior.json)
+then U9c (pure-Python scorer wired into archetype.py's pre-reveal fallback behind PTCG_ARCHETYPE_PRIOR + 400-game
+gauntlet A/B gate), then U11, U12 (U10 already superseded by U62/U63). This work is real and on-target FOR THAT
+PRIZE. It does NOT move the ladder as shipped, so it may NEVER be logged as ladder progress and NEVER spends a
+ladder slot unless first wired into a SHIPPED agent and PROVEN >569.6 offline. Specs:
+docs/plans/2026-07-02-combined-learned-eval-plan-v2.md,
+docs/plans/2026-07-03-addendum-u9-archetype-detection-v1.md, and
 docs/plans/2026-07-02-003-feat-offline-match-scale-topplayer-mining-plan.md.
 
 ### Shared rules
@@ -65,8 +71,8 @@ docs/plans/2026-07-02-003-feat-offline-match-scale-topplayer-mining-plan.md.
 ## EACH ITERATION (one increment, then stop)
 1. git log --oneline to find the last completed unit, then pick per the TWO-TRACK RESUME STATE above: if a
    ladder slot is free and a TRACK L action (L1 ability A/B, L2 settle trolley_thick, L3 shipped tuning) is
-   ready, do TRACK L; otherwise prep the next TRACK L step offline and/or advance TRACK S (U8a, U8b, U8c, then
-   U9, U11, U12 on feat/phase3-followon). TRACK L is the rank lever; TRACK S is the Strategy-prize deliverable.
+   ready, do TRACK L; otherwise prep the next TRACK L step offline and/or advance TRACK S (U9a, U9b, U9c, then
+   U11, U12 on feat/phase3-followon). TRACK L is the rank lever; TRACK S is the Strategy-prize deliverable.
 2. Implement the NEXT undone unit exactly as the plan specifies. Mirror existing patterns in src/, agents/, search/, tools/.
 3. Write or update that unit's tests. Run python -m pytest tests -q. Must pass before committing.
 4. Review your own diff; apply only safe, verified fixes.
