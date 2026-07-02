@@ -14,6 +14,11 @@ from __future__ import annotations
 
 import os
 
+try:
+    from search import learned_eval
+except ImportError:  # inside a submission, support modules sit at the top level
+    import learned_eval
+
 
 def _env_num(name, default, cast):
     """Read a tunable leaf-eval constant from the environment, else the default.
@@ -92,6 +97,10 @@ BENCH_FLOOR_SHAPING = _env_num("PTCG_W_BENCH_FLOOR_SHAPING", 0.08, float)
 # rather than rewarding a maxed bench over an adequate one.
 BENCH_TARGET = _env_num("PTCG_W_BENCH_TARGET", 3, int)
 _BENCH_FLOOR = os.environ.get("PTCG_BENCH_FLOOR", "0") != "0"
+# Route non-terminal scoring through the learned evaluator (plan U4/U5) instead
+# of the hand-tuned shaping below. Off by default: keep as an A/B lever until
+# a gauntlet run shows it beats the hand-tuned eval by a clear margin.
+_LEARNED_EVAL = os.environ.get("PTCG_LEARNED_EVAL", "0") != "0"
 
 
 def terminal_value(result, your_index):
@@ -236,4 +245,6 @@ def shaped_value(state, your_index) -> float:
     tv = terminal_value(state.get("result", RESULT_ONGOING), your_index)
     if tv is not None:
         return tv
+    if _LEARNED_EVAL:
+        return learned_eval.predict_value(state, your_index)
     return board_value(state, your_index)

@@ -235,6 +235,44 @@ def test_bench_floor_term_is_bounded(monkeypatch):
     assert ev.board_value(_state(me, opp), 0) < ev.WIN
 
 
+# --- learned eval switch (PTCG_LEARNED_EVAL, staged off) --------------------
+
+def test_learned_eval_is_off_by_default():
+    # The lever ships dormant so the shipped default stays the hand-tuned eval
+    # until a gauntlet A/B shows the learned model wins by a clear margin.
+    assert ev._LEARNED_EVAL is False
+
+
+def test_learned_eval_off_leaves_board_value_path(monkeypatch):
+    def _boom(*_args):
+        raise AssertionError("learned_eval consulted while flag is off")
+
+    monkeypatch.setattr(ev.learned_eval, "predict_value", _boom)
+    monkeypatch.setattr(ev, "_LEARNED_EVAL", False)
+    state = _state(_player(3, active=_pokemon(120, 120)),
+                   _player(3, active=_pokemon(20, 120)))
+    assert ev.shaped_value(state, 0) == ev.board_value(state, 0)
+
+
+def test_learned_eval_on_routes_non_terminal_scoring(monkeypatch):
+    monkeypatch.setattr(ev.learned_eval, "predict_value", lambda state, idx: 0.42)
+    monkeypatch.setattr(ev, "_LEARNED_EVAL", True)
+    state = _state(_player(3, active=_pokemon(120, 120)),
+                   _player(3, active=_pokemon(20, 120)))
+    assert ev.shaped_value(state, 0) == 0.42
+
+
+def test_learned_eval_on_still_yields_to_a_terminal_result(monkeypatch):
+    def _boom(*_args):
+        raise AssertionError("learned_eval consulted on a terminal state")
+
+    monkeypatch.setattr(ev.learned_eval, "predict_value", _boom)
+    monkeypatch.setattr(ev, "_LEARNED_EVAL", True)
+    won = _state(_player(1, active=_pokemon(120, 120)),
+                 _player(6, active=_pokemon(120, 120)), result=0)
+    assert ev.shaped_value(won, 0) == ev.WIN
+
+
 # --- rollout depth cut-off ---------------------------------------------------
 
 @dataclass
