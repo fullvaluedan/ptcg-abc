@@ -78,14 +78,102 @@ def run_ab(agent, opponent_names, n, python_exe=None, log=None) -> dict:
     }
 
 
+def _empty_arm() -> dict:
+    return {"wins": 0, "draws": 0, "losses": 0, "matches": 0}
+
+
+def _accumulate(total, batch) -> dict:
+    for key in ("wins", "draws", "losses", "matches"):
+        total[key] += batch[key]
+    return total
+
+
+def load_checkpoint(checkpoint_path) -> dict:
+    """Load {"off": {...}, "on": {...}} counts, or a fresh zeroed state if absent."""
+    path = Path(checkpoint_path)
+    if path.exists():
+        data = json.loads(path.read_text())
+        return {"off": data.get("off") or _empty_arm(), "on": data.get("on") or _empty_arm()}
+    return {"off": _empty_arm(), "on": _empty_arm()}
+
+
+def save_checkpoint(checkpoint_path, state) -> None:
+    Path(checkpoint_path).write_text(json.dumps(state, indent=2))
+
+
+def run_ab_resumable(
+    agent, opponent_names, n, checkpoint_path, batch_size=40,
+    python_exe=None, log=None, time_budget_s=None,
+) -> dict:
+    """Run the A/B in small batches, checkpointing counts to checkpoint_path after each.
+
+    A background gauntlet run in this environment does not survive past the
+    end of the invoking turn (observed directly: a prior long-running A/B
+    died mid-arm with only partial progress). This makes each call resumable
+    instead: it picks up wherever checkpoint_path left off, runs batches
+    until either both arms reach n matches or time_budget_s elapses, and
+    checkpoints after every batch so no more than one batch of progress can
+    ever be lost. Returns {"done": False, "off": ..., "on": ...} if the time
+    budget cut the run short, or the full run_ab-shaped result (with
+    diff_pp/verdict, "done": True) once both arms reach n matches.
+    """
+    python_exe = python_exe or sys.executable
+    log = log or print
+    state = load_checkpoint(checkpoint_path)
+    start = time.time()
+    for label, flag in (("off", False), ("on", True)):
+        while state[label]["matches"] < n:
+            if time_budget_s is not None and time.time() - start > time_budget_s:
+                save_checkpoint(checkpoint_path, state)
+                log(
+                    f"time budget reached, checkpointed at "
+                    f"off={state['off']['matches']}/{n} on={state['on']['matches']}/{n}"
+                )
+                return {"done": False, **state}
+            batch_n = min(batch_size, n - state[label]["matches"])
+            batch = _run_arm(agent, opponent_names, batch_n, flag, python_exe)
+            state[label] = _accumulate(state[label], batch)
+            save_checkpoint(checkpoint_path, state)
+            wr = state[label]["wins"] / state[label]["matches"]
+            log(f"arm {label}: +{batch_n} -> {state[label]['matches']}/{n} (cum win rate {wr:.1%})")
+    off, on = state["off"], state["on"]
+    off_wr = off["wins"] / off["matches"] if off["matches"] else 0.0
+    on_wr = on["wins"] / on["matches"] if on["matches"] else 0.0
+    diff_pp = round((on_wr - off_wr) * 100, 2)
+    verdict = "flip default on" if diff_pp > GATE_MARGIN_PP else "keep default off"
+    return {
+        "agent": agent,
+        "opponents": opponent_names,
+        "matches_per_arm": n,
+        "off": {**off, "win_rate": off_wr},
+        "on": {**on, "win_rate": on_wr},
+        "diff_pp": diff_pp,
+        "gate_margin_pp": GATE_MARGIN_PP,
+        "verdict": verdict,
+        "done": True,
+    }
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("agent", help="agent under test (e.g. search)")
     ap.add_argument("opponents", nargs="+", help="opponent names (e.g. deck:aggro deck:control)")
     ap.add_argument("-n", "--matches", type=int, default=400, help="matches per arm")
     ap.add_argument("-o", "--out", help="write the JSON result to this path")
+    ap.add_argument(
+        "--checkpoint",
+        help="resumable mode: run in batches, checkpointing counts to this path across calls",
+    )
+    ap.add_argument("--batch-size", type=int, default=40, help="games per batch in resumable mode")
+    ap.add_argument("--time-budget", type=float, help="seconds; stop and checkpoint once exceeded")
     args = ap.parse_args()
-    result = run_ab(args.agent, args.opponents, args.matches)
+    if args.checkpoint:
+        result = run_ab_resumable(
+            args.agent, args.opponents, args.matches, args.checkpoint,
+            batch_size=args.batch_size, time_budget_s=args.time_budget,
+        )
+    else:
+        result = run_ab(args.agent, args.opponents, args.matches)
     print(json.dumps(result, indent=2))
     if args.out:
         Path(args.out).write_text(json.dumps(result, indent=2))
