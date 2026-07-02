@@ -1,0 +1,50 @@
+{
+  "info": {"TeamNames": ["Dan Arreola", "rival_bot"]},
+  "rewards": [1, -1],
+  "steps": [
+    [
+      {"action": [], "status": "INACTIVE", "reward": 0, "observation": {"select": null, "current": null}},
+      {"action": [], "status": "INACTIVE", "reward": 0, "observation": {"select": null, "current": null}}
+    ],
+    [
+      {
+        "action": [0],
+        "status": "ACTIVE",
+        "reward": 0,
+        "observation": {
+          "remainingOverageTime": 600.0,
+          "select": {"option": [0, 1, 2], "minCount": 1, "maxCount": 1},
+          "current": {
+            "yourIndex": 0,
+            "turn": 1,
+            "players": [
+              {"prize": [null, null, null, null, null, null]},
+              {"prize": [null, null, null, null, null, null]}
+            ]
+          }
+        }
+      },
+      {"action": [], "status": "INACTIVE", "reward": 0, "observation": {"select": null, "current": null}}
+    ],
+    [
+      {
+        "action": [0],
+        "status": "ACTIVE",
+        "reward": 0,
+        "observation": {
+          "remainingOverageTime": 599.0,
+          "select": {"option": [0, 1, 2, 3, 4], "minCount": 1, "maxCount": 1},
+          "current": {
+            "yourIndex": 0,
+            "turn": 3,
+            "players": [
+              {"prize": [null, null, null, null, null]},
+              {"prize": [null, null, null, null]}
+            ]
+          }
+        }
+      },
+      {"action": [], "status": "INACTIVE", "reward": 0, "observation": {"select": null, "current": null}}
+    ]
+  ]
+}
