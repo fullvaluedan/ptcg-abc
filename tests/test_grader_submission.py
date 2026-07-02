@@ -55,17 +55,19 @@ _SEARCH_EXTRAS = [
 # the agent cannot pilot to a terminal reward) fails here too. The trolley case
 # locks the exact queued early_collapse climb (heuristic + Precious Trolley deck).
 SHIPPED_AGENTS = [
-    pytest.param(str(AGENTS / "agent_baseline.py"), str(DECKS / "baseline.csv"), [], id="baseline"),
+    pytest.param(str(AGENTS / "agent_baseline.py"), str(DECKS / "baseline.csv"), [], {}, id="baseline"),
     pytest.param(
         str(AGENTS / "agent_heuristic.py"),
         str(DECKS / "baseline.csv"),
         _HEUR_EXTRAS,
+        {},
         id="heuristic",
     ),
     pytest.param(
         str(AGENTS / "agent_heuristic.py"),
         str(DECKS / "trolley.csv"),
         _HEUR_EXTRAS,
+        {},
         id="heuristic-trolley",
     ),
     # The validated next deck candidate (thicker-basic trolley: Kyogre 2->4,
@@ -78,9 +80,22 @@ SHIPPED_AGENTS = [
         str(AGENTS / "agent_heuristic.py"),
         str(DECKS / "trolley_thick.csv"),
         _HEUR_EXTRAS,
+        {},
         id="heuristic-trolley_thick",
     ),
-    pytest.param(str(AGENTS / "agent_search.py"), str(DECKS / "baseline.csv"), _SEARCH_EXTRAS, id="search"),
+    # The L1 ladder lever (docs/plans/2026-07-02-combined-learned-eval-plan-v2.md resume state):
+    # PTCG_ABILITY=1 baked at build time, same heuristic and trolley deck as the king. The pilot
+    # agreed with top players on 0/554 real ABILITY decisions with the flag off; the once-per-turn
+    # guard (agents/heuristics.py's _is_once_per_turn_ability) makes activation loop-safe. Offline
+    # gauntlet (analysis/ability_ab.md) shows no regression before this spends a ladder slot.
+    pytest.param(
+        str(AGENTS / "agent_heuristic.py"),
+        str(DECKS / "trolley.csv"),
+        _HEUR_EXTRAS,
+        {"PTCG_ABILITY": "1"},
+        id="heuristic-trolley-ability",
+    ),
+    pytest.param(str(AGENTS / "agent_search.py"), str(DECKS / "baseline.csv"), _SEARCH_EXTRAS, {}, id="search"),
     # The exact build queued for the next free ladder slot: the search agent
     # piloting the Precious Trolley deck. search+baseline proves the search stack
     # loads and plays; heuristic+trolley proves the trolley deck loads and plays;
@@ -89,7 +104,9 @@ SHIPPED_AGENTS = [
     # trolley deck's card composition to a terminal reward). Lock it so a build or
     # pilot regression is caught here instead of erroring the submission and
     # burning a hard-won daily slot.
-    pytest.param(str(AGENTS / "agent_search.py"), str(DECKS / "trolley.csv"), _SEARCH_EXTRAS, id="search-trolley"),
+    pytest.param(
+        str(AGENTS / "agent_search.py"), str(DECKS / "trolley.csv"), _SEARCH_EXTRAS, {}, id="search-trolley"
+    ),
 ]
 
 
@@ -98,8 +115,8 @@ def _extract(tar_path: Path, dest: Path) -> None:
         tar.extractall(dest)
 
 
-@pytest.mark.parametrize("agent_file, deck_file, extras", SHIPPED_AGENTS)
-def test_extracted_submission_loads_under_grader(agent_file, deck_file, extras, tmp_path):
+@pytest.mark.parametrize("agent_file, deck_file, extras, env", SHIPPED_AGENTS)
+def test_extracted_submission_loads_under_grader(agent_file, deck_file, extras, env, tmp_path):
     """A built, extracted submission loads and finishes a match via env.run.
 
     Mirrors the grader: file-path agent string -> exec without __file__, agent
@@ -111,6 +128,7 @@ def test_extracted_submission_loads_under_grader(agent_file, deck_file, extras, 
         deck_file=deck_file,
         out_name=str(tmp_path / "submission_grader_test.tar.gz"),
         extras=extras,
+        env=env,
     )
     extract_dir = tmp_path / "extracted"
     extract_dir.mkdir()
