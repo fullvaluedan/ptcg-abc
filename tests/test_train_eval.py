@@ -12,7 +12,7 @@ import json
 import numpy as np
 import pytest
 
-from ptcg_agent.features import FEATURE_NAMES
+from ptcg_agent.features import FEATURE_NAMES, FEATURE_VERSION
 from search import learned_eval
 from tools.train_eval import (
     compare_gauntlet_vs_merged,
@@ -93,6 +93,7 @@ def test_exported_model_round_trips_through_learned_eval(tmp_path, monkeypatch):
     export_model(model, mean, std, model_path)
     payload = json.loads(model_path.read_text())
     assert payload["feature_names"] == list(FEATURE_NAMES)
+    assert payload["feature_version"] == FEATURE_VERSION
     assert len(payload["coef"]) == len(FEATURE_NAMES)
 
     monkeypatch.setattr(learned_eval, "_model_path", lambda: model_path)

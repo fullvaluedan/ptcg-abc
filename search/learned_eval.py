@@ -23,9 +23,9 @@ import math
 from pathlib import Path
 
 try:
-    from ptcg_agent.features import extract_features
+    from ptcg_agent.features import FEATURE_VERSION, extract_features
 except ImportError:  # inside a submission, support modules sit at the top level
-    from features import extract_features
+    from features import FEATURE_VERSION, extract_features
 
 _MODEL_FILENAME = "eval_model.json"
 _model = None  # lazily loaded and cached; None also marks "load already failed"
@@ -47,6 +47,13 @@ def _load_model():
     try:
         with open(_model_path()) as fh:
             payload = json.load(fh)
+        # Reject a model trained against a different feature layout outright
+        # (plan U64): a stale-version model that happens to match the current
+        # feature COUNT would otherwise pass the length check below and score
+        # silently against the wrong feature meanings.
+        if payload.get("feature_version") != FEATURE_VERSION:
+            _model = None
+            return _model
         feature_names = tuple(payload["feature_names"])
         mean = [float(v) for v in payload["mean"]]
         std = [float(v) for v in payload["std"]]

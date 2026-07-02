@@ -1,0 +1,68 @@
+{
+  "agent": "search",
+  "opponents": [
+    "deck:meta_archaludon",
+    "deck:meta_grimmsnarl",
+    "deck:meta_grimmsnarl_tonakaiiii",
+    "deck:aggro",
+    "deck:control",
+    "deck:ultraball",
+    "deck:trolley",
+    "deck:trolley_thick"
+  ],
+  "games": 60,
+  "wins": 42,
+  "draws": 0,
+  "losses": 18,
+  "buckets": {
+    "slow_search": 0,
+    "deckout": 0,
+    "deck_matchup": 0,
+    "endgame_misplay": 1,
+    "early_collapse": 17,
+    "bad_determinization": 0
+  },
+  "ranked": [
+    [
+      "early_collapse",
+      17
+    ],
+    [
+      "endgame_misplay",
+      1
+    ],
+    [
+      "slow_search",
+      0
+    ],
+    [
+      "deckout",
+      0
+    ],
+    [
+      "deck_matchup",
+      0
+    ],
+    [
+      "bad_determinization",
+      0
+    ]
+  ],
+  "top_bucket": "early_collapse",
+  "focus_buckets": [
+    "deckout",
+    "early_collapse"
+  ],
+  "focus_counts": {
+    "deckout": 0,
+    "early_collapse": 17
+  },
+  "focus_rate_of_losses": {
+    "deckout": 0.0,
+    "early_collapse": 0.9444444444444444
+  },
+  "focus_rate_of_games": {
+    "deckout": 0.0,
+    "early_collapse": 0.2833333333333333
+  }
+}

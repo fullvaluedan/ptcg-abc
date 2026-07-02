@@ -20,9 +20,18 @@ live decision.
 """
 from __future__ import annotations
 
+# Bump on ANY change to FEATURE_NAMES or an extractor below (mirrors
+# agents/imitation_features.py's FEATURE_VERSION discipline). "1" was the
+# original U2 layout (21 features, prize_diff..our_energy_attached); "2" is
+# the U64 append (bench_cliff, deckout_risk, prize_tempo). A trained model
+# records the version it was fit against (tools/train_eval.py export_model)
+# and search/learned_eval.py refuses to score with a stale-version model
+# rather than silently misreading a shifted feature layout.
+FEATURE_VERSION = "2"
+
 # Fixed feature order. Do not reorder once a model is trained on it; append new
-# features at the end instead, and bump a version marker alongside FEATURE_NAMES
-# if the layout ever changes (mirrors the discipline in agents/imitation_features.py).
+# features at the end instead, and bump FEATURE_VERSION above if the layout
+# ever changes (mirrors the discipline in agents/imitation_features.py).
 FEATURE_NAMES = (
     "prize_diff",
     "our_prizes_left",
@@ -45,6 +54,10 @@ FEATURE_NAMES = (
     "is_our_turn",
     "our_supporter_played",
     "our_energy_attached",
+    # --- U64 append: loss-pattern features the U63 top-player study motivated ---
+    "our_bench_cliff",
+    "our_deckout_risk",
+    "our_prize_tempo",
 )
 N_FEATURES = len(FEATURE_NAMES)
 
@@ -53,6 +66,14 @@ PRIZE_TOTAL = 6
 # hand-tuned shaping it replaces stay on comparable scales.
 ENERGY_NORM = 12
 TURN_NORM = 40
+# Mirrors agents/heuristics.py's THIN_BENCH default (bench < 2 is early-collapse
+# risk, our own dominant loss bucket per analysis/top_player_win_loss_study.md).
+# Duplicated rather than imported: this module stays dependency-free by design
+# (see module docstring), so it cannot import agents.heuristics.
+BENCH_CLIFF_MAX = 1
+# Mirrors agents/heuristics.py's DECKOUT_THRESHOLD default (deck_count at or
+# below this is treated as deckout risk territory).
+DECKOUT_RISK_NORM = 5
 
 
 def _prizes_left(player) -> int:
@@ -135,6 +156,17 @@ def _extract(state, your_index) -> list:
     our_energy = min(_attached_energy(_in_play(me)), ENERGY_NORM)
     their_energy = min(_attached_energy(_in_play(opp)), ENERGY_NORM)
 
+    our_bench_cliff = 1.0 if len(our_bench) <= BENCH_CLIFF_MAX else 0.0
+    our_deckout_risk = max(0.0, min(1.0, (DECKOUT_RISK_NORM - our_deck) / DECKOUT_RISK_NORM))
+    # Prize-race tempo, as prizes taken per turn elapsed so far. The plan's
+    # literal suggestion ("turns since last prize") needs a per-prize
+    # timestamp or cross-call history; extract_features is a pure function of
+    # ONE state snapshot (no history is threaded through any of its callers),
+    # and the raw state carries only the remaining prize list, no history of
+    # when a prize was taken. This is the closest stateless proxy: how fast
+    # the prize race is going up to this point, from a single snapshot.
+    our_prize_tempo = min(1.0, (PRIZE_TOTAL - our_prizes) / max(turn, 1))
+
     return [
         (their_prizes - our_prizes) / PRIZE_TOTAL,
         float(our_prizes),
@@ -157,6 +189,9 @@ def _extract(state, your_index) -> list:
         1.0 if is_our_turn else 0.0,
         1.0 if bool(state.get("supporterPlayed")) else 0.0,
         1.0 if bool(state.get("energyAttached")) else 0.0,
+        our_bench_cliff,
+        our_deckout_risk,
+        our_prize_tempo,
     ]
 
 

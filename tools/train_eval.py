@@ -27,7 +27,7 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from ptcg_agent.features import FEATURE_NAMES  # noqa: E402
+from ptcg_agent.features import FEATURE_NAMES, FEATURE_VERSION  # noqa: E402
 
 import numpy as np  # noqa: E402
 from sklearn.linear_model import LogisticRegression  # noqa: E402
@@ -51,7 +51,7 @@ def load_rows(csv_path, tag_prefix=None):
     collide when rows from both sources are concatenated for training, which
     would let game_split silently merge two unrelated games onto the same side.
     """
-    with open(csv_path, newline="") as fh:
+    with open(csv_path, newline="", encoding="utf-8") as fh:
         reader = csv.reader(fh)
         header = next(reader)
         game_idx = header.index("game_id")
@@ -91,7 +91,7 @@ def load_source_column(csv_path):
     A row from a CSV with no 'source' column (tools/gauntlet.py's states_*.csv
     predates this column) reads as "" so callers can default it to weight 1.0.
     """
-    with open(csv_path, newline="") as fh:
+    with open(csv_path, newline="", encoding="utf-8") as fh:
         reader = csv.reader(fh)
         header = next(reader)
         source_idx = header.index("source") if "source" in header else None
@@ -144,6 +144,7 @@ def evaluate(model, mean, std, X, y):
 def export_model(model, mean, std, path):
     payload = {
         "feature_names": list(FEATURE_NAMES),
+        "feature_version": FEATURE_VERSION,
         "mean": mean.tolist(),
         "std": std.tolist(),
         "coef": model.coef_[0].tolist(),

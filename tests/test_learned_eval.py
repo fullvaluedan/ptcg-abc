@@ -5,6 +5,8 @@ win probability in [0, 1] and a value in [-1, 1] for a normal state, and falls
 back to a neutral estimate (never raises) on a malformed state or a missing
 model file.
 """
+import json
+
 from search import learned_eval
 
 
@@ -113,3 +115,54 @@ def test_missing_model_file_falls_back_to_neutral(monkeypatch):
 
     assert learned_eval.predict_win_probability(state, 0) == 0.5
     assert learned_eval.predict_value(state, 0) == 0.0
+
+
+def test_stale_feature_version_model_falls_back_to_neutral(tmp_path, monkeypatch):
+    # Plan U64: a model exported before the feature-layout change (or one
+    # otherwise trained against a different feature set) must be rejected
+    # outright rather than scored with a mismatched mean/std/coef array, even
+    # if it happens to carry the same feature COUNT.
+    from ptcg_agent.features import N_FEATURES
+
+    stale_model = tmp_path / "eval_model.json"
+    stale_model.write_text(json.dumps({
+        "feature_names": [f"f{i}" for i in range(N_FEATURES)],
+        "feature_version": "0",
+        "mean": [0.0] * N_FEATURES,
+        "std": [1.0] * N_FEATURES,
+        "coef": [1.0] * N_FEATURES,
+        "intercept": 0.0,
+    }))
+    monkeypatch.setattr(learned_eval, "_model_path", lambda: stale_model)
+    _reset_cache()
+
+    me = _player(prizes=1, active=_pokemon(120, 120))
+    opp = _player(prizes=5, active=_pokemon(20, 120))
+    state = _state([me, opp])
+
+    assert learned_eval.predict_win_probability(state, 0) == 0.5
+    assert learned_eval.predict_value(state, 0) == 0.0
+
+
+def test_missing_feature_version_key_falls_back_to_neutral(tmp_path, monkeypatch):
+    # A model exported by the pre-U64 tools/train_eval.py never wrote a
+    # feature_version key at all; payload.get(...) reads that as None, which
+    # never equals the current FEATURE_VERSION string, so this also rejects.
+    from ptcg_agent.features import N_FEATURES
+
+    legacy_model = tmp_path / "eval_model.json"
+    legacy_model.write_text(json.dumps({
+        "feature_names": [f"f{i}" for i in range(N_FEATURES)],
+        "mean": [0.0] * N_FEATURES,
+        "std": [1.0] * N_FEATURES,
+        "coef": [1.0] * N_FEATURES,
+        "intercept": 0.0,
+    }))
+    monkeypatch.setattr(learned_eval, "_model_path", lambda: legacy_model)
+    _reset_cache()
+
+    me = _player(prizes=1, active=_pokemon(120, 120))
+    opp = _player(prizes=5, active=_pokemon(20, 120))
+    state = _state([me, opp])
+
+    assert learned_eval.predict_win_probability(state, 0) == 0.5
