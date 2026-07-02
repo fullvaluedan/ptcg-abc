@@ -21,10 +21,14 @@ Design choices, all aimed at a never crash agent that beats the random baseline:
 from __future__ import annotations
 
 import os
-import re
 import sys
 from functools import lru_cache
 from pathlib import Path
+
+try:
+    from agents import card_effects
+except ImportError:  # inside a submission, main.py and card_effects.py sit together
+    import card_effects
 
 
 def _env_num(name, default, cast):
@@ -509,10 +513,7 @@ def _is_once_per_turn_ability(card_id) -> bool:
     text: no text means the once-per-turn limit cannot be proven, so it is treated as
     unsafe and not activated. Pure, never raises.
     """
-    text = _card_text(card_id)
-    if not text:
-        return False
-    return "once during your turn" in text.lower()
+    return card_effects.ONCE_PER_TURN in card_effects.tag_text(_card_text(card_id))
 
 
 def _once_per_turn_ability(ability_opts, sel, obs):
@@ -647,28 +648,18 @@ def _drills_deck(card_id) -> bool:
     text = _card_text(card_id)
     if text is None:
         return True
-    t = text.lower()
-    # A card that returns cards FROM your discard pile into your hand (Night
-    # Stretcher) recovers resources and never depletes the deck, so it is not a
-    # mill, mirroring the deck-recycler carve-out above. Guarded by "your deck" not
-    # in the text so a card that ALSO searches or draws the deck stays a drill.
-    recovers_from_discard = (
-        "from your discard pile" in t
-        and "into your hand" in t
-        and "your deck" not in t
-    )
-    # \bdraw matches "draw"/"draws" but not "withdraw" (a switch effect, no deck
-    # drill). "into your hand" catches search-to-hand. A discard that names the
-    # deck as the source ("of your deck", "your deck for ... discard") destroys
-    # deck cards; a discard-pile recycler ("into your deck") only grows it, so it
-    # is left out by requiring the deck-source phrasing rather than bare "deck".
-    discards_from_deck = "discard" in t and (
-        "of your deck" in t or "your deck for" in t
-    )
+    # Delegated to the card-knowledge layer (agents/card_effects.py): a trainer
+    # drills the deck when it DRAWs, searches a card into hand that is not a
+    # discard-pile recovery, or discards from the deck. tags == the exact signals
+    # the old inline scan read here (test_card_effects pins the pool-wide match).
+    tags = card_effects.tag_text(text)
     return (
-        bool(re.search(r"\bdraw", t))
-        or ("into your hand" in t and not recovers_from_discard)
-        or discards_from_deck
+        card_effects.DRAW in tags
+        or (
+            card_effects.SEARCH_TO_HAND in tags
+            and card_effects.RECOVERS_FROM_DISCARD not in tags
+        )
+        or card_effects.DISCARDS_FROM_DECK in tags
     )
 
 
@@ -718,15 +709,8 @@ def _benches_basic_from_deck(card_id) -> bool:
     """
     if _card_type(card_id) not in CONSERVED_TRAINER_TYPES:
         return False
-    text = _card_text(card_id)
-    if not text:
-        return False
-    t = text.lower()
-    return (
-        "search your deck" in t
-        and "onto your bench" in t
-        and "basic" in t
-        and "pok" in t
+    return card_effects.BENCH_BASIC_FROM_DECK in card_effects.tag_text(
+        _card_text(card_id)
     )
 
 
@@ -759,11 +743,9 @@ def _evolves_basic_to_stage2(card_id) -> bool:
     """
     if _card_type(card_id) not in CONSERVED_TRAINER_TYPES:
         return False
-    text = _card_text(card_id)
-    if not text:
-        return False
-    t = text.lower()
-    return "stage 2" in t and "skipping the stage 1" in t
+    return card_effects.RARE_CANDY_EVOLVE in card_effects.tag_text(
+        _card_text(card_id)
+    )
 
 
 def _in_play_basic_names(me) -> set:

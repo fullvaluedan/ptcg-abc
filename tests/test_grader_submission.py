@@ -27,10 +27,19 @@ SEARCH = ROOT / "search"
 ANALYSIS = ROOT / "analysis"
 DECKS = ROOT / "decks"
 
+# The heuristic pilot and every entrypoint that reuses it (the search rollout
+# policy) import agents/card_effects.py from agents/heuristics.py, so the
+# card-knowledge layer MUST ship alongside heuristics.py or the delegated import
+# raises at match load and errors the submission. Bundle them as one unit.
+_HEUR_EXTRAS = [
+    str(AGENTS / "heuristics.py"),
+    str(AGENTS / "card_effects.py"),
+]
+
 # The top-level support modules each shipped entrypoint imports inside a built
 # submission (the search agent pulls in the whole search/ and analysis/ stack).
 _SEARCH_EXTRAS = [
-    str(AGENTS / "heuristics.py"),
+    *_HEUR_EXTRAS,
     str(SEARCH / "rollout.py"),
     str(SEARCH / "eval.py"),
     str(SEARCH / "determinize.py"),
@@ -50,13 +59,13 @@ SHIPPED_AGENTS = [
     pytest.param(
         str(AGENTS / "agent_heuristic.py"),
         str(DECKS / "baseline.csv"),
-        [str(AGENTS / "heuristics.py")],
+        _HEUR_EXTRAS,
         id="heuristic",
     ),
     pytest.param(
         str(AGENTS / "agent_heuristic.py"),
         str(DECKS / "trolley.csv"),
-        [str(AGENTS / "heuristics.py")],
+        _HEUR_EXTRAS,
         id="heuristic-trolley",
     ),
     # The validated next deck candidate (thicker-basic trolley: Kyogre 2->4,
@@ -68,7 +77,7 @@ SHIPPED_AGENTS = [
     pytest.param(
         str(AGENTS / "agent_heuristic.py"),
         str(DECKS / "trolley_thick.csv"),
-        [str(AGENTS / "heuristics.py")],
+        _HEUR_EXTRAS,
         id="heuristic-trolley_thick",
     ),
     pytest.param(str(AGENTS / "agent_search.py"), str(DECKS / "baseline.csv"), _SEARCH_EXTRAS, id="search"),

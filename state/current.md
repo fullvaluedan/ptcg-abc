@@ -68,6 +68,12 @@ _none calibrated; every proxy gate is refused (default-deny)_
 - latest-2 tracked and used for final scoring; leaderboard shows best of the 2 (no best-ever net; a 3rd submit evicts the 3rd-newest) (analysis/final_scoring_semantics.md); recorded 2026-07-02, gates U48.
 - deadline 2026-08-16 23:59 UTC, then ~2 weeks continued games (newer agents more frequent), then leaderboard final; daily limit 5 submissions/day.
 
+## Card-effect coverage gate (U33 / MSR-3)
+
+- card-knowledge layer agents/card_effects.py (TAG_VOCAB 8 tags, TAGS_VERSION 1); heuristic text predicates delegate to it, behavior-frozen by a pool-wide golden equivalence test (analysis/card_effects_layer.md).
+- target deck **trolley_thick** coverage **1.0** (10/10 distinct: 6 TAGGED, 4 EMPTY); pool untagged fraction 0.4917 (207/421 effect cards), ratcheted by analysis/tag_coverage_baseline.json.
+- GATE (advisory until the aware pilot lands): no deck-aware build (U37 seeds, U40/U41 ranker) may spend a ladder slot unless tag_coverage.deck_covered_100pct(target) is true.
+
 ## Per-build ledger
 
 | build | oracle | move-agree delta | ladder | sample | note |
@@ -113,7 +119,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
   "in_flight": {
     "board_reading": 488.9,
     "build": "heuristic+trolley_thick",
-    "note": "U20 slot-2 deck A/B SUBMITTED (ref 54252291, 2026-07-02 03:59 UTC) after U22 gate ALLOW and grader exec test green. Pre-registered vs the trolley king: direction up, M=60, N>=30, settle-by 2026-07-06. Settlement needs >=30 rated episodes AND >=24h; early-evict under 35% raw win rate after 15 episodes. WIN>=king+60 promote; LOSS<=king-60 evict+revert to king copy; BAND one repeat then U23 scoreboard. BOARD 2026-07-02 (U27 iter): thick COMPLETE 536.4 vs reclaim king 54252006 491.7 (gap +44.7 in favor of thick, still inside BAND M=60). NOT settled: sub is <24h old, earliest settle 2026-07-03 04:00 UTC. BOARD 2026-07-02 (U28 iter): thick COMPLETE 552.0 vs reclaim king 54252006 472.1 (gap +79.9, now OUTSIDE BAND M=60 in favor of thick). Still NOT settled: sub is <24h old, earliest settle 2026-07-03 04:00 UTC; also needs >=30 rated episodes. No submit this iter. BOARD 2026-07-02 (U29 iter): thick COMPLETE 551.8 vs reclaim king 54252006 497.2 (gap +54.6, back inside BAND M=60). Still NOT settled: sub <24h old (earliest 2026-07-03 04:00 UTC) and needs >=30 rated episodes. No submit this iter. BOARD 2026-07-02 (U32 iter): thick COMPLETE 488.9 vs reclaim king 54252006 507.0 (gap -18.1, king now leads, still well inside BAND M=60; reading reversed from prior readings, consistent with same-build drift). Still NOT settled: sub <24h old (earliest 2026-07-03 04:00 UTC) and needs >=30 rated episodes. No submit this iter.",
+    "note": "U20 slot-2 deck A/B SUBMITTED (ref 54252291, 2026-07-02 03:59 UTC) after U22 gate ALLOW and grader exec test green. Pre-registered vs the trolley king: direction up, M=60, N>=30, settle-by 2026-07-06. Settlement needs >=30 rated episodes AND >=24h; early-evict under 35% raw win rate after 15 episodes. WIN>=king+60 promote; LOSS<=king-60 evict+revert to king copy; BAND one repeat then U23 scoreboard. BOARD 2026-07-02 (U27 iter): thick COMPLETE 536.4 vs reclaim king 54252006 491.7 (gap +44.7 in favor of thick, still inside BAND M=60). NOT settled: sub is <24h old, earliest settle 2026-07-03 04:00 UTC. BOARD 2026-07-02 (U28 iter): thick COMPLETE 552.0 vs reclaim king 54252006 472.1 (gap +79.9, now OUTSIDE BAND M=60 in favor of thick). Still NOT settled: sub is <24h old, earliest settle 2026-07-03 04:00 UTC; also needs >=30 rated episodes. No submit this iter. BOARD 2026-07-02 (U29 iter): thick COMPLETE 551.8 vs reclaim king 54252006 497.2 (gap +54.6, back inside BAND M=60). Still NOT settled: sub <24h old (earliest 2026-07-03 04:00 UTC) and needs >=30 rated episodes. No submit this iter. BOARD 2026-07-02 (U32 iter): thick COMPLETE 488.9 vs reclaim king 54252006 507.0 (gap -18.1, king now leads, still well inside BAND M=60; reading reversed from prior readings, consistent with same-build drift). Still NOT settled: sub <24h old (earliest 2026-07-03 04:00 UTC) and needs >=30 rated episodes. No submit this iter. BOARD 2026-07-02 (U33 iter): unchanged from U32, thick COMPLETE 488.9 vs reclaim king 54252006 507.0 (gap -18.1, king leads, well inside BAND M=60); no public-score movement. Still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched.",
     "ref": "54252291"
   },
   "ledger": [
@@ -246,6 +252,16 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "leaf_correlation": "0.80-0.91 discriminating",
     "source": "analysis/pimc_diagnostic.md",
     "verdict": "FAVORABLE"
+  },
+  "tag_coverage": {
+    "gate": "no deck-aware build may spend a ladder slot unless deck_covered_100pct(target) is true (advisory until U37/U40 land)",
+    "layer": "agents/card_effects.py",
+    "pool_untagged_fraction": 0.4916864608076009,
+    "recorded": "2026-07-02",
+    "source": "analysis/card_effects_layer.md",
+    "tags_version": "1",
+    "target_deck": "trolley_thick",
+    "target_deck_coverage": 1.0
   },
   "shadow_king": {
     "build": "heuristic+trolley",
