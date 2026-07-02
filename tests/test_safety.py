@@ -165,3 +165,79 @@ def test_safety_path_legal_across_full_match(monkeypatch):
     reward = env.steps[-1][0]["reward"]
     assert reward in (-1, 0, 1)
     assert illegal["count"] == 0
+
+
+# --- Safety 5: unknown enum values degrade to a legal fallback (U30) ----------
+# The grader can hand the agent an OptionType or SelectType the pilot does not
+# recognise (a new card mechanic, an engine bump). U30 requires those unknown
+# values to degrade to a legal selection rather than raise, since any exception
+# forfeits the match. These negative tests lock the crash-class defence so a
+# later refactor cannot silently drop it.
+
+import agents.agent_heuristic as agent_heuristic  # noqa: E402
+
+
+def _legal(move, sel):
+    n = len(sel.get("option", []))
+    return (
+        isinstance(move, list)
+        and len(set(move)) == len(move)
+        and sel.get("minCount", 1) <= len(move) <= sel.get("maxCount", 1)
+        and all(isinstance(i, int) and 0 <= i < n for i in move)
+    )
+
+
+def test_choose_degrades_unknown_select_type():
+    # A SelectType the pilot has no branch for must still return a legal move.
+    sel = {"type": 777, "minCount": 1, "maxCount": 1,
+           "option": [{"type": heuristics.OPT_END}, {"type": heuristics.OPT_YES}]}
+    move = heuristics.choose({"select": sel, "current": {}})
+    assert _legal(move, sel)
+
+
+def test_choose_unknown_select_respects_min_count():
+    # The fallback honours minCount, returning distinct legal indices.
+    sel = {"type": 888, "minCount": 2, "maxCount": 2,
+           "option": [{"type": 1}, {"type": 2}, {"type": 3}]}
+    move = heuristics.choose({"select": sel, "current": {}})
+    assert _legal(move, sel)
+    assert len(move) == 2
+
+
+def test_choose_degrades_unknown_option_types_in_main():
+    # A MAIN decision whose options are all unrecognised OptionTypes: no resolver
+    # fires and there is no END, so the first-legal fallback must still answer.
+    sel = {"type": heuristics.SEL_MAIN, "minCount": 1, "maxCount": 1,
+           "option": [{"type": 555}, {"type": 556}]}
+    obs = {"select": sel, "current": {"yourIndex": 0, "players": [{}, {}]}}
+    move = heuristics.choose(obs)
+    assert _legal(move, sel)
+
+
+def test_choose_prefers_end_over_unknown_options():
+    # END is a clean turn-ender, so it is chosen over unknown option types.
+    sel = {"type": heuristics.SEL_MAIN, "minCount": 1, "maxCount": 1,
+           "option": [{"type": 555}, {"type": heuristics.OPT_END}]}
+    obs = {"select": sel, "current": {"yourIndex": 0, "players": [{}, {}]}}
+    move = heuristics.choose(obs)
+    assert move == [1]
+
+
+def test_submitted_agent_never_raises_when_choose_raises(monkeypatch):
+    # If choose() itself blows up on an exotic obs, the shipped entrypoint still
+    # returns a legal move via its guaranteed fallback rather than forfeiting.
+    def boom(_obs):
+        raise RuntimeError("simulated pilot crash")
+
+    monkeypatch.setattr(agent_heuristic.heuristics, "choose", boom)
+    sel = {"type": heuristics.SEL_MAIN, "minCount": 1, "maxCount": 1,
+           "option": [{"type": heuristics.OPT_END}, {"type": heuristics.OPT_YES}]}
+    move = agent_heuristic.agent({"select": sel, "current": {}})
+    assert _legal(move, sel)
+
+
+def test_submitted_agent_last_resort_on_broken_select():
+    # A select object so malformed that even _first_legal cannot read it must not
+    # crash the agent; the documented last resort is [0].
+    move = agent_heuristic.agent({"select": ["not", "a", "dict"]})
+    assert move == [0]
