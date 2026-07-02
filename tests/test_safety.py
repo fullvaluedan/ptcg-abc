@@ -241,3 +241,91 @@ def test_submitted_agent_last_resort_on_broken_select():
     # crash the agent; the documented last resort is [0].
     move = agent_heuristic.agent({"select": ["not", "a", "dict"]})
     assert move == [0]
+
+
+# --- Safety 6: ordered guard stack is scorer-independent (U37) ----------------
+# choose()'s FORCE/VETO guards (lethal, ability-loop, deckout) must hold no matter
+# how the CEM-tunable PRIO_* category scorer is weighted, so a learned option
+# scorer (U41) inserted below them can never override a safety guard. test_heuristic
+# checks each guard at the shipped weights; these pin the guards against an
+# ADVERSARIALLY maxed scorer, the exact regression the U41 hook depends on. Card
+# ids are the same real cards test_heuristic uses (28 Poltchageist repeatable
+# ability; 1205 Cyrano / 1145 Mega Signal deck-drilling trainers).
+ABILITY_REPEATABLE = 28
+SUPPORTER_DRAW = 1205
+ITEM_DRAW = 1145
+
+_PRIO_NAMES = (
+    "PRIO_CANDY", "PRIO_EVOLVE", "PRIO_PLAY", "PRIO_ATTACH",
+    "PRIO_ABILITY", "PRIO_RETREAT", "PRIO_ATTACK",
+)
+
+
+def _max_out_scorer(monkeypatch, **overrides):
+    # Drive every category weight to a huge value so the scorer maximally prefers
+    # whatever category is present; per-category overrides let a test single out one.
+    for name in _PRIO_NAMES:
+        monkeypatch.setattr(heuristics, name, overrides.get(name, 1e9))
+
+
+def _pokemon(card_id, hp, max_hp=None):
+    return {"id": card_id, "hp": hp, "maxHp": max_hp or hp}
+
+
+def _main_obs(option_dicts, *, my_active=None, opp_active=None, me_extra=None):
+    me = {"active": [my_active] if my_active else [], "bench": []}
+    me.update(me_extra or {})
+    opp = {"active": [opp_active] if opp_active else []}
+    return {
+        "select": {"type": heuristics.SEL_MAIN, "minCount": 1, "maxCount": 1,
+                   "option": option_dicts},
+        "current": {"yourIndex": 0, "energyAttached": True, "players": [me, opp]},
+    }
+
+
+def test_lethal_force_beats_adversarially_maxed_scorer(monkeypatch):
+    # L1: a guaranteed knockout is taken even when every scorer weight is maxed
+    # toward a non-attack category, proving the lethal FORCE sits above any scorer.
+    # Defender HP is set to the effective damage so the attack is exactly lethal
+    # regardless of any weakness or resistance interplay.
+    attacks = heuristics.attack_index()
+    aid, attack = next((k, a) for k, a in attacks.items() if (a.damage or 0) > 0)
+    _max_out_scorer(monkeypatch)
+    opp = _pokemon(722, 90)
+    opp["hp"] = heuristics.effective_damage(722, attack, opp["id"])
+    opts = [
+        {"type": heuristics.OPT_EVOLVE, "index": 0},          # index 0: scorer bait
+        {"type": heuristics.OPT_ATTACK, "attackId": aid},     # index 1: the knockout
+        {"type": heuristics.OPT_END},
+    ]
+    obs = _main_obs(opts, my_active=_pokemon(722, 90), opp_active=opp)
+    assert heuristics.choose(obs) == [1]
+
+
+def test_ability_loop_veto_holds_against_maxed_scorer(monkeypatch):
+    # L2: with the ability lever on AND PRIO_ABILITY maxed, a REPEATABLE ability is
+    # still refused (the stateless-loop veto is scorer-independent); the turn ends.
+    monkeypatch.setattr(heuristics, "_ABILITY", True)
+    _max_out_scorer(monkeypatch)
+    opts = [
+        {"type": heuristics.OPT_ABILITY, "area": heuristics.AREA_ACTIVE, "index": 0},
+        {"type": heuristics.OPT_END},
+    ]
+    obs = _main_obs(opts, my_active=_pokemon(ABILITY_REPEATABLE, 90),
+                    opp_active=_pokemon(722, 90))
+    assert heuristics.choose(obs) == [1]  # END, never the looping ability
+
+
+def test_deckout_veto_holds_against_maxed_play_scorer(monkeypatch):
+    # L3: near a self-deckout, a hand of only deck-drilling trainers is refused even
+    # when PLAY is the top-scored category; the pilot ends the turn rather than mill.
+    _max_out_scorer(monkeypatch)  # PRIO_PLAY maxed with the rest
+    hand = [{"id": SUPPORTER_DRAW}, {"id": ITEM_DRAW}]
+    opts = [
+        {"type": heuristics.OPT_PLAY, "index": 0},
+        {"type": heuristics.OPT_PLAY, "index": 1},
+        {"type": heuristics.OPT_END},
+    ]
+    obs = _main_obs(opts, my_active=_pokemon(722, 90), opp_active=_pokemon(722, 90),
+                    me_extra={"hand": hand, "deckCount": 4})
+    assert heuristics.choose(obs) == [2]  # END, not either draw trainer

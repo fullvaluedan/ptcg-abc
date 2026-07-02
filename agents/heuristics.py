@@ -1087,7 +1087,32 @@ def _choose_subselect(sel, obs) -> list:
 
 
 def choose(obs) -> list:
-    """Return option indices for the current decision. Never raises."""
+    """Return option indices for the current decision. Never raises.
+
+    Ordered FORCE/VETO guard stack (U37), each guard scorer-independent: it holds
+    under any PRIO_* weighting, so a future learned option-scorer (U41) inserted
+    below it can never override a safety guard. In priority order:
+
+      L1 lethal FORCE      -- a guaranteed knockout is taken first, ahead of the
+                              whole category scorer (test_safety guard-order lock).
+      L2 ability-loop VETO -- only a once-per-turn ability is ever activated; a
+                              repeatable ability is refused no matter how high the
+                              ABILITY category is scored (the stateless-loop guard).
+      L3 deckout VETO      -- near a self-deckout the PLAY resolver declines a
+                              deck-drilling trainer even when PLAY tops the scorer.
+      L4 thin-bench FORCE  -- a thin bench benches/fetches a Basic before other
+                              plays, and holds Rare Candy back (early_collapse).
+      L5 Rare Candy FORCE  -- with a live Stage 2 target and a healthy bench, the
+                              accelerator is preferred inside the PLAY/CANDY category.
+
+    Below the stack sits the CEM-tunable PRIO category scorer; below that, END and
+    the guaranteed first-legal fallback. The three safety guards L1 (never miss a
+    lethal), L2 (never loop on an ability) and L3 (never self-deckout) are locked
+    scorer-independent against an adversarially maxed scorer in tests/test_safety.py,
+    so the U41 scorer hook lands against a tested contract. The two strategic forces
+    L4 and L5 are early_collapse/tempo levers inside the PLAY and CANDY resolvers,
+    locked at the shipped weights in tests/test_heuristic.py.
+    """
     sel = obs.get("select")
     if sel is None:
         return []  # deck selection is handled by the agent, not here
