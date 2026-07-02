@@ -7,22 +7,31 @@ SOURCE OF TRUTH: docs/plans/2026-07-02-combined-learned-eval-plan-v2.md
 Read it fully before doing anything.
 
 ## RESUME STATE (2026-07-02, read this first)
-Done and committed: U1, U2, U3 (gauntlet dataset), U3a (ladder downloader), U3b (replay-to-rows), and U4's
-ladder-merge comparison. NEXT UNIT IS U3c, the top-player leaderboard tracker, per
-docs/plans/2026-07-02-addendum-top-player-tracker-v2.md: build tools/top_player_tracker.py, add
---source-weights to tools/train_eval.py (top_player=2.0, others 1.0), produce
-data/training/top_player_corpus_<date>.csv plus analysis/top_player_report.md, then RUN it once for real with
---top-n 20 and log the row count, teams found, and unmapped names to autoloop_status.md. After U3c: finalize
-U5's A/B with the retained model, then U6's retrain generation (which now folds in the weighted top_player
-corpus via train_eval --source-weights), then U7, the Phase A gate, then Phase B (U8-U12).
+Done: U1-U5, U3a/U3b/U3c, U4 ladder-merge, the top-player WIN corpus (173k rows), and U6 tooling (multi-source
+retrain merge + loss-mode measurement).
 
-FEASIBILITY NOTE for U3c (checked against the real data): the published episode-dataset replays key seats by
-info.TeamNames (team-name strings) plus rewards, and the Kaggle submissions API lists only OUR submissions,
-so other teams' per-game submission IDs are NOT retrievable. Map the top-N teams from the leaderboard (its
-columns are Rank, TeamId, TeamName, Score) and filter dataset games by exact TeamName match against
-info.TeamNames; prefer a stable id field only if a replay actually carries one. Log unmapped or ambiguous
-names in the report per the addendum rather than silently name-colliding. Use the newest published episode
-dataset available on disk; the weekly refresh keeps it current.
+NEXT UNIT IS U60 (parallel gauntlet), from
+docs/plans/2026-07-02-003-feat-offline-match-scale-topplayer-mining-plan.md. Build it BEFORE running the U6
+retrain: it fans the gauntlet across worker subprocesses (min(cores-2, 16)), each with its OWN temp state-log
+CSV, a shard-namespaced game_id (shard<k>:<i>), and a DISTINCT seed; the parent merges and dedupes by game_id.
+Mirror the subprocess fan-out in tools/cem_tune.py. Every A/B after it (the U6 run, U65) then settles in
+minutes instead of ~30. U61 (raw-engine fast path) stays DEFERRED unless the measured U60 rate still binds.
+
+Order after U60:
+1. Run U6 (multi-source retrain: gauntlet + ladder + top_player win, weighted; loss-mode check) VIA
+   parallel_gauntlet, then U7 writeup, then the Phase A gate.
+2. U62 (top-player LOSS corpus: top team as the LOSING seat, source=top_player_loss, with loss_bucket +
+   opponent) then U63 (the how-the-best-teams-win-vs-lose study). U63 SUPERSEDES the learned-eval Phase B U10
+   (top-bot loss mining), so drop U10.
+3. U64 (append + version loss-pattern features: bench-cliff, deckout-risk, prize tempo) and U65 (enriched
+   retrain with the win corpus, the loss corpus as weighted NEGATIVE signal, and the U64 features; keep only if
+   held-out AUC holds and no loss bucket worsens). U64 and U65 SHIP TOGETHER: a feature-length change
+   invalidates search/eval_model.json, so re-verify tests/test_grader_submission.py.
+4. Then Phase B (U8, U9, U11, U12).
+
+Two plans live on this branch: U1-U12 in docs/plans/2026-07-02-combined-learned-eval-plan-v2.md, U60-U65 in
+docs/plans/2026-07-02-003-feat-offline-match-scale-topplayer-mining-plan.md. Use the U-ID in each commit to
+find the right spec.
 
 ## Project
 - Repo: C:\Users\danom\ptcg-abc   Branch: feat/phase2-learned-eval (Phase A); feat/phase3-followon (Phase B). Never touch main.
@@ -35,9 +44,9 @@ dataset available on disk; the weekly refresh keeps it current.
 2. Confirm data/training/ and data/replays/ are gitignored (data/ is already ignored, which covers both).
 
 ## EACH ITERATION (one increment, then stop)
-1. git log --oneline to find the last completed unit. v2 order: U1, U2, U3, U3a, U3b, U3c, U4, U5, U6, U7,
-   then the Phase A gate check, then U8-U12 on feat/phase3-followon. Honor the RESUME STATE above (U3c is next,
-   even though U4's merge already landed; its corpus feeds the U6 retrain).
+1. git log --oneline to find the last completed unit. Order NOW (honor the RESUME STATE above): U60 is next,
+   then finish U6, U7, the Phase A gate, then U62, U63, then U64+U65 (ship together), then Phase B
+   (U8, U9, U11, U12; U10 is replaced by U63). Unit specs live in the two plan docs named in the RESUME STATE.
 2. Implement the NEXT undone unit exactly as the plan specifies. Mirror existing patterns in src/, agents/, search/, tools/.
 3. Write or update that unit's tests. Run python -m pytest tests -q. Must pass before committing.
 4. Review your own diff; apply only safe, verified fixes.
