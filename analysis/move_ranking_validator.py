@@ -44,99 +44,20 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-# SelectType.MAIN (api.py SelectType enum): the once-per-turn top-level decision
-# where the pilot chooses among ATTACH / PLAY / EVOLVE / RETREAT / ATTACK / END.
-# Kept local so the validator has no import-time dependency on the pilot module and
-# can score any choose-like callable.
-SEL_MAIN = 0
-
-# OptionType (api.py OptionType enum) values that can appear at a MAIN decision,
-# mapped to the action category name. Kept local for the same reason SEL_MAIN is:
-# the validator stays independent of the pilot module. A MAIN option's `type` field
-# names the KIND of action, so labeling both the option the expert played and the
-# one our pilot chose turns a raw disagreement into a map of WHERE the pilot
-# diverges (e.g. the expert ATTACHes but our pilot ENDs the turn).
-OPT_CATEGORY = {
-    7: "PLAY",
-    8: "ATTACH",
-    9: "EVOLVE",
-    10: "ABILITY",
-    12: "RETREAT",
-    13: "ATTACK",
-    14: "END",
-}
-
-
-def team_seat(replay, expert_teams) -> int | None:
-    """Seat index (0 or 1) whose team name is in `expert_teams`, or None.
-
-    A replay records the two competitors in `info.TeamNames`, seat-ordered. We only
-    want to score decisions made by a strong pilot, so this maps the caller's set of
-    expert handles to the seat they played. Returns None when neither seat (or both)
-    match, so an episode with no clear single expert seat is skipped rather than
-    scored against an unknown pilot. Pure, never raises.
-    """
-    try:
-        names = ((replay.get("info") or {}).get("TeamNames")) or []
-    except AttributeError:
-        return None
-    if not isinstance(names, (list, tuple)) or len(names) < 2:
-        return None
-    wanted = {str(t) for t in expert_teams}
-    matches = [i for i in (0, 1) if str(names[i]) in wanted]
-    return matches[0] if len(matches) == 1 else None
-
-
-def _played_index(action) -> int | None:
-    """The single option index an expert played, or None when it is not a single pick.
-
-    A MAIN decision records the action as a list of chosen option indices. We only
-    compare single-pick decisions (the ones our argmax pilot also answers with one
-    index), so anything but a one-element list of a non-negative int is skipped.
-    """
-    if not isinstance(action, (list, tuple)) or len(action) != 1:
-        return None
-    idx = action[0]
-    if isinstance(idx, bool) or not isinstance(idx, int) or idx < 0:
-        return None
-    return idx
-
-
-def iter_expert_decisions(replay, expert_index):
-    """Yield (obs, played_index) for each scorable MAIN decision by `expert_index`.
-
-    A scorable decision mirrors the search-activity definition: the expert seat is
-    ACTIVE, the select is a MAIN single-pick among more than one option, and the
-    recorded action is a single in-range option index. The observation is yielded
-    unchanged so a candidate `choose(obs)` decides on the exact real state. Mirrors
-    the ACTIVE / select / current gating in loss_classifier.parse_replay so the two
-    read the same decisions. Pure and defensive: a malformed step is skipped.
-    """
-    steps = replay.get("steps") or []
-    for step in steps:
-        if not isinstance(step, (list, tuple)):
-            continue
-        for entry in step:
-            if not isinstance(entry, dict) or entry.get("status") != "ACTIVE":
-                continue
-            obs = entry.get("observation") or {}
-            sel = obs.get("select")
-            current = obs.get("current")
-            if sel is None or current is None:
-                continue
-            if current.get("yourIndex", None) != expert_index:
-                continue
-            if sel.get("type") != SEL_MAIN:
-                continue
-            if sel.get("minCount", 1) != 1 or sel.get("maxCount", 1) != 1:
-                continue
-            options = sel.get("option") or []
-            if len(options) <= 1:
-                continue
-            idx = _played_index(entry.get("action"))
-            if idx is None or idx >= len(options):
-                continue
-            yield obs, idx
+# The scorable-decision primitives now live in the replay-trace spine (plan U32),
+# so there is exactly one definition of an expert decision, its resolution, and the
+# md5 split in the codebase. They are re-exported here unchanged so this module's
+# long-standing callers (tests, expert_cohort, unit_zero_spike) keep importing them
+# from move_ranking_validator.
+from analysis.replay_trace import (  # noqa: E402,F401
+    OPT_CATEGORY,
+    SEL_MAIN,
+    _played_index,
+    iter_expert_decisions,
+    iter_resolved_decisions,
+    resolve_option,
+    team_seat,
+)
 
 
 def agreement(replay, pilot_choose, expert_index) -> dict:

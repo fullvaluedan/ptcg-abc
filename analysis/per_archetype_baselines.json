@@ -1,0 +1,37 @@
+{
+  "by_family": {
+    "meta_archaludon": {
+      "agree": 3534,
+      "agreement": 0.28301433490830463,
+      "episodes": 578,
+      "n": 12487
+    },
+    "meta_grimmsnarl": {
+      "agree": 4843,
+      "agreement": 0.2691452706457708,
+      "episodes": 521,
+      "n": 17994
+    },
+    "meta_grimmsnarl_tonakaiiii": {
+      "agree": 1690,
+      "agreement": 0.2259056275898944,
+      "episodes": 206,
+      "n": 7481
+    },
+    "other": {
+      "agree": 1189,
+      "agreement": 0.249685006299874,
+      "episodes": 152,
+      "n": 4762
+    }
+  },
+  "episodes": 1457,
+  "overall": {
+    "agree": 11256,
+    "agreement": 0.2634584776706301,
+    "n": 42724
+  },
+  "skipped": 1,
+  "split": "test",
+  "threshold": 0.35
+}
