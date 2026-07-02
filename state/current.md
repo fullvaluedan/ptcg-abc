@@ -14,23 +14,38 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Kings
 
-- **shadow-king** (best live build): heuristic+trolley (ladder 569.6; original ref 54215558, live-reclaim copy 54252006)
-- **reclaim-king** (safe floor): heuristic+trolley (ladder 569.6; original ref 54215558, live-reclaim copy 54252006)
-
-## In-flight / scored slots
-
-- 2026-07-02: U20 slot-1 king reclaim SUBMITTED (ref 54252006, heuristic+trolley, byte-identical to the 569.6 king). Floor-guard action: prior active pair best was 489.6 < 540, so a king copy overrode the queue. Evicts the oldest active meta copy (archaludon 387.0). Doubles as the KD2 same-build noise-calibration resubmission. Slot 2 (trolley_thick deck A/B, evicting grimmsnarl 489.6) is NEXT once this reads at or above the floor.
+- **shadow-king** (best live build): heuristic+trolley (ref 54252006, ladder 600.0)
+- **reclaim-king** (safe floor): heuristic+trolley (ref 54252006, ladder 600.0)
 
 ## Candidates awaiting a ladder slot
 
-- heuristic+trolley_thick (U3/U31 deck A/B): thicker-basic trolley (Kyogre 2->4, energy 35->33); cut mirror empty-bench collapse 80.8%->65.4% (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md). Tarball grader-verified. QUEUED for U20 slot 2; needs a pre-registered A/B row (margin M=60, N>=30, settle-by) before submit.
+- heuristic+trolley_thick (U3/U31 deck A/B): thicker-basic trolley (Kyogre 2->4, energy 35->33); cut mirror empty-bench collapse 80.8%->65.4% (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md). Tarball grader-verified. QUEUED for U20 slot 2; needs a pre-registered A/B row (M=60, N>=30, settle-by) before submit.
 - cem-grown-genome (PRIO ordering): genome grown so CEM has a gradient (analysis/cem_gradient_restored.md); a real tools/cem_tune.py run is the pending next step, then offline-filter and gate on ladder A/B. Un-tuned build ships byte-identical.
+
+## Noise model (U22)
+
+- margin M = 60 (v1): WIN >= king+M, LOSS <= king-M, else BAND.
+- basis: same-behavior pair 591.9/569.6 + KD2 king resubmission heuristic+trolley 569.6 -> 600.0 byte-identical (same-build spread ~30 either side; true estimate ~585)
+- re-fit by: 2026-07-15
+
+## Pre-registrations (machine-checked gate, U22)
+
+A build may not be submitted without a complete row here (tools/loop_state.py check-submit --build <name>).
+
+| build | hypothesis | dir | M | N | settle-by | complete |
+| --- | --- | --- | --- | --- | --- | --- |
+| heuristic+trolley_thick | trolley_thick basic-density cuts early_collapse (thin_bench_threshold deck-change re-test) | up | 60 | 30 | 2026-07-06 | yes |
+
+- **heuristic+trolley_thick** filters: mirror empty-bench collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md); tarball grader-verified
+  - WIN: promote heuristic+trolley_thick to shadow-king; reclaim-king stays heuristic+trolley
+  - LOSS: evict trolley_thick, revert slot 2 to a king copy
+  - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king, record thin_bench_threshold re-test condition
 
 ## Per-build ledger
 
 | build | oracle | move-agree delta | ladder | sample | note |
 | --- | --- | --- | --- | --- | --- |
-| heuristic+trolley (reclaim 54252006) | n/a | n/a | pending | 0 | U20 slot-1 king reclaim 2026-07-02; same build as 569.6 king; noise-calibration copy |
+| heuristic+trolley (reclaim) | n/a | n/a | 600.0 | 0 | U20 slot-1 king reclaim; byte-identical to the 569.6 king; settled 600.0 => same-build noise band ~30/side (KD2 calibration) |
 | heuristic+trolley | n/a | n/a | 569.6 | 47 | SHADOW+RECLAIM king; top loss early_collapse |
 | heuristic+benchguard | n/a | n/a | 554.5 | 14 | bench-width guard build; below trolley floor |
 | search+trolley | n/a | n/a | 514.7 |  | search FORCE-LOADED and actually ran; still < heuristic |
@@ -51,18 +66,16 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
     }
   ],
   "in_flight": {
-    "build": "heuristic+trolley (U20 slot-1 king reclaim)",
-    "ref": "54252006",
-    "submitted": "2026-07-02",
-    "reason": "floor guard: prior active pair best 489.6 < 540 forced a king copy over the queue; evicts oldest active meta copy archaludon 387.0; doubles as KD2 same-build noise calibration",
-    "next": "U20 slot 2 = heuristic+trolley_thick deck A/B (evict grimmsnarl 489.6), pre-registered, once this reads at/above the floor"
+    "build": null,
+    "note": "U20 slot-1 reclaim 54252006 settled COMPLETE at 600.0 (above the 540 floor, floor guard no longer fires). Slot 2 = heuristic+trolley_thick is pre-registered (U22 gate) and awaiting the next iteration's board-check-first submit, evicting grimmsnarl 489.6.",
+    "ref": null
   },
   "ledger": [
     {
       "build": "heuristic+trolley (reclaim)",
-      "ladder": "pending",
+      "ladder": 600.0,
       "move_agreement_delta": "n/a",
-      "note": "U20 slot-1 king reclaim 2026-07-02; same build as 569.6 king; noise-calibration copy",
+      "note": "U20 slot-1 king reclaim; byte-identical to the 569.6 king; settled 600.0 => same-build noise band ~30/side (KD2 calibration)",
       "oracle": "n/a",
       "ref": "54252006",
       "sample_size": 0
@@ -144,17 +157,39 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
     "top_bucket": "early_collapse",
     "wins": 26
   },
+  "noise_model": {
+    "basis": "same-behavior pair 591.9/569.6 + KD2 king resubmission heuristic+trolley 569.6 -> 600.0 byte-identical (same-build spread ~30 either side; true estimate ~585)",
+    "margin_M": 60,
+    "refit_by": "2026-07-15",
+    "version": 1
+  },
+  "pre_registrations": [
+    {
+      "actions": {
+        "band": "one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king, record thin_bench_threshold re-test condition",
+        "loss": "evict trolley_thick, revert slot 2 to a king copy",
+        "win": "promote heuristic+trolley_thick to shadow-king; reclaim-king stays heuristic+trolley"
+      },
+      "build": "heuristic+trolley_thick",
+      "direction": "up",
+      "filters": "mirror empty-bench collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md); tarball grader-verified",
+      "hypothesis": "trolley_thick basic-density cuts early_collapse (thin_bench_threshold deck-change re-test)",
+      "margin": 60,
+      "n": 30,
+      "settle_by": "2026-07-06"
+    }
+  ],
   "reclaim_king": {
     "build": "heuristic+trolley",
-    "ladder": 569.6,
-    "note": "safe floor to revert to before any A/B",
-    "ref": "54215558"
+    "ladder": 600.0,
+    "note": "safe floor to revert to before any A/B; two live copies exist (54215558=569.6, 54252006=600.0)",
+    "ref": "54252006"
   },
   "shadow_king": {
     "build": "heuristic+trolley",
-    "ladder": 569.6,
-    "note": "best live build; search costs points (514.7<569.6), meta copies below",
-    "ref": "54215558"
+    "ladder": 600.0,
+    "note": "best live reading (byte-identical king copy); same-build true estimate ~585 from 569.6/600.0",
+    "ref": "54252006"
   }
 }
 ```

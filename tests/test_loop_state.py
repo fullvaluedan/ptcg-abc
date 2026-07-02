@@ -224,3 +224,121 @@ def test_classify_dirs_missing_dir_contributes_nothing(tmp_path):
     assert rep["sample_size"] == 0
     assert rep["sources"] == []
     assert rep["top_bucket"] is None
+
+
+# --------------------------------------------------------------------------- #
+# pre-registration: the machine-checked A/B gate (plan U22)
+# --------------------------------------------------------------------------- #
+def _complete_row(**overrides):
+    row = {
+        "build": "heuristic+trolley_thick",
+        "hypothesis": "thin_bench_threshold",
+        "direction": "up",
+        "margin": 60,
+        "n": 30,
+        "settle_by": "2026-07-09",
+        "filters": "collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression",
+        "actions": {"win": "promote to king", "loss": "evict, revert to king",
+                    "band": "one repeat then scoreboard"},
+    }
+    row.update(overrides)
+    return row
+
+
+def test_complete_prereg_passes():
+    assert ls.validate_prereg(_complete_row()) == []
+    assert ls.is_prereg_complete(_complete_row()) is True
+
+
+@pytest.mark.parametrize("field", ["build", "hypothesis", "settle_by", "filters"])
+def test_missing_required_string_field_blocks(field):
+    row = _complete_row()
+    del row[field]
+    assert ls.validate_prereg(row)  # non-empty -> incomplete
+    assert ls.is_prereg_complete(row) is False
+
+
+def test_bad_direction_blocks():
+    assert ls.validate_prereg(_complete_row(direction="sideways"))
+    assert ls.validate_prereg(_complete_row(direction=""))
+
+
+def test_margin_must_be_positive_int():
+    assert ls.validate_prereg(_complete_row(margin=0))
+    assert ls.validate_prereg(_complete_row(margin=-5))
+    assert ls.validate_prereg(_complete_row(margin="sixty"))
+
+
+def test_n_must_meet_episode_floor():
+    assert ls.validate_prereg(_complete_row(n=29))
+    assert ls.validate_prereg(_complete_row(n=ls.MIN_EPISODES)) == []
+    assert ls.validate_prereg(_complete_row(n=None))
+
+
+def test_settle_by_must_be_iso_date():
+    assert ls.validate_prereg(_complete_row(settle_by="soon"))
+    assert ls.validate_prereg(_complete_row(settle_by="2026-13-40"))
+    assert ls.validate_prereg(_complete_row(settle_by="2026-07-09")) == []
+
+
+def test_actions_need_all_three_branches():
+    assert ls.validate_prereg(_complete_row(actions={"win": "x", "loss": "y"}))
+    assert ls.validate_prereg(_complete_row(actions={"win": "x", "loss": "y", "band": ""}))
+    assert ls.validate_prereg(_complete_row(actions="promote"))
+
+
+def test_non_mapping_row_is_incomplete():
+    assert ls.validate_prereg(None)
+    assert ls.validate_prereg("not a row")
+
+
+def test_upsert_refuses_incomplete_and_stores_complete():
+    data = {}
+    with pytest.raises(ValueError):
+        ls.upsert_prereg(data, _complete_row(margin=0))
+    assert "pre_registrations" not in data  # nothing stored on refusal
+    ls.upsert_prereg(data, _complete_row())
+    assert len(data["pre_registrations"]) == 1
+
+
+def test_upsert_replaces_by_build():
+    data = {}
+    ls.upsert_prereg(data, _complete_row(n=30))
+    ls.upsert_prereg(data, _complete_row(n=40))
+    assert len(data["pre_registrations"]) == 1  # same build -> replaced, not appended
+    assert data["pre_registrations"][0]["n"] == 40
+
+
+def test_submission_gate_blocks_without_row_and_allows_with_one():
+    data = {}
+    ok, reason = ls.submission_allowed(data, "heuristic+trolley_thick")
+    assert ok is False and "no pre-registration" in reason
+    ls.upsert_prereg(data, _complete_row())
+    ok, reason = ls.submission_allowed(data, "heuristic+trolley_thick")
+    assert ok is True
+    # A different build still has no row of its own.
+    assert ls.submission_allowed(data, "some-other-build")[0] is False
+
+
+def test_submission_gate_blocks_on_incomplete_stored_row():
+    # A hand-planted incomplete row (bypassing upsert) must still be refused.
+    data = {"pre_registrations": [{"build": "x", "hypothesis": "h"}]}
+    ok, reason = ls.submission_allowed(data, "x")
+    assert ok is False and "incomplete" in reason
+
+
+def test_prereg_round_trips_through_current_md(tmp_state):
+    data = {"loss_distribution": {}}
+    ls.upsert_prereg(data, _complete_row())
+    ls.write_current(data)
+    assert ls.read_current()["pre_registrations"] == data["pre_registrations"]
+
+
+def test_settle_verdict_margin_arithmetic():
+    assert ls.settle_verdict(660, 600, margin=60) == "WIN"    # exactly +M
+    assert ls.settle_verdict(661, 600, margin=60) == "WIN"
+    assert ls.settle_verdict(540, 600, margin=60) == "LOSS"   # exactly -M
+    assert ls.settle_verdict(539, 600, margin=60) == "LOSS"
+    assert ls.settle_verdict(600, 600, margin=60) == "BAND"   # tie is noise
+    assert ls.settle_verdict(659, 600, margin=60) == "BAND"   # sub-margin gain
+    assert ls.settle_verdict(541, 600, margin=60) == "BAND"

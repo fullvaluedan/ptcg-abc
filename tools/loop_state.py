@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -43,6 +44,17 @@ from tools.scout import digest_dir  # noqa: E402
 STATE_DIR = _ROOT / "state"
 CURRENT_PATH = STATE_DIR / "current.md"
 HYPOTHESES_PATH = STATE_DIR / "hypotheses.md"
+
+# Noise model v1 (plan U22). The same-behavior pair 591.9/569.6 plus the
+# deliberate king resubmission (heuristic+trolley 569.6 -> 600.0 byte-identical)
+# put the same-build ladder spread near 30 points either side, so a candidate is
+# only a real WIN when it clears the king by M, and a real LOSS when it falls M
+# below. M=60 is that band; margins and the re-fit date live in current.md.
+DEFAULT_MARGIN = 60
+
+# Settlement needs at least this many rated episodes (the pre-committed episode
+# floor N in every pre-registration must be >= this), per the loop protocol.
+MIN_EPISODES = 30
 
 # The fenced json block that carries the machine-readable state. Kept explicit so
 # both the writer and the reader agree on the exact fence, and a human editing the
@@ -166,6 +178,46 @@ def _render_current_md(data: dict) -> str:
         lines.append("_none_")
     lines.append("")
 
+    noise = data.get("noise_model") or {}
+    if noise:
+        lines.append("## Noise model (U22)")
+        lines.append("")
+        lines.append(f"- margin M = {noise.get('margin_M', DEFAULT_MARGIN)} "
+                     f"(v{noise.get('version', 1)}): WIN >= king+M, LOSS <= king-M, else BAND.")
+        if noise.get("basis"):
+            lines.append(f"- basis: {noise['basis']}")
+        if noise.get("refit_by"):
+            lines.append(f"- re-fit by: {noise['refit_by']}")
+        lines.append("")
+
+    pregs = data.get("pre_registrations") or []
+    lines.append("## Pre-registrations (machine-checked gate, U22)")
+    lines.append("")
+    lines.append("A build may not be submitted without a complete row here "
+                 "(tools/loop_state.py check-submit --build <name>).")
+    lines.append("")
+    if pregs:
+        lines.append("| build | hypothesis | dir | M | N | settle-by | complete |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- |")
+        for r in pregs:
+            complete = "yes" if is_prereg_complete(r) else "NO"
+            lines.append(
+                f"| {r.get('build', '?')} | {r.get('hypothesis', '')} | "
+                f"{r.get('direction', '')} | {r.get('margin', '')} | {r.get('n', '')} | "
+                f"{r.get('settle_by', '')} | {complete} |"
+            )
+        lines.append("")
+        for r in pregs:
+            actions = r.get("actions") or {}
+            lines.append(f"- **{r.get('build', '?')}** filters: {r.get('filters', '')}")
+            lines.append(f"  - WIN: {actions.get('win', '')}")
+            lines.append(f"  - LOSS: {actions.get('loss', '')}")
+            lines.append(f"  - BAND: {actions.get('band', '')}")
+        lines.append("")
+    else:
+        lines.append("_none_")
+        lines.append("")
+
     ledger = data.get("ledger") or []
     lines.append("## Per-build ledger")
     lines.append("")
@@ -280,6 +332,124 @@ def retest_candidates(data: dict, current_sample: int | None = None,
 
 
 # --------------------------------------------------------------------------- #
+# pre-registration: the machine-checked A/B gate (plan U22)
+# --------------------------------------------------------------------------- #
+def _valid_date(value) -> bool:
+    """True only for a real YYYY-MM-DD date string (the settle-by field)."""
+    if not isinstance(value, str) or not value.strip():
+        return False
+    try:
+        datetime.strptime(value.strip(), "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False
+
+
+def validate_prereg(row: dict) -> list:
+    """Return a list of human-readable problems that make a pre-registration
+    row incomplete. An empty list means the row is complete and a submission for
+    its build is allowed.
+
+    This is the mechanical gate U22 adds: the loop may not spend a ladder slot on
+    a hypothesis without a complete row. Every field the protocol names must be
+    present and well-formed (hypothesis id, direction, margin M, episode floor N,
+    settle-by date, offline filter values, and committed WIN/LOSS/BAND actions).
+    An incomplete row is a hard block, not a warning, so the checks are strict:
+    a missing OR malformed field both count as incomplete.
+    """
+    problems: list = []
+    if not isinstance(row, dict):
+        return ["pre-registration is not a mapping"]
+    if not str(row.get("build", "")).strip():
+        problems.append("missing build")
+    if not str(row.get("hypothesis", "")).strip():
+        problems.append("missing hypothesis")
+    if str(row.get("direction", "")).strip().lower() not in ("up", "down"):
+        problems.append("direction must be 'up' or 'down'")
+    try:
+        if int(row.get("margin")) <= 0:
+            problems.append("margin must be a positive integer")
+    except (TypeError, ValueError):
+        problems.append("margin must be a positive integer")
+    try:
+        if int(row.get("n")) < MIN_EPISODES:
+            problems.append(f"N (episode floor) must be >= {MIN_EPISODES}")
+    except (TypeError, ValueError):
+        problems.append(f"N (episode floor) must be >= {MIN_EPISODES}")
+    if not _valid_date(row.get("settle_by")):
+        problems.append("settle_by must be a YYYY-MM-DD date")
+    filters = row.get("filters")
+    if not filters or (isinstance(filters, str) and not filters.strip()):
+        problems.append("missing offline filter values")
+    actions = row.get("actions")
+    if not isinstance(actions, dict):
+        problems.append("missing WIN/LOSS/BAND actions")
+    else:
+        for key in ("win", "loss", "band"):
+            if not str(actions.get(key, "")).strip():
+                problems.append(f"missing committed {key.upper()} action")
+    return problems
+
+
+def is_prereg_complete(row: dict) -> bool:
+    """True when the row carries every pre-registration field, well-formed."""
+    return not validate_prereg(row)
+
+
+def upsert_prereg(data: dict, row: dict) -> dict:
+    """Add or replace (keyed by build) a pre-registration in a current-state dict.
+
+    Raises ValueError if the row is incomplete: the gate refuses to record a
+    partial pre-registration, so a row that survives to state/current.md is
+    always submission-ready. Returns the mutated data for convenience.
+    """
+    problems = validate_prereg(row)
+    if problems:
+        raise ValueError("incomplete pre-registration: " + "; ".join(problems))
+    rows = data.get("pre_registrations")
+    if not isinstance(rows, list):
+        rows = []
+    build = row["build"]
+    rows = [r for r in rows if r.get("build") != build]
+    rows.append(row)
+    data["pre_registrations"] = rows
+    return data
+
+
+def submission_allowed(data: dict, build: str) -> tuple:
+    """The dry-run submission gate: (allowed, reason) for a build.
+
+    A submission is allowed only when current-state carries a complete
+    pre-registration row for exactly that build. No row, or an incomplete row,
+    blocks the slot. Callers (and the check-submit CLI) run this BEFORE any
+    kaggle submit so an unpre-registered build can never reach the ladder.
+    """
+    for r in data.get("pre_registrations") or []:
+        if r.get("build") == build:
+            problems = validate_prereg(r)
+            if problems:
+                return False, "pre-registration incomplete: " + "; ".join(problems)
+            return True, "pre-registration complete; submission allowed"
+    return False, (f"no pre-registration row for build '{build}'; submission "
+                   "blocked (U22: pre-register a complete row first)")
+
+
+def settle_verdict(candidate_score, king_score, margin: int = DEFAULT_MARGIN) -> str:
+    """WIN / LOSS / BAND from the noise-model margin arithmetic.
+
+    WIN when the candidate clears the king by at least M, LOSS when it falls at
+    least M below, BAND (inside the same-build noise band) otherwise. Ties and
+    sub-margin gaps are BAND by construction, so noise is never promoted.
+    """
+    diff = float(candidate_score) - float(king_score)
+    if diff >= margin:
+        return "WIN"
+    if diff <= -margin:
+        return "LOSS"
+    return "BAND"
+
+
+# --------------------------------------------------------------------------- #
 # loss-bucket classification over one or more replay dirs (the MEASURE step)
 # --------------------------------------------------------------------------- #
 def classify_dirs(dirs) -> dict:
@@ -354,6 +524,34 @@ def _cmd_retest(args) -> None:
         print("no refuted hypothesis meets its re-test condition")
 
 
+def _cmd_prereg(args) -> None:
+    row = {
+        "build": args.build,
+        "hypothesis": args.hypothesis,
+        "direction": args.direction,
+        "margin": args.margin,
+        "n": args.n,
+        "settle_by": args.settle_by,
+        "filters": args.filters,
+        "actions": {"win": args.win, "loss": args.loss, "band": args.band},
+    }
+    data = read_current()
+    try:
+        upsert_prereg(data, row)
+    except ValueError as exc:
+        print(str(exc))
+        raise SystemExit(2)
+    write_current(data)
+    print(f"pre-registered '{args.build}' (complete); submission now allowed")
+
+
+def _cmd_check_submit(args) -> None:
+    ok, reason = submission_allowed(read_current(), args.build)
+    print(("ALLOW: " if ok else "BLOCK: ") + reason)
+    if not ok:
+        raise SystemExit(1)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="stateful loop memory (plan U12)")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -367,6 +565,24 @@ def main() -> None:
     rt.add_argument("--sample", type=int, default=None, help="current replay sample size")
     rt.add_argument("--deck", default=None, help="current deck name")
 
+    pr = sub.add_parser("prereg", help="add/replace a machine-checked pre-registration row (U22)")
+    pr.add_argument("--build", required=True, help="the exact build/candidate name")
+    pr.add_argument("--hypothesis", required=True, help="hypothesis id or claim under test")
+    pr.add_argument("--direction", required=True, choices=["up", "down"],
+                    help="expected direction of the metric")
+    pr.add_argument("--margin", type=int, default=DEFAULT_MARGIN,
+                    help=f"settlement margin M (default {DEFAULT_MARGIN})")
+    pr.add_argument("--n", type=int, required=True,
+                    help=f"pre-committed episode floor N (>= {MIN_EPISODES})")
+    pr.add_argument("--settle-by", dest="settle_by", required=True, help="YYYY-MM-DD")
+    pr.add_argument("--filters", required=True, help="offline filter values that were met")
+    pr.add_argument("--win", required=True, help="committed WIN action")
+    pr.add_argument("--loss", required=True, help="committed LOSS action")
+    pr.add_argument("--band", required=True, help="committed BAND action")
+
+    cs = sub.add_parser("check-submit", help="dry-run the U22 submission gate for a build")
+    cs.add_argument("--build", required=True, help="the build about to be submitted")
+
     args = ap.parse_args()
     if args.cmd == "refresh":
         _cmd_refresh(args)
@@ -374,6 +590,10 @@ def main() -> None:
         _cmd_target(args)
     elif args.cmd == "retest":
         _cmd_retest(args)
+    elif args.cmd == "prereg":
+        _cmd_prereg(args)
+    elif args.cmd == "check-submit":
+        _cmd_check_submit(args)
 
 
 if __name__ == "__main__":
