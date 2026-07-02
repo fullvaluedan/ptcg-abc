@@ -9,7 +9,7 @@ block at the bottom.
 | lever | verdict | sample | deck | re-test when | source |
 | --- | --- | --- | --- | --- | --- |
 | meta_deck_copy | refuted | 2 ladder A/Bs | meta_archaludon/meta_grimmsnarl | only if U13 cloned-opponent search shows the pilot can execute complex lines | analysis/meta_decks_underperform_on_ladder.md |
-| search_active_beats_heuristic | refuted | ladder A/B pair | trolley | P3 only, and ONLY if the Long et al. determinization diagnostic (U7) is favorable | analysis/ladder_search_inert.md + analysis/ladder_scored_pair_reclaim.md |
+| search_active_beats_heuristic | refuted | ladder A/B pair | trolley | MET 2026-07-02: the U27 PIMC determinization diagnostic is FAVORABLE (analysis/pimc_diagnostic.md), so the P3 U45 belief-weighted-search lane may re-confirm 514.7 vs 569.6 under the protocol as part of that lane, never before. | analysis/ladder_search_inert.md + analysis/ladder_scored_pair_reclaim.md |
 | bench_floor_leaf_term | refuted | depth sweep | trolley | n/a in search leaf; the term was RE-HOMED into agents/heuristics.py (P1/U2) | analysis/bench_floor_search_lever_squeezed.md |
 | thin_bench_threshold | refuted | guard sweep on trolley | trolley | MET by a higher-basic-density deck (P1/U3): the floor is deck-set, so re-measure on trolley_thick | analysis/thin_bench_threshold_is_flat.md |
 | bench_dig | refuted | ladder replays (at scale) | trolley | a still-larger sample or a higher-basic deck may flip it again | analysis/bench_dig_refuted_at_scale.md |
@@ -69,7 +69,8 @@ block at the bottom.
       "deck": "trolley",
       "evidence": "First search subs were INERT (fell back to heuristic, ~0.02s draws). Once force-loaded so search actually ran (search+trolley 54218335), it scored 514.7 vs the heuristic's 569.6 on the SAME deck. Search costs points.",
       "name": "search_active_beats_heuristic",
-      "retest_condition": "P3 only, and ONLY if the Long et al. determinization diagnostic (U7) is favorable",
+      "retest_condition": "MET 2026-07-02: the U27 PIMC determinization diagnostic is FAVORABLE (analysis/pimc_diagnostic.md), so the P3 U45 belief-weighted-search lane may re-confirm 514.7 vs 569.6 under the protocol as part of that lane, never before.",
+      "retest_met": true,
       "sample_size": "ladder A/B pair",
       "source": "analysis/ladder_search_inert.md + analysis/ladder_scored_pair_reclaim.md",
       "verdict": "refuted"

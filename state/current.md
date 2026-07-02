@@ -53,11 +53,16 @@ _none calibrated; every proxy gate is refused (default-deny)_
 - 5732 episodes scored, 167531 ranking groups
 - target family **meta_grimmsnarl** -> tier **full** (analysis/expert_census.md)
 
+## Search-branch verdict (U27)
+
+- PIMC diagnostic verdict: **FAVORABLE** -> **U45 belief-weighted search** (analysis/pimc_diagnostic.md)
+- leaf correlation 0.80-0.91 discriminating, disambiguation slope 0.023-0.037 (marginal), bias 0.46-0.68 (decided 2026-07-02, not revisited per KD7)
+
 ## Per-build ledger
 
 | build | oracle | move-agree delta | ladder | sample | note |
 | --- | --- | --- | --- | --- | --- |
-| heuristic+trolley (reclaim) | n/a | n/a | 600.0 | 0 | U20 slot-1 king reclaim; byte-identical to the 569.6 king; settled 600.0, drifted to 594.7 on 2026-07-02 board check => same-build noise band ~25-30/side (KD2 calibration) Board 2026-07-02 04:21 UTC: 524.0 (600.0 settled -> 594.7 -> 556.7 -> 524.0; same-build drift, best-ever 600.0 still clears the 540 floor guard so it does not fire). Board 2026-07-02 04:55 UTC: 501.2 (converged toward the thick A/B at 499.9; same-build/deck drift). Best-ever 600.0 still clears the 540 floor guard, so it does not fire. |
+| heuristic+trolley (reclaim) | n/a | n/a | 600.0 | 0 | U20 slot-1 king reclaim; byte-identical to the 569.6 king; settled 600.0, drifted to 594.7 on 2026-07-02 board check => same-build noise band ~25-30/side (KD2 calibration) Board 2026-07-02 04:21 UTC: 524.0 (600.0 settled -> 594.7 -> 556.7 -> 524.0; same-build drift, best-ever 600.0 still clears the 540 floor guard so it does not fire). Board 2026-07-02 04:55 UTC: 501.2 (converged toward the thick A/B at 499.9; same-build/deck drift). Best-ever 600.0 still clears the 540 floor guard, so it does not fire. Board 2026-07-02 (U27 iter): 491.7 (thick A/B leads by +44.7, inside BAND). Best-ever 600.0 still clears the 540 floor guard, so it does not fire. |
 | heuristic+trolley | n/a | n/a | 569.6 | 47 | SHADOW+RECLAIM king; top loss early_collapse |
 | heuristic+benchguard | n/a | n/a | 554.5 | 14 | bench-width guard build; below trolley floor |
 | search+trolley | n/a | n/a | 514.7 |  | search FORCE-LOADED and actually ran; still < heuristic |
@@ -88,9 +93,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "target_tier": "full"
   },
   "in_flight": {
-    "board_reading": 499.9,
+    "board_reading": 536.4,
     "build": "heuristic+trolley_thick",
-    "note": "U20 slot-2 deck A/B SUBMITTED (ref 54252291, 2026-07-02 03:59 UTC) after U22 gate ALLOW and grader exec test green. Pre-registered vs the trolley king: direction up, M=60, N>=30, settle-by 2026-07-06. Settlement needs >=30 rated episodes AND >=24h; early-evict under 35%% raw win rate after 15 episodes. WIN>=king+60 promote; LOSS<=king-60 evict+revert to king copy; BAND one repeat then U23 scoreboard. BOARD 2026-07-02 04:55 UTC: thick COMPLETE 499.9 vs reclaim king 54252006 501.2 (gap 1.3, deep in BAND; reads have converged, consistent with deck-only same-behavior noise). NOT settled: sub is ~56 min old, earliest settle 2026-07-03 04:00 UTC.",
+    "note": "U20 slot-2 deck A/B SUBMITTED (ref 54252291, 2026-07-02 03:59 UTC) after U22 gate ALLOW and grader exec test green. Pre-registered vs the trolley king: direction up, M=60, N>=30, settle-by 2026-07-06. Settlement needs >=30 rated episodes AND >=24h; early-evict under 35% raw win rate after 15 episodes. WIN>=king+60 promote; LOSS<=king-60 evict+revert to king copy; BAND one repeat then U23 scoreboard. BOARD 2026-07-02 (U27 iter): thick COMPLETE 536.4 vs reclaim king 54252006 491.7 (gap +44.7 in favor of thick, still inside BAND M=60). NOT settled: sub is <24h old, earliest settle 2026-07-03 04:00 UTC.",
     "ref": "54252291"
   },
   "ledger": [
@@ -98,7 +103,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "build": "heuristic+trolley (reclaim)",
       "ladder": 600.0,
       "move_agreement_delta": "n/a",
-      "note": "U20 slot-1 king reclaim; byte-identical to the 569.6 king; settled 600.0, drifted to 594.7 on 2026-07-02 board check => same-build noise band ~25-30/side (KD2 calibration) Board 2026-07-02 04:21 UTC: 524.0 (600.0 settled -> 594.7 -> 556.7 -> 524.0; same-build drift, best-ever 600.0 still clears the 540 floor guard so it does not fire). Board 2026-07-02 04:55 UTC: 501.2 (converged toward the thick A/B at 499.9; same-build/deck drift). Best-ever 600.0 still clears the 540 floor guard, so it does not fire.",
+      "note": "U20 slot-1 king reclaim; byte-identical to the 569.6 king; settled 600.0, drifted to 594.7 on 2026-07-02 board check => same-build noise band ~25-30/side (KD2 calibration) Board 2026-07-02 04:21 UTC: 524.0 (600.0 settled -> 594.7 -> 556.7 -> 524.0; same-build drift, best-ever 600.0 still clears the 540 floor guard so it does not fire). Board 2026-07-02 04:55 UTC: 501.2 (converged toward the thick A/B at 499.9; same-build/deck drift). Best-ever 600.0 still clears the 540 floor guard, so it does not fire. Board 2026-07-02 (U27 iter): 491.7 (thick A/B leads by +44.7, inside BAND). Best-ever 600.0 still clears the 540 floor guard, so it does not fire.",
       "oracle": "n/a",
       "ref": "54252006",
       "sample_size": 0
@@ -207,6 +212,15 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "ladder": 600.0,
     "note": "safe floor to revert to before any A/B; two live copies exist (54215558=569.6, 54252006=600.0)",
     "ref": "54252006"
+  },
+  "search_branch": {
+    "bias_abs": "0.46-0.68",
+    "branch": "U45 belief-weighted search",
+    "decided": "2026-07-02",
+    "disambig_slope": "0.023-0.037 (marginal)",
+    "leaf_correlation": "0.80-0.91 discriminating",
+    "source": "analysis/pimc_diagnostic.md",
+    "verdict": "FAVORABLE"
   },
   "shadow_king": {
     "build": "heuristic+trolley",

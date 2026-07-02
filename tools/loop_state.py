@@ -257,6 +257,22 @@ def _render_current_md(data: dict) -> str:
         )
         lines.append("")
 
+    branch = data.get("search_branch") or {}
+    if branch:
+        lines.append("## Search-branch verdict (U27)")
+        lines.append("")
+        lines.append(
+            f"- PIMC diagnostic verdict: **{branch.get('verdict', '?')}** -> "
+            f"**{branch.get('branch', '?')}** ({branch.get('source', '')})"
+        )
+        lines.append(
+            f"- leaf correlation {branch.get('leaf_correlation', '?')}, "
+            f"disambiguation slope {branch.get('disambig_slope', '?')}, "
+            f"bias {branch.get('bias_abs', '?')} (decided {branch.get('decided', '?')}, "
+            "not revisited per KD7)"
+        )
+        lines.append("")
+
     ledger = data.get("ledger") or []
     lines.append("## Per-build ledger")
     lines.append("")
