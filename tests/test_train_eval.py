@@ -14,15 +14,26 @@ import pytest
 
 from ptcg_agent.features import FEATURE_NAMES
 from search import learned_eval
-from tools.train_eval import evaluate, export_model, fit_standardized, game_split, load_rows
+from tools.train_eval import (
+    compare_gauntlet_vs_merged,
+    evaluate,
+    export_model,
+    fit_standardized,
+    game_split,
+    load_rows,
+    write_ladder_ab_report,
+)
 
 
-def _write_csv(path, rows):
+def _write_csv(path, rows, source=None):
     header = ["game_id", "seat", "turn", *FEATURE_NAMES, "label"]
+    if source is not None:
+        header.append("source")
     with open(path, "w", newline="") as fh:
         writer = csv.writer(fh)
         writer.writerow(header)
-        writer.writerows(rows)
+        for row in rows:
+            writer.writerow([*row, source] if source is not None else row)
     return path
 
 
@@ -107,3 +118,68 @@ def test_exported_model_round_trips_through_learned_eval(tmp_path, monkeypatch):
     finally:
         learned_eval._model = None
         learned_eval._load_attempted = False
+
+
+def test_load_rows_tags_game_ids_with_prefix(tmp_path):
+    path = tmp_path / "states.csv"
+    _write_csv(path, [["g0", 0, 1, *_feature_row(prize_diff=0.5), 1]])
+
+    game_ids, _, _ = load_rows(path, tag_prefix="ladder")
+
+    assert game_ids.tolist() == ["ladder:g0"]
+
+
+def _prize_diff_dataset(n_games, rows_per_game, sign=1, seed=0):
+    """n_games games, each rows_per_game rows, label agreeing with sign*prize_diff."""
+    rng = np.random.RandomState(seed)
+    rows = []
+    for g in range(n_games):
+        for _ in range(rows_per_game):
+            diff = rng.uniform(-1, 1)
+            label = 1 if (sign * diff) > 0 else 0
+            rows.append([f"g{g}", 0, 1, *_feature_row(prize_diff=diff), label])
+    return rows
+
+
+def test_compare_gauntlet_vs_merged_picks_merged_when_ladder_agrees(tmp_path):
+    gauntlet_csv = _write_csv(tmp_path / "gauntlet.csv", _prize_diff_dataset(30, 5, sign=1, seed=0))
+    ladder_csv = _write_csv(
+        tmp_path / "ladder.csv", _prize_diff_dataset(30, 5, sign=1, seed=1), source="ladder"
+    )
+
+    result = compare_gauntlet_vs_merged(gauntlet_csv, ladder_csv, test_frac=0.2, seed=0)
+
+    assert result["picked"] == "merged"
+    assert result["merged"]["metrics"]["auc"] >= result["gauntlet_only"]["metrics"]["auc"]
+    assert result["merged"]["n_train"] > result["gauntlet_only"]["n_train"]
+    assert result["n_ladder_rows"] == 30 * 5
+
+
+def test_compare_gauntlet_vs_merged_picks_gauntlet_only_when_ladder_contradicts(tmp_path):
+    gauntlet_csv = _write_csv(tmp_path / "gauntlet.csv", _prize_diff_dataset(30, 5, sign=1, seed=0))
+    # far more contradicting rows than gauntlet rows, so the merged fit is pulled
+    # toward the inverted (wrong, for the gauntlet test set) relationship.
+    ladder_csv = _write_csv(
+        tmp_path / "ladder.csv", _prize_diff_dataset(200, 5, sign=-1, seed=2), source="ladder"
+    )
+
+    result = compare_gauntlet_vs_merged(gauntlet_csv, ladder_csv, test_frac=0.2, seed=0)
+
+    assert result["picked"] == "gauntlet_only"
+    assert result["gauntlet_only"]["metrics"]["auc"] > result["merged"]["metrics"]["auc"]
+
+
+def test_write_ladder_ab_report_documents_the_verdict(tmp_path):
+    gauntlet_csv = _write_csv(tmp_path / "gauntlet.csv", _prize_diff_dataset(30, 5, sign=1, seed=0))
+    ladder_csv = _write_csv(
+        tmp_path / "ladder.csv", _prize_diff_dataset(30, 5, sign=1, seed=1), source="ladder"
+    )
+    result = compare_gauntlet_vs_merged(gauntlet_csv, ladder_csv, test_frac=0.2, seed=0)
+
+    report_path = write_ladder_ab_report(result, tmp_path / "ladder_data_ab.md")
+
+    text = report_path.read_text()
+    assert "gauntlet+ladder (merged)" in text
+    assert "Verdict" in text
+    assert f"{result['gauntlet_only']['metrics']['auc']:.4f}" in text
+    assert f"{result['merged']['metrics']['auc']:.4f}" in text

@@ -37,8 +37,19 @@ DEFAULT_MODEL_PATH = _ROOT / "search" / "eval_model.json"
 BASELINE_FEATURE = "prize_diff"
 
 
-def load_rows(csv_path):
-    """(game_ids, X, y) parallel arrays from a states CSV (tools/gauntlet.py --log-states)."""
+def load_rows(csv_path, tag_prefix=None):
+    """(game_ids, X, y) parallel arrays from a states CSV (tools/gauntlet.py --log-states).
+
+    Also reads tools/replays_to_rows.py's ladder CSVs, which share the same
+    game_id/FEATURE_NAMES/label columns plus a trailing source column that this
+    reader ignores (columns are looked up by name, not position).
+
+    tag_prefix, if given, is prepended to every game_id ("ladder:82976189"
+    instead of "82976189"). Gauntlet game ids are small integers and ladder
+    game ids are Kaggle episode ids; without a prefix the two id spaces could
+    collide when rows from both sources are concatenated for training, which
+    would let game_split silently merge two unrelated games onto the same side.
+    """
     with open(csv_path, newline="") as fh:
         reader = csv.reader(fh)
         header = next(reader)
@@ -47,7 +58,8 @@ def load_rows(csv_path):
         feature_idx = [header.index(name) for name in FEATURE_NAMES]
         game_ids, X, y = [], [], []
         for row in reader:
-            game_ids.append(row[game_idx])
+            gid = row[game_idx]
+            game_ids.append(f"{tag_prefix}:{gid}" if tag_prefix else gid)
             X.append([float(row[i]) for i in feature_idx])
             y.append(int(row[label_idx]))
     return np.array(game_ids), np.array(X, dtype=float), np.array(y, dtype=int)
@@ -96,13 +108,118 @@ def export_model(model, mean, std, path):
     Path(path).write_text(json.dumps(payload, indent=2) + "\n")
 
 
+def compare_gauntlet_vs_merged(gauntlet_csv, ladder_csv, test_frac=0.2, seed=0):
+    """Train on gauntlet-only vs gauntlet-plus-ladder, evaluate both on the same
+    held-out gauntlet-only test set (plan U4's ladder-merge comparison).
+
+    The held-out test set is gauntlet-only rows: ladder replays are one-sided
+    (we only see games our own submissions played), so a ladder-only or mixed
+    test set would not represent the gauntlet matchups the shipped agent
+    actually plays. Both models are judged on the same test rows, so the
+    comparison isolates the effect of adding ladder rows to the training set.
+
+    Returns a dict: gauntlet_only / merged sub-dicts (each with model, mean,
+    std, metrics, n_train), the picked variant name, and n_ladder_rows.
+    """
+    gauntlet_ids, gauntlet_X, gauntlet_y = load_rows(gauntlet_csv, tag_prefix="gauntlet")
+    train_mask, test_mask = game_split(gauntlet_ids, test_frac, seed)
+    X_train, y_train = gauntlet_X[train_mask], gauntlet_y[train_mask]
+    X_test, y_test = gauntlet_X[test_mask], gauntlet_y[test_mask]
+
+    gauntlet_model, gauntlet_mean, gauntlet_std = fit_standardized(X_train, y_train)
+    gauntlet_metrics = evaluate(gauntlet_model, gauntlet_mean, gauntlet_std, X_test, y_test)
+
+    _, ladder_X, ladder_y = load_rows(ladder_csv, tag_prefix="ladder")
+    merged_X = np.concatenate([X_train, ladder_X], axis=0)
+    merged_y = np.concatenate([y_train, ladder_y], axis=0)
+    merged_model, merged_mean, merged_std = fit_standardized(merged_X, merged_y)
+    merged_metrics = evaluate(merged_model, merged_mean, merged_std, X_test, y_test)
+
+    picked = "merged" if merged_metrics["auc"] >= gauntlet_metrics["auc"] else "gauntlet_only"
+
+    return {
+        "gauntlet_only": {
+            "model": gauntlet_model, "mean": gauntlet_mean, "std": gauntlet_std,
+            "metrics": gauntlet_metrics, "n_train": len(X_train),
+        },
+        "merged": {
+            "model": merged_model, "mean": merged_mean, "std": merged_std,
+            "metrics": merged_metrics, "n_train": len(merged_X),
+        },
+        "picked": picked,
+        "n_test": len(X_test),
+        "n_ladder_rows": len(ladder_X),
+    }
+
+
+def write_ladder_ab_report(result, path):
+    """Plain-language analysis/ladder_data_ab.md documenting the comparison and gate verdict."""
+    g = result["gauntlet_only"]
+    m = result["merged"]
+    picked_label = "gauntlet+ladder (merged)" if result["picked"] == "merged" else "gauntlet-only"
+    lines = [
+        "# Ladder data A/B: does adding ladder replay rows help the evaluator?",
+        "",
+        "Plan U4 (v2 redo). Two models trained on the same gauntlet training rows,",
+        "one with ladder replay rows added, evaluated on the same held-out",
+        "gauntlet-only test set so the comparison isolates the effect of the extra",
+        "ladder rows rather than measuring a different test distribution.",
+        "",
+        "## Setup",
+        "",
+        f"- Gauntlet-only training rows: {g['n_train']}",
+        f"- Ladder rows added for the merged variant: {result['n_ladder_rows']}",
+        f"- Merged training rows: {m['n_train']}",
+        f"- Held-out gauntlet-only test rows: {result['n_test']} (same rows for both models)",
+        "",
+        "## Results",
+        "",
+        "| variant | train rows | test AUC | test accuracy |",
+        "|---|---|---|---|",
+        f"| gauntlet-only | {g['n_train']} | {g['metrics']['auc']:.4f} | {g['metrics']['accuracy']:.4f} |",
+        f"| gauntlet+ladder | {m['n_train']} | {m['metrics']['auc']:.4f} | {m['metrics']['accuracy']:.4f} |",
+        "",
+        "## Gate",
+        "",
+        "Keep the merged model only if its AUC on the gauntlet-only test set is at",
+        "least the gauntlet-only model's AUC. Otherwise keep the gauntlet-only model.",
+        "",
+        f"Verdict: **{picked_label}** wins "
+        f"(gauntlet-only AUC {g['metrics']['auc']:.4f}, merged AUC {m['metrics']['auc']:.4f}).",
+        f"The exported search/eval_model.json is the {picked_label} model.",
+        "",
+    ]
+    Path(path).write_text("\n".join(lines))
+    return Path(path)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("csv_path", help="states_*.csv from tools/gauntlet.py --log-states")
+    ap.add_argument("--ladder-csv", default=None,
+                     help="ladder_rows_*.csv from tools/replays_to_rows.py; if given, runs the "
+                          "gauntlet-only vs gauntlet+ladder comparison instead of a single fit")
+    ap.add_argument("--report", default=str(_ROOT / "analysis" / "ladder_data_ab.md"),
+                     help="where to write the comparison report (only used with --ladder-csv)")
     ap.add_argument("--test-frac", type=float, default=0.2)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", default=str(DEFAULT_MODEL_PATH))
     args = ap.parse_args()
+
+    if args.ladder_csv:
+        result = compare_gauntlet_vs_merged(args.csv_path, args.ladder_csv, args.test_frac, args.seed)
+        g, m = result["gauntlet_only"], result["merged"]
+        print(f"gauntlet-only  train rows: {g['n_train']}  AUC={g['metrics']['auc']:.4f}")
+        print(f"gauntlet+ladder  train rows: {m['n_train']}  AUC={m['metrics']['auc']:.4f}")
+        print(f"picked: {result['picked']}")
+
+        write_ladder_ab_report(result, args.report)
+        print(f"wrote {args.report}")
+
+        picked = result[result["picked"]]
+        export_model(picked["model"], picked["mean"], picked["std"], args.out)
+        print(f"exported {args.out}")
+        return
 
     game_ids, X, y = load_rows(args.csv_path)
     train_mask, test_mask = game_split(game_ids, args.test_frac, args.seed)
