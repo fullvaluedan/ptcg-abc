@@ -18,8 +18,17 @@ info.TeamNames by exact string; a leaderboard team whose name never turns up
 in any scanned episode is logged as unmapped in the report rather than
 silently skipped or fuzzy-matched.
 
+Plan U62 (offline-match-scale-topplayer-mining plan) adds a loss-side
+collection alongside the winning-seat corpus above: for each top-N team, the
+games where that team was the LOSING seat, tagged source=top_player_loss
+with the analysis.loss_classifier bucket and the opponent who beat them. A
+top team's own rows for one game are win XOR loss (never both), so the win
+corpus (collect_top_player_rows) now keeps wins only and the loss corpus
+(collect_top_player_loss_rows) is the exclusive home for that team's losses;
+the two never duplicate the same team's rows for the same game.
+
 Dev tool only, never shipped. data/episodes/ and data/training/ stay
-gitignored competition-derived data; the corpus CSV this writes is never
+gitignored competition-derived data; the corpus CSVs this writes are never
 committed or redistributed.
 """
 from __future__ import annotations
@@ -39,6 +48,7 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
         sys.path.insert(0, _p)
 
 from analysis.expert_cohort import classify_family, seat_decklists, team_names  # noqa: E402
+from analysis.loss_classifier import classify_loss, parse_replay  # noqa: E402
 from ptcg_agent.features import FEATURE_NAMES  # noqa: E402
 from tools.expert_census import build_signatures  # noqa: E402
 from tools.replays_to_rows import rows_from_replay  # noqa: E402
@@ -50,6 +60,7 @@ DEFAULT_EPISODES_DIR = _ROOT / "data" / "episodes"
 DEFAULT_TRAIN_DIR = _ROOT / "data" / "training"
 DEFAULT_REPORT_PATH = _ROOT / "analysis" / "top_player_report.md"
 SOURCE = "top_player"
+SOURCE_LOSS = "top_player_loss"
 STALE_DAYS = 7
 HERMES_REFRESH_CMD = (
     "python tools/top_player_tracker.py --refresh"
@@ -139,10 +150,13 @@ def collect_top_player_rows(zip_path, team_set: set, days: int = DEFAULT_DAYS,
     For every episode newer than the recency cutoff (see recency_cutoff) whose
     info.TeamNames includes a name in team_set, extracts that seat's decision
     rows (tools.replays_to_rows.rows_from_replay, same schema as ladder rows)
-    tagged source=top_player and team=<name>. Draws / undetermined games
-    contribute no rows (rows_from_replay already drops them). A leaderboard
-    name that never appears in any scanned episode's info.TeamNames is
-    reported as unmapped. Never raises: a malformed member is skipped.
+    tagged source=top_player and team=<name>, for the games that seat WON
+    (see collect_top_player_loss_rows for the loss-side corpus). Draws /
+    undetermined games contribute no rows (rows_from_replay already drops
+    them). A leaderboard name that never appears in any scanned episode's
+    info.TeamNames is reported as unmapped. Never raises: a malformed member
+    is skipped. per_team_games and per_team_wins still count every matched
+    game (win or loss) so the report's win rate stays meaningful.
     """
     rows = []
     seen_names = set()
@@ -190,12 +204,14 @@ def collect_top_player_rows(zip_path, team_set: set, days: int = DEFAULT_DAYS,
                 if not seat_rows:
                     continue
                 per_team_games[team] += 1
-                if seat_rows[0][-1] == 1:
+                is_win = seat_rows[0][-1] == 1
+                if is_win:
                     per_team_wins[team] += 1
                 if decks is not None:
                     archetype_counts[classify_family(decks[seat], signatures)] += 1
-                for r in seat_rows:
-                    rows.append([*r, SOURCE, team])
+                if is_win:
+                    for r in seat_rows:
+                        rows.append([*r, SOURCE, team])
 
     unmapped = sorted(n for n in team_set if n not in seen_names)
     return {
@@ -204,6 +220,89 @@ def collect_top_player_rows(zip_path, team_set: set, days: int = DEFAULT_DAYS,
         "per_team_games": per_team_games,
         "per_team_wins": per_team_wins,
         "archetype_counts": archetype_counts,
+        "newest_dt": newest_dt,
+        "oldest_dt": oldest_dt,
+        "games_considered": games_considered,
+        "games_matched": games_matched,
+    }
+
+
+def collect_top_player_loss_rows(zip_path, team_set: set, days: int = DEFAULT_DAYS) -> dict:
+    """Scan a dataset zip for games where a top-N team was the LOSING seat.
+
+    Plan U62. Mirrors collect_top_player_rows' scan (same recency window, same
+    team_set matching against info.TeamNames), but keeps only the games a
+    matched seat LOST, tagged source=top_player_loss with the team name, the
+    analysis.loss_classifier bucket for that loss, and the opponent (the other
+    seat's team name) who beat them. A win for a matched seat contributes
+    nothing here (see collect_top_player_rows for the win-side corpus), so a
+    single team's rows for one game land in exactly one of the two corpora,
+    never both. A draw or an unmapped team name is skipped and reported, never
+    misclassified as a loss.
+    """
+    rows = []
+    seen_names = set()
+    per_team_losses = Counter()
+    per_team_loss_buckets: dict = {}
+    per_team_beaten_by: dict = {}
+    newest_dt = None
+    oldest_dt = None
+    games_considered = 0
+    games_matched = 0
+
+    with zipfile.ZipFile(zip_path) as zf:
+        manifest = load_manifest(zf)
+        cutoff = recency_cutoff(manifest, days)
+        for name in zf.namelist():
+            if not name.endswith(".json") or name == "manifest.csv":
+                continue
+            eid = Path(name).stem
+            create_time = manifest.get(eid)
+            if cutoff is not None and (create_time is None or create_time < cutoff):
+                continue
+            try:
+                replay = json.loads(zf.read(name))
+            except (json.JSONDecodeError, OSError, KeyError):
+                continue
+            games_considered += 1
+            names = team_names(replay)
+            if names is None:
+                continue
+            seen_names.update(n for n in names if n)
+            matched_seats = [seat for seat, n in enumerate(names) if n in team_set]
+            if not matched_seats:
+                continue
+            game_rows = rows_from_replay(replay, eid)
+            if not game_rows:
+                continue
+            matched_this_game = False
+            for seat in matched_seats:
+                team = names[seat]
+                seat_rows = [r for r in game_rows if r[1] == seat]
+                if not seat_rows or seat_rows[0][-1] != 0:
+                    continue  # not this seat's game, or this seat won it
+                opponent = names[1 - seat] or "unknown"
+                digest = parse_replay(replay, our_index=seat)
+                bucket = classify_loss(digest) or "unclassified"
+                per_team_losses[team] += 1
+                per_team_loss_buckets.setdefault(team, Counter())[bucket] += 1
+                per_team_beaten_by.setdefault(team, Counter())[opponent] += 1
+                for r in seat_rows:
+                    rows.append([*r, SOURCE_LOSS, team, bucket, opponent])
+                matched_this_game = True
+            if matched_this_game:
+                games_matched += 1
+                if create_time is not None:
+                    newest_dt = create_time if newest_dt is None else max(newest_dt, create_time)
+                    oldest_dt = create_time if oldest_dt is None else min(oldest_dt, create_time)
+
+    unmapped = sorted(n for n in team_set if n not in seen_names)
+    return {
+        "rows": rows,
+        "unmapped": unmapped,
+        "per_team_losses": per_team_losses,
+        "per_team_loss_buckets": per_team_loss_buckets,
+        "per_team_beaten_by": per_team_beaten_by,
         "newest_dt": newest_dt,
         "oldest_dt": oldest_dt,
         "games_considered": games_considered,
@@ -262,7 +361,13 @@ def strip_overlap_from_ladder(ladder_csv_path, top_player_game_ids: set) -> int:
     return removed
 
 
-def write_csv(rows, out_path, append: bool = False) -> Path:
+def write_csv(rows, out_path, append: bool = False, extra_columns=None) -> Path:
+    """Write rows to out_path.
+
+    extra_columns names trailing columns beyond team (e.g. ["loss_bucket",
+    "opponent"] for the loss corpus); omitted, the header stays the plain
+    win-corpus shape for backward compatibility.
+    """
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     write_header = not (append and out_path.exists())
@@ -270,7 +375,9 @@ def write_csv(rows, out_path, append: bool = False) -> Path:
     with open(out_path, mode, newline="") as fh:
         writer = csv.writer(fh)
         if write_header:
-            writer.writerow(["game_id", "seat", "turn", *FEATURE_NAMES, "label", "source", "team"])
+            writer.writerow(
+                ["game_id", "seat", "turn", *FEATURE_NAMES, "label", "source", "team", *(extra_columns or [])]
+            )
         writer.writerows(rows)
     return out_path
 
@@ -293,7 +400,7 @@ def _safe(text) -> str:
 
 
 def format_report(teams: list, result: dict, ladder_rows_removed: int, days: int,
-                   ladder_ab_note: str | None = None, now=None) -> str:
+                   ladder_ab_note: str | None = None, now=None, loss_result: dict | None = None) -> str:
     """Render analysis/top_player_report.md's content."""
     now = now or datetime.utcnow()
     per_games = result["per_team_games"]
@@ -303,7 +410,8 @@ def format_report(teams: list, result: dict, ladder_rows_removed: int, days: int
         "",
         "Plan U3c (addendum v2). Tracks the live top-N leaderboard teams and pulls",
         "their newest games from the published episode dataset into a weighted",
-        "training corpus (source=top_player).",
+        "training corpus (source=top_player). Plan U62 adds a loss-side corpus",
+        "(source=top_player_loss) for the games those teams lost.",
         "",
         f"Recency window: --days {days} (games older than the dataset's own newest",
         "game minus this window are dropped before matching).",
@@ -345,6 +453,21 @@ def format_report(teams: list, result: dict, ladder_rows_removed: int, days: int
             lines.append(f"- {n} (no game in the scanned dataset names this team)")
     else:
         lines.append("- none")
+
+    lines += ["", "## Losses", ""]
+    if loss_result is None:
+        lines.append("- not collected this run")
+    elif loss_result["per_team_losses"]:
+        lines.append("| team | losses | dominant loss bucket | most common opponent |")
+        lines.append("|---|---|---|---|")
+        for team, n in sorted(loss_result["per_team_losses"].items(), key=lambda kv: (-kv[1], kv[0])):
+            buckets = loss_result["per_team_loss_buckets"].get(team)
+            dom_bucket = buckets.most_common(1)[0][0] if buckets else "n/a"
+            beaten_by = loss_result["per_team_beaten_by"].get(team)
+            dom_opp = beaten_by.most_common(1)[0][0] if beaten_by else "n/a"
+            lines.append(f"| {team} | {n} | {dom_bucket} | {dom_opp} |")
+    else:
+        lines.append("- no losses captured this run")
 
     if ladder_rows_removed:
         lines += [
@@ -397,6 +520,9 @@ def main(argv=None) -> int:
                      help="explicit dataset .zip path (default: newest under --episodes-dir)")
     ap.add_argument("--out", default=None,
                      help="output corpus CSV path (default data/training/top_player_corpus_<date>.csv)")
+    ap.add_argument("--loss-out", default=None,
+                     help="output loss-corpus CSV path "
+                          "(default data/training/top_player_loss_corpus_<date>.csv)")
     ap.add_argument("--report", default=str(DEFAULT_REPORT_PATH),
                      help="where to write the tracker report")
     ap.add_argument("--ladder-csv", default=None,
@@ -424,25 +550,37 @@ def main(argv=None) -> int:
         signatures = None
 
     result = collect_top_player_rows(dataset_path, team_set, days=args.days, signatures=signatures)
+    loss_result = collect_top_player_loss_rows(dataset_path, team_set, days=args.days)
 
     out_path = Path(args.out) if args.out else DEFAULT_TRAIN_DIR / f"top_player_corpus_{datetime.utcnow():%Y%m%d}.csv"
     rows = result["rows"]
+    loss_out_path = (
+        Path(args.loss_out) if args.loss_out
+        else DEFAULT_TRAIN_DIR / f"top_player_loss_corpus_{datetime.utcnow():%Y%m%d}.csv"
+    )
+    loss_rows = loss_result["rows"]
     if args.refresh:
         existing_ids = read_existing_game_ids(out_path)
         rows = dedupe_new_games(rows, existing_ids)
         write_csv(rows, out_path, append=True)
+        existing_loss_ids = read_existing_game_ids(loss_out_path)
+        loss_rows = dedupe_new_games(loss_rows, existing_loss_ids)
+        write_csv(loss_rows, loss_out_path, append=True, extra_columns=["loss_bucket", "opponent"])
     else:
         write_csv(rows, out_path, append=False)
+        write_csv(loss_rows, loss_out_path, append=False, extra_columns=["loss_bucket", "opponent"])
 
     ladder_removed = 0
     if args.ladder_csv:
-        ladder_removed = strip_overlap_from_ladder(args.ladder_csv, {r[0] for r in result["rows"]})
+        overlap_ids = {r[0] for r in result["rows"]} | {r[0] for r in loss_result["rows"]}
+        ladder_removed = strip_overlap_from_ladder(args.ladder_csv, overlap_ids)
 
-    report = format_report(teams, result, ladder_removed, args.days)
+    report = format_report(teams, result, ladder_removed, args.days, loss_result=loss_result)
     Path(args.report).parent.mkdir(parents=True, exist_ok=True)
     Path(args.report).write_text(report, encoding="utf-8")
 
     print(_safe(f"wrote {len(rows)} rows to {out_path}"))
+    print(_safe(f"wrote {len(loss_rows)} rows to {loss_out_path}"))
     print(_safe(
         f"matched {result['games_matched']}/{result['games_considered']} games considered "
         f"to {len(team_set) - len(result['unmapped'])}/{len(team_set)} mapped teams"
