@@ -1,0 +1,17 @@
+  iter   0  best=-inf  elite_mean=n/a  std=0.2225
+  iter   1  best=-inf  elite_mean=n/a  std=0.2160
+  iter   2  best=-inf  elite_mean=n/a  std=0.2041
+  iter   3  best=-inf  elite_mean=n/a  std=0.2016
+  iter   4  best=-inf  elite_mean=n/a  std=0.1950
+  iter   5  best=-inf  elite_mean=n/a  std=0.2106
+
+best fitness: -inf
+staged env overrides (bake via build_submission.py --env):
+  (none: the default vector won; ship stays byte-identical)
+
+full result written to analysis/cem_runs/cem_run_seed0.json
+best fitness: -inf
+staged env overrides (bake via build_submission.py --env):
+  (none: the default vector won; ship stays byte-identical)
+
+full result written to analysis/cem_runs/cem_run_seed0.json
