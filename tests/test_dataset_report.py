@@ -1,7 +1,8 @@
 import csv
 
+from agents.imitation_features import FEATURE_NAMES as MOVE_FEATURE_NAMES
 from ptcg_agent.features import FEATURE_NAMES
-from tools.dataset_report import BALANCE_HI, BALANCE_LO, report
+from tools.dataset_report import BALANCE_HI, BALANCE_LO, move_report, report
 
 
 def _write_csv(path, rows):
@@ -59,3 +60,60 @@ def test_report_flags_nan_values(tmp_path):
     result = report(path)
     assert result["n_nan"] == 1
     assert result["nan_ok"] is False
+
+
+def _write_move_csv(path, rows):
+    header = (["game_id", "seat", "decision_id", "n_options", "option_index", "is_chosen"]
+              + list(MOVE_FEATURE_NAMES) + ["source"])
+    with open(path, "w", newline="") as fh:
+        writer = csv.writer(fh)
+        writer.writerow(header)
+        writer.writerows(rows)
+    return path
+
+
+def _move_group(game_id, decision_id, n_options, chosen_index):
+    feats = [0.0] * len(MOVE_FEATURE_NAMES)
+    return [
+        [game_id, 0, decision_id, n_options, i, 1 if i == chosen_index else 0, *feats, "gauntlet"]
+        for i in range(n_options)
+    ]
+
+
+def test_move_report_clean_dataset(tmp_path):
+    path = tmp_path / "move_rows.csv"
+    rows = _move_group("g0", 0, 2, 0) + _move_group("g0", 1, 3, 2) + _move_group("g1", 0, 2, 1)
+    _write_move_csv(path, rows)
+
+    result = move_report(path)
+    assert result["n_rows"] == 7
+    assert result["n_games"] == 2
+    assert result["n_decisions"] == 3
+    assert result["group_size_ok"] is True
+    assert result["multi_chosen_ok"] is True
+    assert result["ok"] is True
+    assert result["class_balance"] == round(3 / 7, 4)  # one chosen row per decision
+    assert result["expected_balance"] == round(3 / 7, 4)  # n_decisions / n_rows
+
+
+def test_move_report_flags_bad_group_size(tmp_path):
+    path = tmp_path / "move_rows.csv"
+    rows = _move_group("g0", 0, 3, 0)[:-1]  # drop one row: group claims 3 options, has 2
+    _write_move_csv(path, rows)
+
+    result = move_report(path)
+    assert result["group_size_ok"] is False
+    assert result["bad_group_size"] == 1
+    assert result["ok"] is False
+
+
+def test_move_report_flags_multiple_chosen_in_one_decision(tmp_path):
+    path = tmp_path / "move_rows.csv"
+    rows = _move_group("g0", 0, 2, 0)
+    rows[1][5] = 1  # both options marked chosen: a logging bug
+    _write_move_csv(path, rows)
+
+    result = move_report(path)
+    assert result["multi_chosen_ok"] is False
+    assert result["multi_chosen_groups"] == 1
+    assert result["ok"] is False

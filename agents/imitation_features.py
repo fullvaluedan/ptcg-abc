@@ -120,9 +120,15 @@ def _state(obs):
     """(current, me, opp, my_active, opp_active) with defensive defaults."""
     st = obs.get("current") or {}
     players = st.get("players") or []
+    if not isinstance(players, list):
+        players = []  # a malformed (e.g. string) players field must never be indexed
     yi = st.get("yourIndex", 0)
     me = players[yi] if 0 <= yi < len(players) else {}
+    if not isinstance(me, dict):
+        me = {}
     opp = players[1 - yi] if len(players) == 2 and 0 <= yi < 2 else {}
+    if not isinstance(opp, dict):
+        opp = {}
     my_active = H._active(me) if me else None
     opp_active = H._active(opp) if opp else None
     return st, me, opp, my_active, opp_active

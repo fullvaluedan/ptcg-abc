@@ -33,6 +33,8 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+from agents import heuristics as H  # noqa: E402
+from agents import imitation_features  # noqa: E402
 from analysis.replay_trace import episode_id_of  # noqa: E402
 from ptcg_agent.features import FEATURE_NAMES, extract_features  # noqa: E402
 from tools.scout import load_replay  # noqa: E402
@@ -97,6 +99,60 @@ def rows_from_replay(replay, game_id: str) -> list:
     return rows
 
 
+def move_rows_from_replay(replay, game_id: str) -> list:
+    """One row per candidate MAIN option per decision, winner's seat only (plan U8a).
+
+    Mirrors rows_from_replay's walk over ACTIVE entries with a real select and
+    current state, but emits the move-ordering schema instead: (game_id, seat,
+    decision_id, n_options, option_index, is_chosen, *imitation_features.FEATURE_NAMES).
+    The chosen index comes from entry["action"] (proven present at this point,
+    analysis/loss_classifier.py parse_replay ~line 175). decision_id is a running
+    counter over every MAIN decision in the replay (both seats), so it stays
+    unique even though only the winner's seat rows are kept. Draws and games
+    whose outcome cannot be determined are dropped entirely, same as
+    rows_from_replay.
+    """
+    labels = _seat_labels(replay)
+    if labels is None:
+        return []
+    winner_seat = 0 if labels[0] == 1 else 1
+    rows = []
+    decision_id = 0
+    for step in replay.get("steps") or []:
+        if not isinstance(step, (list, tuple)):
+            continue
+        for p, entry in enumerate(step):
+            if not isinstance(entry, dict) or entry.get("status") != "ACTIVE":
+                continue
+            obs = entry.get("observation") or {}
+            sel = obs.get("select")
+            current = obs.get("current")
+            if sel is None or current is None:
+                continue  # deck handshake
+            seat = current.get("yourIndex", p)
+            if seat not in (0, 1):
+                continue
+            if sel.get("type") != H.SEL_MAIN:
+                continue
+            feat_rows = imitation_features.decision_features(obs)
+            if feat_rows is None:
+                continue  # <=1 option: no ranking signal
+            n_options = len(feat_rows)
+            this_decision_id = decision_id
+            decision_id += 1
+            if seat != winner_seat:
+                continue
+            action = entry.get("action")
+            chosen = (action[0] if isinstance(action, list) and len(action) == 1
+                      and 0 <= action[0] < n_options else None)
+            for idx, frow in enumerate(feat_rows):
+                rows.append(
+                    [game_id, seat, this_decision_id, n_options, idx,
+                     1 if idx == chosen else 0, *frow]
+                )
+    return rows
+
+
 def convert_dir(src_dir=None) -> list:
     """Rows from every replay JSON in src_dir. Malformed files are skipped."""
     src_dir = Path(src_dir) if src_dir else DEFAULT_SRC_DIR
@@ -108,6 +164,27 @@ def convert_dir(src_dir=None) -> list:
             continue
         try:
             rows.extend(rows_from_replay(replay, episode_id_of(path.name)))
+        except (AttributeError, TypeError, KeyError):
+            continue
+    return rows
+
+
+def convert_dir_moves(src_dir=None) -> list:
+    """Move-ordering rows (plan U8a) from every replay JSON in src_dir.
+
+    Same file walk and malformed-file skipping as convert_dir, but for the
+    candidate/chosen-move schema (move_rows_from_replay) instead of the
+    state-outcome schema.
+    """
+    src_dir = Path(src_dir) if src_dir else DEFAULT_SRC_DIR
+    rows = []
+    for path in sorted(Path(src_dir).glob("*.json")):
+        try:
+            replay = load_replay(path)
+        except (OSError, ValueError):
+            continue
+        try:
+            rows.extend(move_rows_from_replay(replay, episode_id_of(path.name)))
         except (AttributeError, TypeError, KeyError):
             continue
     return rows
@@ -154,12 +231,32 @@ def write_csv(rows, out_path) -> Path:
     return out_path
 
 
+def write_move_csv(rows, out_path) -> Path:
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(out_path, "w", newline="") as fh:
+        writer = csv.writer(fh)
+        writer.writerow(
+            ["game_id", "seat", "decision_id", "n_options", "option_index", "is_chosen",
+             *imitation_features.FEATURE_NAMES, "source"]
+        )
+        for row in rows:
+            writer.writerow([*row, SOURCE])
+    return out_path
+
+
 def main():
     ap = argparse.ArgumentParser(description="convert downloaded ladder replays into training rows")
     ap.add_argument("--dir", default=str(DEFAULT_SRC_DIR),
                      help="directory of replay JSON files (default data/replays)")
     ap.add_argument("--out", default=None,
                      help="output CSV path (default data/training/ladder_rows_<timestamp>.csv)")
+    ap.add_argument("--log-moves", action="store_true",
+                     help="also convert candidate-move rows (plan U8a) to "
+                          "data/training/move_rows_<timestamp>.csv")
+    ap.add_argument("--out-moves", default=None,
+                     help="output CSV path for move rows (default "
+                          "data/training/move_rows_<timestamp>.csv)")
     args = ap.parse_args()
 
     rows = convert_dir(args.dir)
@@ -170,6 +267,13 @@ def main():
     out_path = Path(args.out) if args.out else DEFAULT_OUT_DIR / f"ladder_rows_{int(time.time())}.csv"
     write_csv(rows, out_path)
     print(f"wrote {len(rows)} rows to {out_path} (class balance {before:.1%} -> {after:.1%})")
+
+    if args.log_moves:
+        move_rows = convert_dir_moves(args.dir)
+        move_out_path = (Path(args.out_moves) if args.out_moves
+                          else DEFAULT_OUT_DIR / f"move_rows_{int(time.time())}.csv")
+        write_move_csv(move_rows, move_out_path)
+        print(f"wrote {len(move_rows)} move rows to {move_out_path}")
 
 
 if __name__ == "__main__":

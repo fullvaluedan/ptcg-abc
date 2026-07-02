@@ -5,14 +5,19 @@ and the gauntlet state logger already read), never real competition data.
 """
 import csv
 
+from agents import heuristics as H
+from agents.imitation_features import FEATURE_NAMES as MOVE_FEATURE_NAMES
 from ptcg_agent.features import FEATURE_NAMES
 from tools.replays_to_rows import (
     BALANCE_HI,
     BALANCE_LO,
     convert_dir,
+    convert_dir_moves,
     downsample_to_balance,
+    move_rows_from_replay,
     rows_from_replay,
     write_csv,
+    write_move_csv,
 )
 
 
@@ -60,6 +65,29 @@ def _handshake():
 
 def _step(seat_deciding, turn=3):
     entry = _active_entry(seat_deciding, turn=turn)
+    return [entry, _inactive()] if seat_deciding == 0 else [_inactive(), entry]
+
+
+def _opt(otype, **kw):
+    opt = {"type": otype}
+    opt.update(kw)
+    return opt
+
+
+def _main_entry(seat, options, action, turn=3, prizes=(6, 6)):
+    return {
+        "action": action,
+        "status": "ACTIVE",
+        "reward": 0,
+        "observation": {
+            "select": {"option": options, "minCount": 1, "maxCount": 1, "type": H.SEL_MAIN},
+            "current": _current(seat, turn=turn, prizes=prizes),
+        },
+    }
+
+
+def _main_step(seat_deciding, options, action, turn=3):
+    entry = _main_entry(seat_deciding, options, action, turn=turn)
     return [entry, _inactive()] if seat_deciding == 0 else [_inactive(), entry]
 
 
@@ -161,3 +189,77 @@ def test_write_csv_header_has_source_column(tmp_path):
 
     assert header == ["game_id", "seat", "turn", *FEATURE_NAMES, "label", "source"]
     assert data[-1] == "ladder"
+
+
+def test_move_rows_from_replay_winner_seat_only_and_chosen_marked():
+    options = [_opt(H.OPT_END), _opt(H.OPT_RETREAT)]
+    replay = {
+        "info": {"TeamNames": ["us", "them"]},
+        "rewards": [1, -1],
+        "steps": [
+            _handshake(),
+            _main_step(0, options, [1], turn=1),  # seat0 (winner) picks option 1
+            _main_step(1, options, [0], turn=2),  # seat1 (loser) picks option 0
+        ],
+    }
+    rows = move_rows_from_replay(replay, "gameM")
+
+    assert len(rows) == 2  # only seat0's decision kept, 2 candidate options
+    assert {row[1] for row in rows} == {0}
+    header_len = 6 + len(MOVE_FEATURE_NAMES)
+    assert all(len(row) == header_len for row in rows)
+    chosen = [row for row in rows if row[5] == 1]
+    assert len(chosen) == 1
+    assert chosen[0][4] == 1  # option_index 1 was chosen
+
+
+def test_move_rows_from_replay_skips_single_option_decisions():
+    options = [_opt(H.OPT_END)]
+    replay = {
+        "rewards": [1, -1],
+        "steps": [_handshake(), _main_step(0, options, [0], turn=1)],
+    }
+    assert move_rows_from_replay(replay, "gameM2") == []
+
+
+def test_move_rows_from_replay_drops_draws():
+    options = [_opt(H.OPT_END), _opt(H.OPT_RETREAT)]
+    replay = {"rewards": [0, 0], "steps": [_handshake(), _main_step(0, options, [0], turn=1)]}
+    assert move_rows_from_replay(replay, "gameDraw") == []
+
+
+def test_move_rows_from_replay_ignores_non_main_selects():
+    replay = {
+        "rewards": [1, -1],
+        "steps": [_handshake(), _step(0, turn=1)],  # _active_entry has no sel["type"]
+    }
+    assert move_rows_from_replay(replay, "gameNonMain") == []
+
+
+def test_write_move_csv_header_and_source(tmp_path):
+    rows = [["g1", 0, 0, 2, 0, 1, *[0.0] * len(MOVE_FEATURE_NAMES)]]
+    out = write_move_csv(rows, tmp_path / "move_rows.csv")
+
+    with open(out, newline="") as fh:
+        reader = csv.reader(fh)
+        header = next(reader)
+        data = next(reader)
+
+    assert header == (
+        ["game_id", "seat", "decision_id", "n_options", "option_index", "is_chosen"]
+        + list(MOVE_FEATURE_NAMES) + ["source"]
+    )
+    assert data[-1] == "ladder"
+
+
+def test_convert_dir_moves_skips_malformed_json(tmp_path):
+    import json
+
+    options = [_opt(H.OPT_END), _opt(H.OPT_RETREAT)]
+    good = {"rewards": [1, -1], "steps": [_handshake(), _main_step(0, options, [0], turn=1)]}
+    (tmp_path / "1.json").write_text(json.dumps(good))
+    (tmp_path / "2.json").write_text("{ not json")
+
+    rows = convert_dir_moves(tmp_path)
+    assert rows
+    assert all(row[0] == "1" for row in rows)

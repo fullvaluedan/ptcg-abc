@@ -1,5 +1,7 @@
 import csv
 
+from agents.imitation_features import FEATURE_NAMES as MOVE_FEATURE_NAMES
+from agents.imitation_features import N_FEATURES as MOVE_N_FEATURES
 from ptcg_agent.features import FEATURE_NAMES, N_FEATURES
 from tools.gauntlet import run_gauntlet, _is_legal, _wilson
 
@@ -48,3 +50,43 @@ def test_state_logging_writes_labelled_rows_for_both_seats(tmp_path):
     labels = {row[-1] for row in data_rows}
     assert labels <= {"0", "1"}
     assert labels == {"0", "1"}  # both win and loss labels present
+
+
+def test_move_logging_writes_winner_seat_only_candidate_rows(tmp_path):
+    move_path = tmp_path / "move_rows.csv"
+    stats = run_gauntlet("baseline", ["random"], 6, log_moves=True, move_log_path=move_path)
+    assert stats["move_log_path"] == str(move_path)
+    assert move_path.exists()
+    assert "log_path" not in stats  # log_states was not requested
+
+    with open(move_path, newline="") as fh:
+        rows = list(csv.reader(fh))
+    header, data_rows = rows[0], rows[1:]
+
+    assert header == (
+        ["game_id", "seat", "decision_id", "n_options", "option_index", "is_chosen"]
+        + list(MOVE_FEATURE_NAMES) + ["source"]
+    )
+    assert len(header) == 6 + MOVE_N_FEATURES + 1
+    assert data_rows  # baseline vs random has plenty of multi-option MAIN decisions
+    assert {row[-1] for row in data_rows} == {"gauntlet"}
+
+    groups = {}
+    for row in data_rows:
+        groups.setdefault((row[0], row[2]), []).append(row)
+    for (_game_id, _decision_id), grp in groups.items():
+        n_opt = int(grp[0][3])
+        assert len(grp) == n_opt  # one row per candidate option in the decision
+        chosen = [r for r in grp if r[5] == "1"]
+        assert len(chosen) <= 1  # at most one chosen option per decision
+
+
+def test_log_moves_independent_of_log_states(tmp_path):
+    states_path = tmp_path / "states.csv"
+    move_path = tmp_path / "moves.csv"
+    stats = run_gauntlet("baseline", ["random"], 2, log_states=True, log_path=states_path,
+                          log_moves=True, move_log_path=move_path)
+    assert stats["log_path"] == str(states_path)
+    assert stats["move_log_path"] == str(move_path)
+    assert states_path.exists()
+    assert move_path.exists()
