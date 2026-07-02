@@ -413,3 +413,30 @@ def test_census_round_trips_and_renders(tmp_state):
     assert "Expert census tier (U25)" in prose
     assert "meta_grimmsnarl" in prose
     assert "tier **full**" in prose
+
+
+def test_reconciliation_round_trips_and_renders(tmp_state):
+    """The U28 contract reconciliation record survives the round trip and renders."""
+    data = {
+        "loss_distribution": {},
+        "reconciliation": {
+            "rulings": 11,
+            "source": "docs/design/deck-aware-execution-design.md",
+            "recorded": "2026-07-02",
+            "w_generic": "DROPPED (fallback = pure ladder; no pooled block)",
+            "census_tier": "FULL (167531 groups >> 2500)",
+        },
+    }
+    ls.write_current(data)
+    assert ls.read_current()["reconciliation"] == data["reconciliation"]
+    prose = ls.CURRENT_PATH.read_text(encoding="utf-8")
+    assert "Contract reconciliation record (U28)" in prose
+    assert "11 forked contracts" in prose
+    assert "W_generic ruling: DROPPED" in prose
+
+
+def test_reconciliation_absent_renders_nothing(tmp_state):
+    """No reconciliation key means no U28 section in the prose view."""
+    ls.write_current({"loss_distribution": {}})
+    prose = ls.CURRENT_PATH.read_text(encoding="utf-8")
+    assert "Contract reconciliation record (U28)" not in prose

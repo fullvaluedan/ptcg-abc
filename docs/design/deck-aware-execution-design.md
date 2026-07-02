@@ -191,3 +191,37 @@ Sequencing advice (condensed): (0) unit-zero spike plus the ~8 reconciliation de
 Critique top risks: execution ceiling (trolley's edge may be deck-vs-field fit, and there is no kill criterion bounding slot spend); linear ranker insufficiency untested until the end; organizational train/serve skew from the forked contracts; duplicate-option noise hiding a metric ceiling; Phase A under-delivery (mostly byte-identical refactors, the behavior-changing pieces unowned); slot economics unaccounted (two-step A/B times margin calibration under 5/day); isolation's one soft spot (per-tool out-path guards should live in one shared helper, or the next quick tool becomes the leak vector).
 
 Verdict: individually strong memos that do not yet compose into one buildable system. The measurement/gating design and isolation posture are solid, and ranking-over-featurized-options is the right formulation for index instability. But three load-bearing forks (featurizer, model equation, guard/lever defaults), an unowned Phase A deliverable, a data-less W_generic, an unspecified rollout seat mechanism, and an untested central bet mean: run the reconciliation pass, add the seeds-consumer and unit-zero-spike units, then proceed. Without that, parallel implementation produces train/serve skew and an empty first A/B.
+
+---
+
+## Reconciliation decisions (U28): one binding ruling per fork
+
+This section is the CANONICAL resolution of the forks the Critique lists (lines 185-187).
+It supersedes any contradicting memo text above. Recorded per KD4/KD5 and settled BEFORE
+any U40 code exists (that ordering is the verification gate for this unit). One decision per
+row; the Detail below carries the rationale and which memo it overrides. Where a decision was
+already made downstream (U25 cohort, U26 spike, U27 branch) this record only pins it.
+
+| # | fork | ruling | overrides |
+| --- | --- | --- | --- |
+| R1 | featurizer contract | ONE module `agents/imitation_features.py` (lists, stdlib at emit time), shared verbatim by extractor and inference | memo1 imitation_features vs memo3 `agents/features.py` (ndarray/numpy) vs MSR test-file set |
+| R2 | version gating | a single combined tuple `(FEATURE_VERSION, TAGS_VERSION)` asserted at dataset load, weight load, AND build time; mismatch degrades to the pure ladder | memo3 loader checked feature_version only |
+| R3 | card-effect integration | `card_effects` feature vectors are appended per option INSIDE R1's featurizer; card_effects U1/U2/U6 is a HARD featurizer dependency | Critique gap #1 (effect layer never reached the model) |
+| R4 | model equation | plain pairwise logistic linear `s = X @ W + b`, NO embedding table; tiny-MLP upgrade only in the same npz if linear plateaus | memo1 listwise `X @ w + embed[card_idx]` vs memo3 pairwise linear |
+| R5 | holdout split authority | `md5(episode_id) mod 100`, 85/15, in ONE shared split module every consumer imports | even/odd vs unspecified hash |
+| R6 | lever name | `PTCG_POLICY` (build-time, default OFF, byte-identical unset) | `PTCG_DECK_AWARE` |
+| R7 | deckout guard default | ALWAYS-ON, permanently above the scorer in the guard rung order | MSR-8 always-on vs U-E4 lever-gated |
+| R8 | target selection authority | chosen by the selector (mastery = expert wins x expert win rate); Grimmsnarl is a PREDICTION, not a hardcode | memo4 "predict but do not hardcode" vs any confident Grimmsnarl/Archaludon pin |
+| R9 | expert cohort module | ONE cohort module (U25), the winning seat, decided BEFORE the census; already landed | three cohort definitions across memos |
+| R10 | coverage tool | ONE tool `tools/tag_coverage.py` with the ratcheting untagged-fraction audit | `tools/tag_coverage.py` vs `analysis/effect_coverage.py` duplication |
+| R11 | W_generic | DROPPED; fallback below a matched archetype block is the PURE LADDER. No pooled family block will be built | memo3 data-less W_generic; KD5 tier-2 conditional |
+
+### Detail
+
+- R1/R2/R3 (featurizer): the single most-cited technical risk is train/serve skew, so there is exactly one featurizer, one signature, one integer FEATURE_VERSION, one test file, and the card-effect multi-hot lives inside it (not a parallel path). The version handshake is a TUPLE because a silent regex tweak in card_effects must invalidate shipped weights exactly as a feature-shape change does. Any mismatch or exception degrades to today's pure ladder, never a crash.
+- R4 (model): the dataset contract and the shipped scorer must compose. Pairwise logistic `s = X @ W + b` is chosen so the ragged-npz ranking-group schema and the match-time argmax-within-group are the same operation; no embedding table to sync. Validated small steps beat big unvalidated ones, so an MLP is deferred behind a plateau, in the same npz slot.
+- R5 (split): `md5(episode_id) mod 100` is deterministic across runs and machines and splits by EPISODE (decisions within a game are correlated). One module owns it so the extractor, trainer, and validator cannot drift to different partitions.
+- R6/R7 (guard/lever): the unattended loop cannot babysit a learned policy, so the deckout guard (the proven top leak) is ALWAYS-ON above the scorer, and the whole learned layer sits behind a single build-time `PTCG_POLICY` flag that is byte-identical when unset for one-rebuild rollback. The guard being lever-independent is the point of the split.
+- R8 (target): a confident target prior was already refuted once (meta_deck_copy), so the selector must be free to disagree; Grimmsnarl is the expected primary and Archaludon the volume hedge, but neither is hardcoded.
+- R9 (cohort): resolved and landed by U25 as the winning seat (analysis/expert_census.md); recorded here so no downstream unit re-forks it.
+- R11 (W_generic): KD5 made the pooled family block CONDITIONAL on the census firing tier 2 (600-2500 ranking groups). The U25 census settled this definitively: target family meta_grimmsnarl scored 167531 ranking groups over 5732 episodes, which is tier FULL (far above the 2500 tier-2 ceiling). The tier-2 condition is therefore NOT met, so there is no pooled block and no W_generic; the only fallback below a matched archetype block is the pure ladder. This fork is now closed by data, not just by default.

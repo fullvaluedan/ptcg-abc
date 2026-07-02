@@ -273,6 +273,21 @@ def _render_current_md(data: dict) -> str:
         )
         lines.append("")
 
+    recon = data.get("reconciliation") or {}
+    if recon:
+        lines.append("## Contract reconciliation record (U28)")
+        lines.append("")
+        lines.append(
+            f"- {recon.get('rulings', '?')} forked contracts each have one binding "
+            f"ruling ({recon.get('source', '')}); recorded {recon.get('recorded', '?')} "
+            "before any U40 code exists (KD4/KD5)."
+        )
+        lines.append(
+            f"- W_generic ruling: {recon.get('w_generic', '?')} "
+            f"(census tier {recon.get('census_tier', '?')} closes it by data)."
+        )
+        lines.append("")
+
     ledger = data.get("ledger") or []
     lines.append("## Per-build ledger")
     lines.append("")
