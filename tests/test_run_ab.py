@@ -5,6 +5,39 @@ import tools.run_ab as run_ab_mod
 from tools.run_ab import GATE_MARGIN_PP, run_ab, run_ab_resumable
 
 
+def test_run_arm_bakes_flag_into_env_and_forwards_jobs(monkeypatch):
+    captured = {}
+
+    def fake_run_parallel_gauntlet(agent, opponents, n, jobs=None, python_exe=None, env=None):
+        captured["agent"] = agent
+        captured["opponents"] = opponents
+        captured["n"] = n
+        captured["jobs"] = jobs
+        captured["env"] = env
+        return {"win_rate": 0.5, "matches": n, "wins": n // 2, "shard_errors": []}
+
+    monkeypatch.setattr(run_ab_mod, "run_parallel_gauntlet", fake_run_parallel_gauntlet)
+    run_ab_mod._run_arm("search", ["deck:aggro"], 10, True, sys.executable, jobs=4)
+
+    assert captured["agent"] == "search"
+    assert captured["opponents"] == ["deck:aggro"]
+    assert captured["n"] == 10
+    assert captured["jobs"] == 4
+    assert captured["env"]["PTCG_LEARNED_EVAL"] == "1"
+
+
+def test_run_arm_raises_on_shard_errors(monkeypatch):
+    def fake_run_parallel_gauntlet(agent, opponents, n, jobs=None, python_exe=None, env=None):
+        return {"win_rate": 0.0, "matches": 0, "wins": 0, "shard_errors": ["shard 0: boom"]}
+
+    monkeypatch.setattr(run_ab_mod, "run_parallel_gauntlet", fake_run_parallel_gauntlet)
+    try:
+        run_ab_mod._run_arm("search", ["deck:aggro"], 10, False, sys.executable)
+        assert False, "expected RuntimeError"
+    except RuntimeError as exc:
+        assert "shard 0: boom" in str(exc)
+
+
 def test_run_ab_runs_both_arms_and_computes_diff():
     logged = []
     result = run_ab("random", ["first"], n=2, python_exe=sys.executable, log=logged.append)
@@ -24,7 +57,7 @@ def _fake_arm(win_rate):
 
 
 def test_run_ab_verdict_at_exact_margin_does_not_flip(monkeypatch):
-    def fake_run_arm(agent, opponents, n, learned_eval, python_exe):
+    def fake_run_arm(agent, opponents, n, learned_eval, python_exe, jobs=None):
         return _fake_arm(0.50 + GATE_MARGIN_PP / 100) if learned_eval else _fake_arm(0.50)
 
     monkeypatch.setattr(run_ab_mod, "_run_arm", fake_run_arm)
@@ -34,7 +67,7 @@ def test_run_ab_verdict_at_exact_margin_does_not_flip(monkeypatch):
 
 
 def test_run_ab_verdict_above_margin_flips(monkeypatch):
-    def fake_run_arm(agent, opponents, n, learned_eval, python_exe):
+    def fake_run_arm(agent, opponents, n, learned_eval, python_exe, jobs=None):
         return _fake_arm(0.55) if learned_eval else _fake_arm(0.50)
 
     monkeypatch.setattr(run_ab_mod, "_run_arm", fake_run_arm)
@@ -52,7 +85,7 @@ def test_run_ab_resumable_runs_to_completion_in_batches(tmp_path, monkeypatch):
     checkpoint = tmp_path / "progress.json"
     calls = []
 
-    def fake_run_arm(agent, opponents, n, learned_eval, python_exe):
+    def fake_run_arm(agent, opponents, n, learned_eval, python_exe, jobs=None):
         calls.append((learned_eval, n))
         return _fake_batch(0.6 if learned_eval else 0.5, n)
 
@@ -77,7 +110,7 @@ def test_run_ab_resumable_picks_up_from_existing_checkpoint(tmp_path, monkeypatc
     }))
     calls = []
 
-    def fake_run_arm(agent, opponents, n, learned_eval, python_exe):
+    def fake_run_arm(agent, opponents, n, learned_eval, python_exe, jobs=None):
         calls.append((learned_eval, n))
         return _fake_batch(0.6, n)
 
@@ -94,7 +127,7 @@ def test_run_ab_resumable_stops_at_time_budget(tmp_path, monkeypatch):
     checkpoint = tmp_path / "progress.json"
     calls = []
 
-    def fake_run_arm(agent, opponents, n, learned_eval, python_exe):
+    def fake_run_arm(agent, opponents, n, learned_eval, python_exe, jobs=None):
         calls.append((learned_eval, n))
         return _fake_batch(0.5, n)
 

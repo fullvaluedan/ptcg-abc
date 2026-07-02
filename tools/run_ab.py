@@ -2,10 +2,17 @@
 
 search/eval.py reads PTCG_LEARNED_EVAL once at import time (a module-level
 constant), so flipping the env var mid-process would not change an
-already-imported agent's behavior. Each arm therefore runs in its own
-subprocess with the flag baked into that subprocess's environment, and
-tools/gauntlet.py itself stays unmodified. Used for the U5 gate and any later
-U6 retraining A/B (plan docs/plans/2026-07-02-002-feat-learned-evaluator-plan.md).
+already-imported agent's behavior. Each arm therefore runs as one or more
+subprocesses with the flag baked into their environment, and tools/gauntlet.py
+itself stays unmodified. Used for the U5 gate and any later U6 retraining A/B
+(plan docs/plans/2026-07-02-002-feat-learned-evaluator-plan.md).
+
+Each arm fans out across worker subprocesses via
+tools.parallel_gauntlet.run_parallel_gauntlet (plan U60) instead of running
+n matches sequentially in one subprocess, so a 400-games-per-arm A/B settles
+in minutes instead of tens of minutes on this machine's many idle cores.
+jobs=1 reproduces the old fully-sequential behavior (e.g. for tests that want
+one predictable subprocess call per arm).
 
 Dev tool only; never shipped.
 """
@@ -14,7 +21,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import subprocess
 import sys
 import time
 from pathlib import Path
@@ -24,28 +30,26 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+from tools.parallel_gauntlet import run_parallel_gauntlet  # noqa: E402
+
 GATE_MARGIN_PP = 4.0
 
 
-def _run_arm(agent, opponent_names, n, learned_eval, python_exe) -> dict:
-    """Run one gauntlet arm as a fresh subprocess with the flag baked into its env."""
+def _run_arm(agent, opponent_names, n, learned_eval, python_exe, jobs=None) -> dict:
+    """Run one gauntlet arm across `jobs` worker subprocesses with the flag baked into their env."""
     env = os.environ.copy()
     env["PTCG_LEARNED_EVAL"] = "1" if learned_eval else "0"
-    code = (
-        "import json, sys; "
-        f"sys.path.insert(0, {str(_ROOT)!r}); sys.path.insert(0, {str(_ROOT / 'src')!r}); "
-        "from tools.gauntlet import run_gauntlet; "
-        f"print(json.dumps(run_gauntlet({agent!r}, {opponent_names!r}, {n!r})))"
+    result = run_parallel_gauntlet(
+        agent, opponent_names, n, jobs=jobs, python_exe=python_exe, env=env,
     )
-    proc = subprocess.run(
-        [python_exe, "-c", code], cwd=str(_ROOT), env=env, capture_output=True, text=True
-    )
-    if proc.returncode != 0:
-        raise RuntimeError(f"arm subprocess failed (learned_eval={learned_eval}):\n{proc.stderr}")
-    return json.loads(proc.stdout.strip().splitlines()[-1])
+    if result["shard_errors"]:
+        raise RuntimeError(
+            f"arm subprocess failed (learned_eval={learned_eval}): {result['shard_errors']}"
+        )
+    return result
 
 
-def run_ab(agent, opponent_names, n, python_exe=None, log=None) -> dict:
+def run_ab(agent, opponent_names, n, python_exe=None, log=None, jobs=None) -> dict:
     """Run the off arm then the on arm, n matches each, and diff their win rates.
 
     log, if given, is called with a one-line progress string after each arm
@@ -57,7 +61,7 @@ def run_ab(agent, opponent_names, n, python_exe=None, log=None) -> dict:
     results = {}
     for label, flag in (("off", False), ("on", True)):
         t0 = time.time()
-        results[label] = _run_arm(agent, opponent_names, n, flag, python_exe)
+        results[label] = _run_arm(agent, opponent_names, n, flag, python_exe, jobs=jobs)
         elapsed = time.time() - t0
         log(
             f"arm {label} (PTCG_LEARNED_EVAL={'1' if flag else '0'}): "
@@ -103,7 +107,7 @@ def save_checkpoint(checkpoint_path, state) -> None:
 
 def run_ab_resumable(
     agent, opponent_names, n, checkpoint_path, batch_size=40,
-    python_exe=None, log=None, time_budget_s=None,
+    python_exe=None, log=None, time_budget_s=None, jobs=None,
 ) -> dict:
     """Run the A/B in small batches, checkpointing counts to checkpoint_path after each.
 
@@ -131,7 +135,7 @@ def run_ab_resumable(
                 )
                 return {"done": False, **state}
             batch_n = min(batch_size, n - state[label]["matches"])
-            batch = _run_arm(agent, opponent_names, batch_n, flag, python_exe)
+            batch = _run_arm(agent, opponent_names, batch_n, flag, python_exe, jobs=jobs)
             state[label] = _accumulate(state[label], batch)
             save_checkpoint(checkpoint_path, state)
             wr = state[label]["wins"] / state[label]["matches"]
@@ -166,14 +170,18 @@ def main():
     )
     ap.add_argument("--batch-size", type=int, default=40, help="games per batch in resumable mode")
     ap.add_argument("--time-budget", type=float, help="seconds; stop and checkpoint once exceeded")
+    ap.add_argument(
+        "--jobs", type=int, default=None,
+        help="worker subprocesses per arm, fanned out via parallel_gauntlet (default: min(cores-2, 16))",
+    )
     args = ap.parse_args()
     if args.checkpoint:
         result = run_ab_resumable(
             args.agent, args.opponents, args.matches, args.checkpoint,
-            batch_size=args.batch_size, time_budget_s=args.time_budget,
+            batch_size=args.batch_size, time_budget_s=args.time_budget, jobs=args.jobs,
         )
     else:
-        result = run_ab(args.agent, args.opponents, args.matches)
+        result = run_ab(args.agent, args.opponents, args.matches, jobs=args.jobs)
     print(json.dumps(result, indent=2))
     if args.out:
         Path(args.out).write_text(json.dumps(result, indent=2))

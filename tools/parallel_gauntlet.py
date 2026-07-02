@@ -61,12 +61,15 @@ def _chunk_matches(n_matches, jobs):
     return [s for s in sizes if s > 0]
 
 
-def _run_shard(shard_idx, agent, opponent_names, n, seed, log_path, python_exe):
+def _run_shard(shard_idx, agent, opponent_names, n, seed, log_path, python_exe, env=None):
     """Run one shard's matches in a subprocess; return (stats_dict, error_str).
 
     Exactly one of the two is None. log_path=None means state logging is off
     for this run; otherwise the worker writes its rows there (KTD2: one file
-    handle per process).
+    handle per process). env=None means the subprocess inherits this parent
+    process's environment (subprocess.run's own default); pass a dict (e.g. a
+    copy of os.environ with PTCG_LEARNED_EVAL baked in, as tools/run_ab.py
+    does) to control flags read at each worker's import time.
     """
     log_states = log_path is not None
     log_path_expr = repr(str(log_path)) if log_states else "None"
@@ -80,7 +83,7 @@ def _run_shard(shard_idx, agent, opponent_names, n, seed, log_path, python_exe):
         "print(json.dumps(s))"
     )
     proc = subprocess.run(
-        [python_exe, "-c", code], cwd=str(_ROOT), capture_output=True, text=True
+        [python_exe, "-c", code], cwd=str(_ROOT), env=env, capture_output=True, text=True
     )
     if proc.returncode != 0:
         tail = proc.stderr.strip().splitlines()
@@ -174,7 +177,7 @@ def _aggregate_stats(agent, opponent_names, requested_n, shard_results, errors, 
 
 def run_parallel_gauntlet(
     agent, opponent_names, n_matches, jobs=None, log_states=False,
-    log_path=None, seed=0, python_exe=None,
+    log_path=None, seed=0, python_exe=None, env=None,
 ):
     """Run n_matches split across up to `jobs` worker subprocesses; merge results.
 
@@ -183,7 +186,9 @@ def run_parallel_gauntlet(
     run still reports the survivors' aggregate plus the resulting shortfall,
     rather than raising. jobs defaults to default_jobs(). Each shard gets its
     own base seed (seed + shard_idx) and, if log_states, its own temp CSV
-    later merged with shard-namespaced game_ids (module docstring, KTD2).
+    later merged with shard-namespaced game_ids (module docstring, KTD2). env,
+    if given, is passed to every shard subprocess (see _run_shard); this is
+    how tools/run_ab.py bakes PTCG_LEARNED_EVAL into a parallel arm.
     """
     jobs = jobs or default_jobs()
     sizes = _chunk_matches(n_matches, jobs)
@@ -201,7 +206,7 @@ def run_parallel_gauntlet(
             futures = [
                 ex.submit(
                     _run_shard, i, agent, opponent_names, n, seed + i,
-                    shard_log_paths[i], python_exe,
+                    shard_log_paths[i], python_exe, env,
                 )
                 for i, n in enumerate(sizes)
             ]

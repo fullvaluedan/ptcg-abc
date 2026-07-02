@@ -92,6 +92,25 @@ def test_aggregate_stats_sums_shard_counters():
     assert 0.0 <= result["win_rate"] <= 1.0
 
 
+def test_run_shard_forwards_env_to_subprocess(monkeypatch):
+    captured = {}
+
+    class _FakeCompleted:
+        returncode = 0
+        stdout = '{"matches": 1}\n'
+        stderr = ""
+
+    def fake_run(args, cwd=None, env=None, capture_output=None, text=None):
+        captured["env"] = env
+        return _FakeCompleted()
+
+    monkeypatch.setattr(pg.subprocess, "run", fake_run)
+    env = {"PTCG_LEARNED_EVAL": "1"}
+    stats, err = pg._run_shard(0, "search", ["random"], 1, 0, None, "python", env=env)
+    assert err is None
+    assert captured["env"] is env
+
+
 def test_aggregate_stats_reports_shortfall_from_errors():
     shard_results = [
         (0, {"matches": 5, "wins": 5, "draws": 0, "losses": 0, "decisions": 20,
@@ -104,7 +123,7 @@ def test_aggregate_stats_reports_shortfall_from_errors():
 
 
 def test_run_parallel_gauntlet_skips_failed_shard_and_reports_shortfall(monkeypatch):
-    def fake_run_shard(shard_idx, agent, opponents, n, seed, log_path, python_exe):
+    def fake_run_shard(shard_idx, agent, opponents, n, seed, log_path, python_exe, env=None):
         if shard_idx == 1:
             return None, f"shard {shard_idx}: boom"
         stats = {

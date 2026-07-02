@@ -1,0 +1,32 @@
+{
+  "agent": "search",
+  "opponents": [
+    "deck:meta_archaludon",
+    "deck:meta_grimmsnarl",
+    "deck:meta_grimmsnarl_tonakaiiii",
+    "deck:aggro",
+    "deck:control",
+    "deck:ultraball",
+    "deck:trolley",
+    "deck:trolley_thick"
+  ],
+  "matches_per_arm": 400,
+  "off": {
+    "wins": 273,
+    "draws": 0,
+    "losses": 127,
+    "matches": 400,
+    "win_rate": 0.6825
+  },
+  "on": {
+    "wins": 273,
+    "draws": 0,
+    "losses": 127,
+    "matches": 400,
+    "win_rate": 0.6825
+  },
+  "diff_pp": 0.0,
+  "gate_margin_pp": 4.0,
+  "verdict": "keep default off",
+  "done": true
+}
