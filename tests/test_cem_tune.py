@@ -217,3 +217,48 @@ def test_subprocess_fitness_maps_errors_to_worst_score():
 def test_internal_evaluate_skips_unrequested_signals():
     # No pool_matches and no replays: both halves skipped, both None, no engine.
     assert ct._internal_evaluate({}) == {"win_rate": None, "agreement": None}
+
+
+def _stub_replay_channel(monkeypatch, split_map):
+    """Canned load/score/split so the agreement branch runs without the engine.
+
+    Returns the mutable dict the fake scorer records the labels it was handed in,
+    so a test can assert exactly which episodes survived the split filter.
+    """
+    import analysis.move_ranking_validator as mrv
+    import analysis.replay_trace as rt
+
+    pairs = [("A", "1.json"), ("B", "2.json"), ("C", "3.json")]
+    seen = {}
+
+    def fake_score(passed, choose, teams):
+        seen["labels"] = [label for _rep, label in passed]
+        return {"agreement": 0.5}
+
+    monkeypatch.setattr(mrv, "load_replays", lambda src, limit=None: list(pairs))
+    monkeypatch.setattr(mrv, "score_replays", fake_score)
+    monkeypatch.setattr(rt, "split_of", lambda label: split_map[label])
+    return seen
+
+
+def test_internal_evaluate_filters_replays_to_the_requested_split(monkeypatch):
+    # Only the train-bucket episodes reach the scorer; the held-out test bucket
+    # (2.json here) is dropped so a tuning run never fits on it.
+    seen = _stub_replay_channel(
+        monkeypatch,
+        {"1.json": "train", "2.json": "test", "3.json": "train"},
+    )
+    out = ct._internal_evaluate({"replays": "x", "split": "train"})
+    assert out == {"win_rate": None, "agreement": 0.5}
+    assert seen["labels"] == ["1.json", "3.json"]
+
+
+def test_internal_evaluate_scores_all_replays_when_split_is_all(monkeypatch):
+    # split "all" (or absent) applies no filter: every loaded episode is scored.
+    seen = _stub_replay_channel(
+        monkeypatch,
+        {"1.json": "train", "2.json": "test", "3.json": "train"},
+    )
+    out = ct._internal_evaluate({"replays": "x", "split": "all"})
+    assert out["agreement"] == 0.5
+    assert seen["labels"] == ["1.json", "2.json", "3.json"]

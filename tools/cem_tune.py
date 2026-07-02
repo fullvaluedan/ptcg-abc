@@ -297,9 +297,23 @@ def _internal_evaluate(spec):
             from agents.heuristics import choose
 
             teams = spec.get("teams") or list(mrv.DEFAULT_EXPERT_TEAMS)
-            result = mrv.score_replays(
-                mrv.load_replays(replays, limit=spec.get("limit")), choose, teams
-            )
+            pairs = mrv.load_replays(replays, limit=spec.get("limit"))
+            # Tune on one canonical md5 bucket only (KD4). Without this the CEM
+            # would fit train+test together and its held-out validation would not
+            # be held out; "train" is the correct bucket for a tuning run, leaving
+            # "test" clean for the pre-registered offline filter. The same
+            # split_of rule every other held-out unit uses (analysis/replay_trace,
+            # tools/per_archetype_baseline) so membership never drifts.
+            split = spec.get("split")
+            if split in ("train", "test"):
+                from analysis import replay_trace
+
+                pairs = [
+                    (rep, label)
+                    for rep, label in pairs
+                    if replay_trace.split_of(label) == split
+                ]
+            result = mrv.score_replays(pairs, choose, teams)
             agreement = result["agreement"]
         except Exception:
             agreement = None
@@ -314,6 +328,7 @@ def _run_cem(args) -> int:
         "pool_matches": args.pool_matches,
         "replays": args.replays,
         "limit": args.limit,
+        "split": args.split,
         "teams": args.teams,
         "w_pool": args.w_pool,
         "w_val": args.w_val,
@@ -384,6 +399,13 @@ def main(argv=None) -> int:
         help="a .zip or dir of episode JSONs for the U5 move-ranking validator",
     )
     ap.add_argument("--limit", type=int, default=200)
+    ap.add_argument(
+        "--split",
+        choices=("train", "test", "all"),
+        default="train",
+        help="md5 bucket to score the agreement channel on; 'train' keeps the "
+        "held-out 'test' bucket clean for the pre-registered offline filter",
+    )
     ap.add_argument("--teams", nargs="+", default=None)
     ap.add_argument("--w-pool", dest="w_pool", type=float, default=0.5)
     ap.add_argument("--w-val", dest="w_val", type=float, default=0.5)
