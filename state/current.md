@@ -19,7 +19,7 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Candidates awaiting a ladder slot
 
-- heuristic+trolley_thick (U3/U31 deck A/B): thicker-basic trolley (Kyogre 2->4, energy 35->33); cut mirror empty-bench collapse 80.8%->65.4% (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md). Tarball grader-verified. QUEUED for U20 slot 2; needs a pre-registered A/B row (M=60, N>=30, settle-by) before submit.
+- heuristic+trolley_thick (U3/U31 deck A/B): thicker-basic trolley (Kyogre 2->4, energy 35->33); cut mirror empty-bench collapse 80.8%->65.4% (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md). Tarball grader-verified. SUBMITTED to U20 slot 2 (ref 54252291, 2026-07-02) under a complete pre-registration; now IN-FLIGHT, settling by 2026-07-06.
 - cem-grown-genome (PRIO ordering): genome grown so CEM has a gradient (analysis/cem_gradient_restored.md); a real tools/cem_tune.py run is the pending next step, then offline-filter and gate on ladder A/B. Un-tuned build ships byte-identical.
 
 ## Noise model (U22)
@@ -58,7 +58,7 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
   "active_candidates": [
     {
       "build": "heuristic+trolley_thick (U3/U31 deck A/B)",
-      "note": "thicker-basic trolley (Kyogre 2->4, energy 35->33); cut mirror empty-bench collapse 80.8%->65.4% (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md). Tarball grader-verified. QUEUED for U20 slot 2; needs a pre-registered A/B row (M=60, N>=30, settle-by) before submit."
+      "note": "thicker-basic trolley (Kyogre 2->4, energy 35->33); cut mirror empty-bench collapse 80.8%->65.4% (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md). Tarball grader-verified. SUBMITTED to U20 slot 2 (ref 54252291, 2026-07-02) under a complete pre-registration; now IN-FLIGHT, settling by 2026-07-06."
     },
     {
       "build": "cem-grown-genome (PRIO ordering)",
@@ -66,16 +66,16 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
     }
   ],
   "in_flight": {
-    "build": null,
-    "note": "U20 slot-1 reclaim 54252006 settled COMPLETE at 600.0 (above the 540 floor, floor guard no longer fires). Slot 2 = heuristic+trolley_thick is pre-registered (U22 gate) and awaiting the next iteration's board-check-first submit, evicting grimmsnarl 489.6.",
-    "ref": null
+    "build": "heuristic+trolley_thick",
+    "note": "U20 slot-2 deck A/B SUBMITTED (ref 54252291, 2026-07-02) after U22 gate ALLOW and grader exec test green on the exact tarball; evicts below-floor meta copy grimmsnarl 489.6. Pre-registered vs the trolley king (594.7): direction up, M=60, N>=30, settle-by 2026-07-06. Settlement needs >=30 rated episodes AND >=24h; early-evict under 35% raw win rate after 15 episodes. WIN>=king+60 promote; LOSS<=king-60 evict+revert to king copy; BAND one repeat then U23 scoreboard.",
+    "ref": "54252291"
   },
   "ledger": [
     {
       "build": "heuristic+trolley (reclaim)",
       "ladder": 600.0,
       "move_agreement_delta": "n/a",
-      "note": "U20 slot-1 king reclaim; byte-identical to the 569.6 king; settled 600.0 => same-build noise band ~30/side (KD2 calibration)",
+      "note": "U20 slot-1 king reclaim; byte-identical to the 569.6 king; settled 600.0, drifted to 594.7 on 2026-07-02 board check => same-build noise band ~25-30/side (KD2 calibration)",
       "oracle": "n/a",
       "ref": "54252006",
       "sample_size": 0
