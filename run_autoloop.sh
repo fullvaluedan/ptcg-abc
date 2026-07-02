@@ -20,6 +20,7 @@ while true; do
     echo "================ iteration $i  $(date '+%Y-%m-%d %H:%M:%S') ================"
   } | tee -a "$LOG"
   MSYS_NO_PATHCONV=1 "$CLAUDE" -p "$(cat "$PROJ/LOOP_BRIEF.md")" \
+      --model claude-sonnet-5 \
       --dangerously-skip-permissions >> "$LOG" 2>&1
   code=$?
   dur=$(( $(date +%s) - start ))
