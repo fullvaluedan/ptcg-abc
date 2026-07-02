@@ -142,7 +142,7 @@ Units are grouped by phase. Every code unit ships offline and must pass the exis
   - Edge: near deckout, the pilot declines an unnecessary draw that would risk decking out, but still takes a lethal.
   - Error path: on a malformed or empty option set, the pilot returns a legal fallback and never raises.
   - Integration: a full match against the built-in pool runs with zero invalid moves and a measurably lower own-seat board-out rate than the current heuristic.
-- **Verification:** `analysis/measure_benchguard.py` (or the equivalent controlled harness) shows own-seat board-out drops materially versus the current heuristic.
+- **Verification:** `tools/measure_benchguard.py` (or the equivalent controlled harness) shows own-seat board-out drops materially versus the current heuristic.
 
 ### U3. Higher-basic-density deck coupled to U2 (P1)
 - **Goal:** give the self-preservation term something to develop, since the board-out floor is deck-set.
@@ -261,9 +261,9 @@ Units are grouped by phase. Every code unit ships offline and must pass the exis
 - **Test scenarios:** the policy ranks the real top-player move above random on held-out games; inference is numpy-only and within the per-move budget; as a rollout opponent it produces measurably different rollouts than the heuristic on the same state; unknown or malformed states fall back to a legal default.
 - **Verification:** using it as the gauntlet foil and the rollout opponent shifts measured outcomes in the expected direction, then validate on the ladder.
 
-### U14. Concrete pilot game-plan rules (P1/P2, CEM-tunable)
+### U14. Concrete pilot game-plan rules (P2, CEM-tunable)
 - **Goal:** the specific pilot behaviors the top-player analysis and external review flagged, as tunable rules the CEM engine can weight.
-- **Dependencies:** U2.
+- **Dependencies:** U2; U13 (the verification gate below needs the U13 oracle, so verification lands in P2 even though the rules can ship earlier behind flags).
 - **Files:** `agents/heuristics.py`, `tests/test_heuristic.py`.
 - **Approach:** (a) careful ability gating (once-per-turn only, before attack/end, avoid draw abilities near low deck, prefer setup/search abilities when the bench is thin); (b) attach to the attacker that takes the next prize soonest, never load a doomed active, preserve energy for the payoff or Stage-2 attacker; (c) do-not-lose-next-turn checks (if the active dies with an empty bench, force bench setup; if the opponent can take the final prize next turn, prioritize a knockout, disruption, or retreat; avoid an attack that leaves no promotable Pokemon unless it wins).
 - **Test scenarios:**
@@ -271,7 +271,7 @@ Units are grouped by phase. Every code unit ships offline and must pass the exis
   - Attach targets the next-prize attacker, not a doomed active.
   - The do-not-lose check forces bench development when the active is at lethal risk with an empty bench, but still takes a guaranteed win.
   - Every rule has a guaranteed legal fallback and never raises.
-- **Verification:** these rules reduce their corresponding loss buckets in the U13 oracle before any ladder submission.
+- **Verification:** these rules reduce their corresponding loss buckets in the U13 oracle before any ladder submission (gated on U13 landing; until then the rules are not marked verified).
 
 ---
 
@@ -283,7 +283,7 @@ Metrics per phase: own-seat board-out rate, gauntlet win rate versus frozen past
 |---|---|---|---|
 | P0 Reclaim | U1 | Live pair both heuristic; best near 570 to 590 | Pure hygiene; recovers lost points, cannot climb further. |
 | P1 Self-preservation pilot + deck | U2, U3 | Board-out below ~35% offline AND ladder A/B beats 569.6 | Most likely to move the needle; realistic ~650 to 750. |
-| P2 Self-improvement engine | U4, U5, U6 | CEM candidate beats P1 on ladder A/B, validated on held-out top-player games first | Turns P1 into an autonomous climber; plausible ~750 to 900. |
+| P2 Self-improvement engine | U4, U5, U6, U12, U13, U14 | CEM candidate beats P1 on ladder A/B, validated on held-out top-player games first | Turns P1 into an autonomous climber; plausible ~750 to 900. |
 | P3 Belief-weighted search revival (GATED) | U7, then U8, U9 | Search-active build finally beats the heuristic on ladder A/B | The big uncertainty and the only credible #1 path; skip if the diagnostic is unfavorable. |
 | P4 Learned numpy value net (optional) | U10, U11 | Net-as-leaf beats P3 on ladder A/B | Most headroom, most work; CPU caps it at the lite recipe. |
 
