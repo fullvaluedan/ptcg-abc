@@ -41,11 +41,17 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
   - LOSS: evict trolley_thick, revert slot 2 to a king copy
   - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king, record thin_bench_threshold re-test condition
 
+## Calibrated proxies (U24 retrodiction gate)
+
+A proxy may BLOCK a slot (never promote) only after it retrodicts the known five-build ordering (tools/loop_state.py check-gate --proxy <name>).
+
+_none calibrated; every proxy gate is refused (default-deny)_
+
 ## Per-build ledger
 
 | build | oracle | move-agree delta | ladder | sample | note |
 | --- | --- | --- | --- | --- | --- |
-| heuristic+trolley (reclaim) | n/a | n/a | 600.0 | 0 | U20 slot-1 king reclaim; byte-identical to the 569.6 king; settled 600.0 => same-build noise band ~30/side (KD2 calibration) |
+| heuristic+trolley (reclaim) | n/a | n/a | 600.0 | 0 | U20 slot-1 king reclaim; byte-identical to the 569.6 king; settled 600.0, drifted to 594.7 on 2026-07-02 board check => same-build noise band ~25-30/side (KD2 calibration) Board 2026-07-02: 556.7 (600.0 settled then 594.7 then 556.7; same-build drift within the ~30/side band). |
 | heuristic+trolley | n/a | n/a | 569.6 | 47 | SHADOW+RECLAIM king; top loss early_collapse |
 | heuristic+benchguard | n/a | n/a | 554.5 | 14 | bench-width guard build; below trolley floor |
 | search+trolley | n/a | n/a | 514.7 |  | search FORCE-LOADED and actually ran; still < heuristic |
@@ -66,8 +72,9 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
     }
   ],
   "in_flight": {
+    "board_reading": 497.1,
     "build": "heuristic+trolley_thick",
-    "note": "U20 slot-2 deck A/B SUBMITTED (ref 54252291, 2026-07-02) after U22 gate ALLOW and grader exec test green on the exact tarball; evicts below-floor meta copy grimmsnarl 489.6. Pre-registered vs the trolley king (594.7): direction up, M=60, N>=30, settle-by 2026-07-06. Settlement needs >=30 rated episodes AND >=24h; early-evict under 35% raw win rate after 15 episodes. WIN>=king+60 promote; LOSS<=king-60 evict+revert to king copy; BAND one repeat then U23 scoreboard.",
+    "note": "U20 slot-2 deck A/B SUBMITTED (ref 54252291, 2026-07-02) after U22 gate ALLOW and grader exec test green on the exact tarball; evicts below-floor meta copy grimmsnarl 489.6. Pre-registered vs the trolley king (594.7): direction up, M=60, N>=30, settle-by 2026-07-06. Settlement needs >=30 rated episodes AND >=24h; early-evict under 35% raw win rate after 15 episodes. WIN>=king+60 promote; LOSS<=king-60 evict+revert to king copy; BAND one repeat then U23 scoreboard. BOARD 2026-07-02: reads COMPLETE 497.1 vs reclaim king 556.7 (gap 59.6 approx king-60, trending LOSS); NOT yet settled (sub <24h old, need >=30 episodes AND >=24h, earliest 2026-07-03).",
     "ref": "54252291"
   },
   "ledger": [
@@ -75,7 +82,7 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
       "build": "heuristic+trolley (reclaim)",
       "ladder": 600.0,
       "move_agreement_delta": "n/a",
-      "note": "U20 slot-1 king reclaim; byte-identical to the 569.6 king; settled 600.0, drifted to 594.7 on 2026-07-02 board check => same-build noise band ~25-30/side (KD2 calibration)",
+      "note": "U20 slot-1 king reclaim; byte-identical to the 569.6 king; settled 600.0, drifted to 594.7 on 2026-07-02 board check => same-build noise band ~25-30/side (KD2 calibration) Board 2026-07-02: 556.7 (600.0 settled then 594.7 then 556.7; same-build drift within the ~30/side band).",
       "oracle": "n/a",
       "ref": "54252006",
       "sample_size": 0

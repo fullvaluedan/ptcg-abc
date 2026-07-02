@@ -39,6 +39,7 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
         sys.path.insert(0, _p)
 
 from analysis.loss_classifier import BUCKETS, classify_batch  # noqa: E402
+from analysis.proxy_calibration import calibrate  # noqa: E402
 from tools.scout import digest_dir  # noqa: E402
 
 STATE_DIR = _ROOT / "state"
@@ -217,6 +218,26 @@ def _render_current_md(data: dict) -> str:
     else:
         lines.append("_none_")
         lines.append("")
+
+    proxies = data.get("calibrated_proxies") or []
+    lines.append("## Calibrated proxies (U24 retrodiction gate)")
+    lines.append("")
+    lines.append("A proxy may BLOCK a slot (never promote) only after it retrodicts "
+                 "the known five-build ordering (tools/loop_state.py check-gate --proxy <name>).")
+    lines.append("")
+    if proxies:
+        lines.append("| proxy | tau | covered | passes | note |")
+        lines.append("| --- | --- | --- | --- | --- |")
+        for p in proxies:
+            rep = p.get("report") or {}
+            lines.append(
+                f"| {p.get('proxy', '?')} | {rep.get('tau', '')} | "
+                f"{rep.get('n_covered', '')}/{rep.get('n_known', '')} | "
+                f"{'yes' if rep.get('passes') else 'NO'} | {p.get('note', '')} |"
+            )
+    else:
+        lines.append("_none calibrated; every proxy gate is refused (default-deny)_")
+    lines.append("")
 
     ledger = data.get("ledger") or []
     lines.append("## Per-build ledger")
@@ -450,6 +471,56 @@ def settle_verdict(candidate_score, king_score, margin: int = DEFAULT_MARGIN) ->
 
 
 # --------------------------------------------------------------------------- #
+# proxy retrodiction gate: no uncalibrated proxy may block a slot (plan U24)
+# --------------------------------------------------------------------------- #
+def record_proxy_calibration(data: dict, proxy: str, proxy_scores: dict,
+                             note: str | None = None) -> tuple:
+    """Calibrate a proxy against the known five-build ordering and store the report.
+
+    Runs analysis.proxy_calibration.calibrate over the proxy's per-build scores,
+    records the report under current-state's calibrated_proxies (keyed by proxy
+    name, replacing any prior report), and returns (data, report). A failing proxy
+    is still recorded so the failure is visible and gate refusals can explain
+    themselves; only a passing report unlocks gating.
+    """
+    report = calibrate(proxy_scores)
+    rows = data.get("calibrated_proxies")
+    if not isinstance(rows, list):
+        rows = []
+    rows = [r for r in rows if r.get("proxy") != proxy]
+    entry = {"proxy": proxy, "report": report}
+    if note:
+        entry["note"] = note
+    rows.append(entry)
+    data["calibrated_proxies"] = rows
+    return data, report
+
+
+def proxy_may_gate(data: dict, proxy: str) -> tuple:
+    """(allowed, reason): may this proxy BLOCK a slot?
+
+    A proxy may gate only when current-state carries a calibration report for it
+    whose retrodiction PASSED. No report, or a failing report, refuses the gate.
+    This is the U24 default-deny: until a proxy proves it reproduces the known
+    ladder ordering, loop_state will not let it kill a candidate. A passing proxy
+    may only BLOCK, never promote; the ladder A/B stays the sole arbiter.
+    """
+    for r in data.get("calibrated_proxies") or []:
+        if r.get("proxy") == proxy:
+            report = r.get("report") or {}
+            tau = report.get("tau")
+            if report.get("passes"):
+                return True, (f"proxy '{proxy}' calibrated (tau {tau}, covered "
+                              f"{report.get('n_covered')}/{report.get('n_known')}); "
+                              "may BLOCK a slot, never promote")
+            return False, (f"proxy '{proxy}' failed retrodiction (tau {tau}, "
+                           f"covered {report.get('n_covered')}/{report.get('n_known')}); "
+                           "may not gate")
+    return False, (f"proxy '{proxy}' has no calibration report; may not gate "
+                   "(U24: calibrate against the known five-build ordering first)")
+
+
+# --------------------------------------------------------------------------- #
 # loss-bucket classification over one or more replay dirs (the MEASURE step)
 # --------------------------------------------------------------------------- #
 def classify_dirs(dirs) -> dict:
@@ -552,6 +623,32 @@ def _cmd_check_submit(args) -> None:
         raise SystemExit(1)
 
 
+def _cmd_calibrate_proxy(args) -> None:
+    try:
+        scores = json.loads(args.scores)
+    except ValueError as exc:
+        print(f"invalid --scores JSON: {exc}")
+        raise SystemExit(2)
+    if not isinstance(scores, dict):
+        print("--scores must be a JSON object mapping build -> score")
+        raise SystemExit(2)
+    data = read_current()
+    data, report = record_proxy_calibration(data, args.proxy, scores, note=args.note)
+    write_current(data)
+    verdict = "PASS" if report["passes"] else "FAIL"
+    print(f"calibrated '{args.proxy}': {verdict} (tau={report['tau']}, "
+          f"covered {report['n_covered']}/{report['n_known']})")
+    if not report["passes"]:
+        raise SystemExit(2)
+
+
+def _cmd_check_gate(args) -> None:
+    ok, reason = proxy_may_gate(read_current(), args.proxy)
+    print(("ALLOW: " if ok else "BLOCK: ") + reason)
+    if not ok:
+        raise SystemExit(1)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="stateful loop memory (plan U12)")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -583,6 +680,16 @@ def main() -> None:
     cs = sub.add_parser("check-submit", help="dry-run the U22 submission gate for a build")
     cs.add_argument("--build", required=True, help="the build about to be submitted")
 
+    cp = sub.add_parser("calibrate-proxy",
+                        help="retrodict a proxy vs the known five-build ordering (U24)")
+    cp.add_argument("--proxy", required=True, help="proxy name")
+    cp.add_argument("--scores", required=True,
+                    help='JSON object {build: score} the proxy assigns each known build')
+    cp.add_argument("--note", default=None, help="optional note stored with the report")
+
+    cg = sub.add_parser("check-gate", help="dry-run the U24 proxy gate for a proxy")
+    cg.add_argument("--proxy", required=True, help="the proxy about to gate a slot")
+
     args = ap.parse_args()
     if args.cmd == "refresh":
         _cmd_refresh(args)
@@ -594,6 +701,10 @@ def main() -> None:
         _cmd_prereg(args)
     elif args.cmd == "check-submit":
         _cmd_check_submit(args)
+    elif args.cmd == "calibrate-proxy":
+        _cmd_calibrate_proxy(args)
+    elif args.cmd == "check-gate":
+        _cmd_check_gate(args)
 
 
 if __name__ == "__main__":

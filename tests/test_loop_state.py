@@ -342,3 +342,52 @@ def test_settle_verdict_margin_arithmetic():
     assert ls.settle_verdict(600, 600, margin=60) == "BAND"   # tie is noise
     assert ls.settle_verdict(659, 600, margin=60) == "BAND"   # sub-margin gain
     assert ls.settle_verdict(541, 600, margin=60) == "BAND"
+
+
+# --------------------------------------------------------------------------- #
+# proxy retrodiction gate: no uncalibrated proxy may block a slot (plan U24)
+# --------------------------------------------------------------------------- #
+def test_proxy_gate_blocks_uncalibrated():
+    # Default-deny: a proxy with no calibration report may never gate.
+    ok, reason = ls.proxy_may_gate({}, "cloned_gauntlet")
+    assert ok is False and "no calibration report" in reason
+
+
+def test_proxy_gate_allows_passing_proxy():
+    from analysis.proxy_calibration import KNOWN_LADDER
+
+    data = {}
+    ls.record_proxy_calibration(data, "ladder_echo", dict(KNOWN_LADDER))
+    ok, reason = ls.proxy_may_gate(data, "ladder_echo")
+    assert ok is True and "may BLOCK a slot" in reason
+
+
+def test_proxy_gate_refuses_failing_proxy():
+    from analysis.proxy_calibration import KNOWN_LADDER
+
+    data = {}
+    # A proxy that reverses the ordering fails retrodiction.
+    ls.record_proxy_calibration(data, "weak_bot_gauntlet",
+                                {b: -v for b, v in KNOWN_LADDER.items()})
+    ok, reason = ls.proxy_may_gate(data, "weak_bot_gauntlet")
+    assert ok is False and "failed retrodiction" in reason
+
+
+def test_record_proxy_calibration_replaces_by_name():
+    from analysis.proxy_calibration import KNOWN_LADDER
+
+    data = {}
+    ls.record_proxy_calibration(data, "p", {b: -v for b, v in KNOWN_LADDER.items()})
+    ls.record_proxy_calibration(data, "p", dict(KNOWN_LADDER))
+    assert len(data["calibrated_proxies"]) == 1  # same name -> replaced
+    assert ls.proxy_may_gate(data, "p")[0] is True
+
+
+def test_proxy_calibration_round_trips_through_current_md(tmp_state):
+    from analysis.proxy_calibration import KNOWN_LADDER
+
+    data = {"loss_distribution": {}}
+    ls.record_proxy_calibration(data, "ladder_echo", dict(KNOWN_LADDER),
+                                note="illustrative perfect proxy")
+    ls.write_current(data)
+    assert ls.read_current()["calibrated_proxies"] == data["calibrated_proxies"]
