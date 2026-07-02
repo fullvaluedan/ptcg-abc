@@ -17,6 +17,13 @@ exactly one option row per its own n_options and at most one is_chosen=1 row,
 so a logging bug (a truncated or duplicated decision) is caught before
 tools/train_move_prior.py (U8b) trains on it.
 
+Also reads the archetype silver-label schema (tools/replays_to_archetype_rows.py,
+plan U9a, columns: game_id, label, early_archetype_features FEATURE_NAMES...,
+source), detected by every early-archetype feature name being present as a
+column: reports per-label row counts and how many rows collapsed into "other",
+since a below-OTHER_MIN_ROWS "other" split cannot be hidden the way a bad
+50/50 balance shows up in the state-outcome report.
+
 Dev tool only; never shipped.
 """
 from __future__ import annotations
@@ -32,10 +39,17 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+from analysis.early_archetype_features import FEATURE_NAMES as ARCHETYPE_FEATURE_NAMES  # noqa: E402
 from ptcg_agent.features import FEATURE_NAMES  # noqa: E402
 
 BALANCE_LO = 0.35
 BALANCE_HI = 0.65
+
+# Below this many rows, a collapsed "other" label bucket is too thin to
+# support a trustworthy classifier class (mirrors tools/replays_to_archetype_rows.py's
+# own MIN_LABEL_GAMES posture, just re-checked at the row level here).
+OTHER_MIN_ROWS = 30
+OTHER_LABEL = "other"
 
 
 def load(path) -> tuple:
@@ -145,6 +159,55 @@ def move_report(path) -> dict:
     }
 
 
+def archetype_report(path) -> dict:
+    """Per-label row counts and other-bucket size for an archetype rows CSV.
+
+    Each row is one game (tools/replays_to_archetype_rows.py emits one row per
+    replay, not per seat/turn), so n_rows and n_games coincide for a clean
+    file; they are reported separately anyway in case a future caller writes
+    more than one row per game. other_ok flags whenever the collapsed "other"
+    bucket is non-empty but thinner than OTHER_MIN_ROWS, since a below-30-row
+    grab-bag class is too noisy to train on but a bare percentage would not
+    show that on its own.
+    """
+    header, rows = load(path)
+    n_rows = len(rows)
+    game_idx = header.index("game_id")
+    label_idx = header.index("label")
+    n_games = len({row[game_idx] for row in rows}) if rows else 0
+
+    counts: dict = {}
+    for row in rows:
+        counts[row[label_idx]] = counts.get(row[label_idx], 0) + 1
+
+    other_count = counts.get(OTHER_LABEL, 0)
+    other_ok = other_count == 0 or other_count >= OTHER_MIN_ROWS
+    return {
+        "path": str(path),
+        "n_rows": n_rows,
+        "n_games": n_games,
+        "n_labels": len(counts),
+        "label_counts": dict(sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))),
+        "other_count": other_count,
+        "other_ok": other_ok,
+    }
+
+
+def _format_archetype(result: dict) -> str:
+    lines = [
+        f"archetype dataset report: {result['path']}",
+        f"  rows: {result['n_rows']}  games: {result['n_games']}  labels: {result['n_labels']}",
+        "  per-label row counts:",
+    ]
+    for label, n in result["label_counts"].items():
+        lines.append(f"    {label:<28} {n}")
+    lines.append(
+        f"  collapsed-to-other: {result['other_count']} rows "
+        f"({'OK' if result['other_ok'] else f'WARN, below {OTHER_MIN_ROWS}'})"
+    )
+    return "\n".join(lines)
+
+
 def _format_move(result: dict) -> str:
     return "\n".join([
         f"move dataset report: {result['path']}",
@@ -175,13 +238,19 @@ def _format(result: dict) -> str:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("csv_path", help="path to a states_*.csv or move_rows_*.csv training file")
+    ap.add_argument("csv_path",
+                     help="path to a states_*.csv, move_rows_*.csv, or archetype_rows_*.csv training file")
     args = ap.parse_args()
     header, _rows = load(args.csv_path)
     if "decision_id" in header:
         result = move_report(args.csv_path)
         print(_format_move(result))
         if not result["ok"]:
+            sys.exit(1)
+    elif set(ARCHETYPE_FEATURE_NAMES) <= set(header):
+        result = archetype_report(args.csv_path)
+        print(_format_archetype(result))
+        if not result["other_ok"]:
             sys.exit(1)
     else:
         result = report(args.csv_path)

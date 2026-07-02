@@ -1,8 +1,16 @@
 import csv
 
 from agents.imitation_features import FEATURE_NAMES as MOVE_FEATURE_NAMES
+from analysis.early_archetype_features import FEATURE_NAMES as ARCHETYPE_FEATURE_NAMES
 from ptcg_agent.features import FEATURE_NAMES
-from tools.dataset_report import BALANCE_HI, BALANCE_LO, move_report, report
+from tools.dataset_report import (
+    BALANCE_HI,
+    BALANCE_LO,
+    OTHER_MIN_ROWS,
+    archetype_report,
+    move_report,
+    report,
+)
 
 
 def _write_csv(path, rows):
@@ -117,3 +125,56 @@ def test_move_report_flags_multiple_chosen_in_one_decision(tmp_path):
     assert result["multi_chosen_ok"] is False
     assert result["multi_chosen_groups"] == 1
     assert result["ok"] is False
+
+
+def _write_archetype_csv(path, rows):
+    header = ["game_id", "label", *ARCHETYPE_FEATURE_NAMES, "source"]
+    with open(path, "w", newline="") as fh:
+        writer = csv.writer(fh)
+        writer.writerow(header)
+        writer.writerows(rows)
+    return path
+
+
+def _archetype_row(game_id, label):
+    return [game_id, label, *[0.0] * len(ARCHETYPE_FEATURE_NAMES), "ladder"]
+
+
+def test_archetype_report_counts_per_label(tmp_path):
+    path = tmp_path / "archetype_rows.csv"
+    rows = (
+        [_archetype_row(f"g{i}", "Mega Starmie ex") for i in range(3)]
+        + [_archetype_row(f"g{i}", "Dragapult ex") for i in range(3, 5)]
+    )
+    _write_archetype_csv(path, rows)
+
+    result = archetype_report(path)
+    assert result["n_rows"] == 5
+    assert result["n_games"] == 5
+    assert result["n_labels"] == 2
+    assert result["label_counts"] == {"Mega Starmie ex": 3, "Dragapult ex": 2}
+    assert result["other_count"] == 0
+    assert result["other_ok"] is True
+
+
+def test_archetype_report_flags_thin_other_bucket(tmp_path):
+    path = tmp_path / "archetype_rows.csv"
+    rows = (
+        [_archetype_row(f"g{i}", "Mega Starmie ex") for i in range(10)]
+        + [_archetype_row(f"o{i}", "other") for i in range(OTHER_MIN_ROWS - 1)]
+    )
+    _write_archetype_csv(path, rows)
+
+    result = archetype_report(path)
+    assert result["other_count"] == OTHER_MIN_ROWS - 1
+    assert result["other_ok"] is False
+
+
+def test_archetype_report_ok_when_other_bucket_clears_threshold(tmp_path):
+    path = tmp_path / "archetype_rows.csv"
+    rows = [_archetype_row(f"o{i}", "other") for i in range(OTHER_MIN_ROWS)]
+    _write_archetype_csv(path, rows)
+
+    result = archetype_report(path)
+    assert result["other_count"] == OTHER_MIN_ROWS
+    assert result["other_ok"] is True
