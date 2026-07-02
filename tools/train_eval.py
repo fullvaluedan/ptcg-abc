@@ -152,25 +152,36 @@ def export_model(model, mean, std, path):
     Path(path).write_text(json.dumps(payload, indent=2) + "\n")
 
 
-def compare_gauntlet_vs_merged(gauntlet_csv, ladder_csv, test_frac=0.2, seed=0, source_weights=None):
-    """Train on gauntlet-only vs gauntlet-plus-ladder, evaluate both on the same
-    held-out gauntlet-only test set (plan U4's ladder-merge comparison).
+def compare_gauntlet_vs_merged(
+    gauntlet_csv, ladder_csv, test_frac=0.2, seed=0, source_weights=None, extra_sources=None
+):
+    """Train on gauntlet-only vs gauntlet-plus-ladder(-plus-extras), evaluate both
+    on the same held-out gauntlet-only test set (plan U4's ladder-merge comparison).
 
     The held-out test set is gauntlet-only rows: ladder replays are one-sided
     (we only see games our own submissions played), so a ladder-only or mixed
     test set would not represent the gauntlet matchups the shipped agent
     actually plays. Both models are judged on the same test rows, so the
-    comparison isolates the effect of adding ladder rows to the training set.
+    comparison isolates the effect of adding ladder (and any extra) rows to
+    the training set.
 
     source_weights, if given (plan U3c's --source-weights hook), applies
-    weights["gauntlet"] to the gauntlet train rows and weights["ladder"] to
-    the ladder rows in the merged fit only (the gauntlet-only fit always stays
-    unweighted, since it has one source). A source missing from the dict
-    defaults to DEFAULT_SOURCE_WEIGHT. None (the default) fits unweighted,
-    identical to the original behavior.
+    weights["gauntlet"] to the gauntlet train rows, weights["ladder"] to the
+    ladder rows, and weights[label] to each extra_sources row in the merged
+    fit only (the gauntlet-only fit always stays unweighted, since it has one
+    source). A source missing from the dict defaults to DEFAULT_SOURCE_WEIGHT.
+    None (the default) fits unweighted, identical to the original behavior.
+
+    extra_sources, if given (plan U6's retrain-generation hook), is a list of
+    (label, csv_path) pairs folded into the merged fit only, each tagged with
+    its own game_id prefix (so a same-numbered game in two sources never
+    collides) and its own source label for source_weights lookups. Rows are
+    never added to the gauntlet-only fit or to the held-out test set. None
+    (the default) behaves exactly like the pre-U6 two-source signature.
 
     Returns a dict: gauntlet_only / merged sub-dicts (each with model, mean,
-    std, metrics, n_train), the picked variant name, n_ladder_rows, and
+    std, metrics, n_train), the picked variant name, n_ladder_rows,
+    extra_source_rows (label -> row count, empty when none were given), and
     source_weights (empty dict when none were given).
     """
     gauntlet_ids, gauntlet_X, gauntlet_y = load_rows(gauntlet_csv, tag_prefix="gauntlet")
@@ -182,14 +193,22 @@ def compare_gauntlet_vs_merged(gauntlet_csv, ladder_csv, test_frac=0.2, seed=0, 
     gauntlet_metrics = evaluate(gauntlet_model, gauntlet_mean, gauntlet_std, X_test, y_test)
 
     _, ladder_X, ladder_y = load_rows(ladder_csv, tag_prefix="ladder")
-    merged_X = np.concatenate([X_train, ladder_X], axis=0)
-    merged_y = np.concatenate([y_train, ladder_y], axis=0)
+    merged_parts_X = [X_train, ladder_X]
+    merged_parts_y = [y_train, ladder_y]
+    weight_labels = ["gauntlet"] * len(X_train) + ["ladder"] * len(ladder_X)
+    extra_source_rows = {}
+    for label, csv_path in extra_sources or []:
+        _, extra_X, extra_y = load_rows(csv_path, tag_prefix=label)
+        merged_parts_X.append(extra_X)
+        merged_parts_y.append(extra_y)
+        weight_labels.extend([label] * len(extra_X))
+        extra_source_rows[label] = len(extra_X)
+
+    merged_X = np.concatenate(merged_parts_X, axis=0)
+    merged_y = np.concatenate(merged_parts_y, axis=0)
     merged_sample_weight = None
     if source_weights:
-        merged_sample_weight = np.concatenate([
-            np.full(len(X_train), source_weights.get("gauntlet", DEFAULT_SOURCE_WEIGHT)),
-            np.full(len(ladder_X), source_weights.get("ladder", DEFAULT_SOURCE_WEIGHT)),
-        ])
+        merged_sample_weight = sample_weights_for(weight_labels, source_weights)
     merged_model, merged_mean, merged_std = fit_standardized(
         merged_X, merged_y, sample_weight=merged_sample_weight
     )
@@ -209,6 +228,7 @@ def compare_gauntlet_vs_merged(gauntlet_csv, ladder_csv, test_frac=0.2, seed=0, 
         "picked": picked,
         "n_test": len(X_test),
         "n_ladder_rows": len(ladder_X),
+        "extra_source_rows": extra_source_rows,
         "source_weights": dict(source_weights) if source_weights else {},
     }
 
@@ -217,7 +237,11 @@ def write_ladder_ab_report(result, path):
     """Plain-language analysis/ladder_data_ab.md documenting the comparison and gate verdict."""
     g = result["gauntlet_only"]
     m = result["merged"]
-    picked_label = "gauntlet+ladder (merged)" if result["picked"] == "merged" else "gauntlet-only"
+    extra_rows = result.get("extra_source_rows") or {}
+    merged_sources = ["ladder", *sorted(extra_rows)]
+    picked_label = (
+        f"gauntlet+{'+'.join(merged_sources)} (merged)" if result["picked"] == "merged" else "gauntlet-only"
+    )
     lines = [
         "# Ladder data A/B: does adding ladder replay rows help the evaluator?",
         "",
@@ -230,6 +254,10 @@ def write_ladder_ab_report(result, path):
         "",
         f"- Gauntlet-only training rows: {g['n_train']}",
         f"- Ladder rows added for the merged variant: {result['n_ladder_rows']}",
+    ]
+    for label in sorted(extra_rows):
+        lines.append(f"- {label} rows added for the merged variant: {extra_rows[label]}")
+    lines += [
         f"- Merged training rows: {m['n_train']}",
         f"- Held-out gauntlet-only test rows: {result['n_test']} (same rows for both models)",
         "",
@@ -238,7 +266,7 @@ def write_ladder_ab_report(result, path):
         "| variant | train rows | test AUC | test accuracy |",
         "|---|---|---|---|",
         f"| gauntlet-only | {g['n_train']} | {g['metrics']['auc']:.4f} | {g['metrics']['accuracy']:.4f} |",
-        f"| gauntlet+ladder | {m['n_train']} | {m['metrics']['auc']:.4f} | {m['metrics']['accuracy']:.4f} |",
+        f"| gauntlet+{'+'.join(merged_sources)} | {m['n_train']} | {m['metrics']['auc']:.4f} | {m['metrics']['accuracy']:.4f} |",
         "",
         "## Gate",
         "",
@@ -283,17 +311,26 @@ def main():
                           "weights (plan U3c, e.g. 'top_player=2.0'); a source not listed, "
                           "or a csv with no 'source' column, defaults to weight "
                           f"{DEFAULT_SOURCE_WEIGHT}")
+    ap.add_argument("--extra-csv", action="append", default=None,
+                     help="label=path, repeatable (plan U6, e.g. "
+                          "'gauntlet_gen2=data/training/states_123.csv "
+                          "--extra-csv top_player=data/training/top_player_corpus_20260702.csv'); "
+                          "folded into the merged fit only, tagged with label for "
+                          "--source-weights lookups, never added to the gauntlet-only "
+                          "fit or the held-out test set")
     args = ap.parse_args()
     source_weights = parse_source_weights(args.source_weights)
+    extra_sources = [pair.split("=", 1) for pair in (args.extra_csv or [])]
 
     if args.ladder_csv:
         result = compare_gauntlet_vs_merged(
             args.csv_path, args.ladder_csv, args.test_frac, args.seed,
             source_weights=source_weights or None,
+            extra_sources=extra_sources or None,
         )
         g, m = result["gauntlet_only"], result["merged"]
         print(f"gauntlet-only  train rows: {g['n_train']}  AUC={g['metrics']['auc']:.4f}")
-        print(f"gauntlet+ladder  train rows: {m['n_train']}  AUC={m['metrics']['auc']:.4f}")
+        print(f"merged  train rows: {m['n_train']}  AUC={m['metrics']['auc']:.4f}")
         print(f"picked: {result['picked']}")
 
         write_ladder_ab_report(result, args.report)

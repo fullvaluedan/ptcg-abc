@@ -239,6 +239,70 @@ def test_write_ladder_ab_report_documents_source_weights_when_given(tmp_path):
     assert "top_player: 2.0" in text
 
 
+def test_compare_gauntlet_vs_merged_folds_in_extra_sources(tmp_path):
+    gauntlet_csv = _write_csv(tmp_path / "gauntlet.csv", _prize_diff_dataset(30, 5, sign=1, seed=0))
+    ladder_csv = _write_csv(
+        tmp_path / "ladder.csv", _prize_diff_dataset(30, 5, sign=1, seed=1), source="ladder"
+    )
+    extra_csv = _write_csv(
+        tmp_path / "top_player.csv", _prize_diff_dataset(10, 5, sign=1, seed=2), source="top_player"
+    )
+
+    result = compare_gauntlet_vs_merged(
+        gauntlet_csv, ladder_csv, test_frac=0.2, seed=0,
+        extra_sources=[("top_player", str(extra_csv))],
+    )
+
+    assert result["extra_source_rows"] == {"top_player": 10 * 5}
+    assert result["merged"]["n_train"] == result["gauntlet_only"]["n_train"] + result["n_ladder_rows"] + 50
+
+
+def test_compare_gauntlet_vs_merged_weights_extra_source_rows(tmp_path):
+    gauntlet_csv = _write_csv(tmp_path / "gauntlet.csv", _prize_diff_dataset(30, 5, sign=1, seed=0))
+    ladder_csv = _write_csv(
+        tmp_path / "ladder.csv", _prize_diff_dataset(30, 5, sign=1, seed=1), source="ladder"
+    )
+    # far more contradicting extra-source rows than gauntlet rows, so a heavy
+    # weight on the extra source should pull the merged fit toward it.
+    extra_csv = _write_csv(
+        tmp_path / "top_player.csv", _prize_diff_dataset(200, 5, sign=-1, seed=2), source="top_player"
+    )
+
+    unweighted = compare_gauntlet_vs_merged(
+        gauntlet_csv, ladder_csv, test_frac=0.2, seed=0,
+        extra_sources=[("top_player", str(extra_csv))],
+    )
+    downweighted = compare_gauntlet_vs_merged(
+        gauntlet_csv, ladder_csv, test_frac=0.2, seed=0,
+        extra_sources=[("top_player", str(extra_csv))],
+        source_weights={"top_player": 0.001},
+    )
+
+    # downweighting the contradicting extra-source rows should pull the merged
+    # fit back toward gauntlet-only quality, beating the unweighted merged AUC.
+    assert downweighted["merged"]["metrics"]["auc"] > unweighted["merged"]["metrics"]["auc"]
+
+
+def test_write_ladder_ab_report_documents_extra_sources(tmp_path):
+    gauntlet_csv = _write_csv(tmp_path / "gauntlet.csv", _prize_diff_dataset(30, 5, sign=1, seed=0))
+    ladder_csv = _write_csv(
+        tmp_path / "ladder.csv", _prize_diff_dataset(30, 5, sign=1, seed=1), source="ladder"
+    )
+    extra_csv = _write_csv(
+        tmp_path / "top_player.csv", _prize_diff_dataset(10, 5, sign=1, seed=2), source="top_player"
+    )
+    result = compare_gauntlet_vs_merged(
+        gauntlet_csv, ladder_csv, test_frac=0.2, seed=0,
+        extra_sources=[("top_player", str(extra_csv))],
+    )
+
+    report_path = write_ladder_ab_report(result, tmp_path / "ladder_data_ab.md")
+
+    text = report_path.read_text()
+    assert "gauntlet+ladder+top_player (merged)" in text
+    assert "top_player rows added for the merged variant: 50" in text
+
+
 def test_write_ladder_ab_report_documents_the_verdict(tmp_path):
     gauntlet_csv = _write_csv(tmp_path / "gauntlet.csv", _prize_diff_dataset(30, 5, sign=1, seed=0))
     ladder_csv = _write_csv(
