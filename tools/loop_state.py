@@ -288,6 +288,21 @@ def _render_current_md(data: dict) -> str:
         )
         lines.append("")
 
+    scoring = data.get("final_scoring") or {}
+    if scoring:
+        lines.append("## Final scoring semantics (U29)")
+        lines.append("")
+        lines.append(
+            f"- {scoring.get('model', '?')} ({scoring.get('source', '')}); "
+            f"recorded {scoring.get('recorded', '?')}, gates U48."
+        )
+        lines.append(
+            f"- deadline {scoring.get('deadline', '?')}, then "
+            f"{scoring.get('final_window', '?')}; daily limit "
+            f"{scoring.get('daily_limit', '?')}."
+        )
+        lines.append("")
+
     ledger = data.get("ledger") or []
     lines.append("## Per-build ledger")
     lines.append("")

@@ -440,3 +440,31 @@ def test_reconciliation_absent_renders_nothing(tmp_state):
     ls.write_current({"loss_distribution": {}})
     prose = ls.CURRENT_PATH.read_text(encoding="utf-8")
     assert "Contract reconciliation record (U28)" not in prose
+
+
+def test_final_scoring_round_trips_and_renders(tmp_state):
+    """The U29 final scoring semantics survive the round trip and render."""
+    data = {
+        "loss_distribution": {},
+        "final_scoring": {
+            "model": "latest-2 tracked and used for final scoring; leaderboard shows best of the 2",
+            "source": "analysis/final_scoring_semantics.md",
+            "recorded": "2026-07-02",
+            "deadline": "2026-08-16 23:59 UTC",
+            "final_window": "~2 weeks continued games, then leaderboard final",
+            "daily_limit": "5 submissions/day",
+        },
+    }
+    ls.write_current(data)
+    assert ls.read_current()["final_scoring"] == data["final_scoring"]
+    prose = ls.CURRENT_PATH.read_text(encoding="utf-8")
+    assert "Final scoring semantics (U29)" in prose
+    assert "latest-2" in prose
+    assert "gates U48" in prose
+
+
+def test_final_scoring_absent_renders_nothing(tmp_state):
+    """No final_scoring key means no U29 section in the prose view."""
+    ls.write_current({"loss_distribution": {}})
+    prose = ls.CURRENT_PATH.read_text(encoding="utf-8")
+    assert "Final scoring semantics (U29)" not in prose
