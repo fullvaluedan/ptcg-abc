@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
+import os
 import sys
 from dataclasses import asdict
 from functools import lru_cache
@@ -22,18 +23,50 @@ from pathlib import Path
 
 try:
     from agents import heuristics
+    from agents import imitation_features
 except ImportError:  # inside a submission, support modules sit at the top level
     import heuristics
+    import imitation_features
 
 try:
     from search import eval as ev
+    from search import move_prior
 except ImportError:
     import eval as ev
+    import move_prior
 
 # Cap a single rollout so a non-terminating line (the heuristic is stateless and
 # could in principle stall) can never hang the agent. A real game ends well under
 # this many selections.
 ROLLOUT_MAX_STEPS = 400
+
+# Reorder candidate first moves by the learned move-prior score (plan U8c) before
+# the per-candidate rollout loop, so a move the model rates likely to be chosen
+# gets sampled first within each determinization. Off by default: keep as an A/B
+# lever until a gauntlet run shows it helps speed or win rate, same posture as
+# PTCG_LEARNED_EVAL and PTCG_ABILITY.
+_MOVE_PRIOR = os.environ.get("PTCG_MOVE_PRIOR", "0") != "0"
+
+
+def _candidate_order(obs, n) -> list:
+    """Candidate indices for search_decision's per-determinization loop.
+
+    range(n) unless PTCG_MOVE_PRIOR is on and the learned scorer is available and
+    usable for this decision; falls back to range(n) on any mismatch or scoring
+    failure rather than raising, so a bad or missing model never blocks search.
+    """
+    if not _MOVE_PRIOR:
+        return list(range(n))
+    try:
+        rows = imitation_features.decision_features(obs)
+        if rows is None or len(rows) != n:
+            return list(range(n))
+        scores = move_prior.score_options(rows)
+        if scores is None or len(scores) != n:
+            return list(range(n))
+        return sorted(range(n), key=lambda i: -scores[i])
+    except Exception:
+        return list(range(n))
 
 
 def _ensure_cg_on_path() -> None:
@@ -361,6 +394,7 @@ def search_decision(obs, your_full_deck, budget_seconds, rng, determinize,
     sqtotals = [0.0] * n
     counts = [0] * n
     obs_class = to_obs(obs)
+    order = _candidate_order(obs, n)
     start = clock()
     dets = 0
     try:
@@ -373,8 +407,12 @@ def search_decision(obs, your_full_deck, budget_seconds, rng, determinize,
             # Evaluate every candidate within this determinization before checking
             # the clock again, so each candidate keeps an equal number of samples.
             # Cutting off mid loop would starve high-index candidates and bias the
-            # argmax toward the front of the option list.
-            for ci in range(n):
+            # argmax toward the front of the option list. `order` (PTCG_MOVE_PRIOR)
+            # only changes WHICH candidate is tried first if a determinization is
+            # abandoned partway through (the `break` below); totals/counts are
+            # still indexed by the real candidate index, so this never changes the
+            # final argmax when every candidate gets sampled.
+            for ci in order:
                 try:
                     root = search_begin(obs_class, **kwargs)
                 except Exception:

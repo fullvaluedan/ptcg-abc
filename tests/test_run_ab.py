@@ -26,6 +26,20 @@ def test_run_arm_bakes_flag_into_env_and_forwards_jobs(monkeypatch):
     assert captured["env"]["PTCG_LEARNED_EVAL"] == "1"
 
 
+def test_run_arm_bakes_a_different_flag_name(monkeypatch):
+    """flag_name lets the same harness A/B any single-flag lever (e.g. U8c's PTCG_MOVE_PRIOR)."""
+    captured = {}
+
+    def fake_run_parallel_gauntlet(agent, opponents, n, jobs=None, python_exe=None, env=None):
+        captured["env"] = env
+        return {"win_rate": 0.5, "matches": n, "wins": n // 2, "shard_errors": []}
+
+    monkeypatch.setattr(run_ab_mod, "run_parallel_gauntlet", fake_run_parallel_gauntlet)
+    run_ab_mod._run_arm("search", ["deck:aggro"], 10, True, sys.executable, flag_name="PTCG_MOVE_PRIOR")
+
+    assert captured["env"]["PTCG_MOVE_PRIOR"] == "1"
+
+
 def test_run_arm_raises_on_shard_errors(monkeypatch):
     def fake_run_parallel_gauntlet(agent, opponents, n, jobs=None, python_exe=None, env=None):
         return {"win_rate": 0.0, "matches": 0, "wins": 0, "shard_errors": ["shard 0: boom"]}
@@ -57,7 +71,7 @@ def _fake_arm(win_rate):
 
 
 def test_run_ab_verdict_at_exact_margin_does_not_flip(monkeypatch):
-    def fake_run_arm(agent, opponents, n, learned_eval, python_exe, jobs=None):
+    def fake_run_arm(agent, opponents, n, learned_eval, python_exe, jobs=None, flag_name=None):
         return _fake_arm(0.50 + GATE_MARGIN_PP / 100) if learned_eval else _fake_arm(0.50)
 
     monkeypatch.setattr(run_ab_mod, "_run_arm", fake_run_arm)
@@ -67,7 +81,7 @@ def test_run_ab_verdict_at_exact_margin_does_not_flip(monkeypatch):
 
 
 def test_run_ab_verdict_above_margin_flips(monkeypatch):
-    def fake_run_arm(agent, opponents, n, learned_eval, python_exe, jobs=None):
+    def fake_run_arm(agent, opponents, n, learned_eval, python_exe, jobs=None, flag_name=None):
         return _fake_arm(0.55) if learned_eval else _fake_arm(0.50)
 
     monkeypatch.setattr(run_ab_mod, "_run_arm", fake_run_arm)
@@ -85,7 +99,7 @@ def test_run_ab_resumable_runs_to_completion_in_batches(tmp_path, monkeypatch):
     checkpoint = tmp_path / "progress.json"
     calls = []
 
-    def fake_run_arm(agent, opponents, n, learned_eval, python_exe, jobs=None):
+    def fake_run_arm(agent, opponents, n, learned_eval, python_exe, jobs=None, flag_name=None):
         calls.append((learned_eval, n))
         return _fake_batch(0.6 if learned_eval else 0.5, n)
 
@@ -110,7 +124,7 @@ def test_run_ab_resumable_picks_up_from_existing_checkpoint(tmp_path, monkeypatc
     }))
     calls = []
 
-    def fake_run_arm(agent, opponents, n, learned_eval, python_exe, jobs=None):
+    def fake_run_arm(agent, opponents, n, learned_eval, python_exe, jobs=None, flag_name=None):
         calls.append((learned_eval, n))
         return _fake_batch(0.6, n)
 
@@ -127,7 +141,7 @@ def test_run_ab_resumable_stops_at_time_budget(tmp_path, monkeypatch):
     checkpoint = tmp_path / "progress.json"
     calls = []
 
-    def fake_run_arm(agent, opponents, n, learned_eval, python_exe, jobs=None):
+    def fake_run_arm(agent, opponents, n, learned_eval, python_exe, jobs=None, flag_name=None):
         calls.append((learned_eval, n))
         return _fake_batch(0.5, n)
 

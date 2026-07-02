@@ -239,6 +239,91 @@ def _capture_main_obs(attempts=8):
     return captured.get("obs")
 
 
+# --- move-ordering candidate order (plan U8c, PTCG_MOVE_PRIOR) ---------------
+
+def test_candidate_order_defaults_to_range_when_flag_off(monkeypatch):
+    monkeypatch.setattr(rollout, "_MOVE_PRIOR", False)
+    monkeypatch.setattr(rollout.move_prior, "score_options", lambda rows: [9.0, 1.0, 5.0])
+
+    assert rollout._candidate_order({"select": {"option": [{}] * 3}}, 3) == [0, 1, 2]
+
+
+def test_candidate_order_sorts_by_move_prior_score_when_flag_on(monkeypatch):
+    monkeypatch.setattr(rollout, "_MOVE_PRIOR", True)
+    monkeypatch.setattr(rollout.imitation_features, "decision_features", lambda obs: [[0.0]] * 3)
+    monkeypatch.setattr(rollout.move_prior, "score_options", lambda rows: [0.2, 9.0, 5.0])
+
+    assert rollout._candidate_order({}, 3) == [1, 2, 0]
+
+
+def test_candidate_order_falls_back_to_range_on_row_count_mismatch(monkeypatch):
+    monkeypatch.setattr(rollout, "_MOVE_PRIOR", True)
+    # decision_features returns None (<=1 option) or a length that disagrees
+    # with n; either way _candidate_order must not trust the mismatched scores.
+    monkeypatch.setattr(rollout.imitation_features, "decision_features", lambda obs: None)
+    assert rollout._candidate_order({}, 3) == [0, 1, 2]
+
+    monkeypatch.setattr(rollout.imitation_features, "decision_features", lambda obs: [[0.0]] * 2)
+    assert rollout._candidate_order({}, 3) == [0, 1, 2]
+
+
+def test_candidate_order_falls_back_to_range_when_scorer_declines(monkeypatch):
+    monkeypatch.setattr(rollout, "_MOVE_PRIOR", True)
+    monkeypatch.setattr(rollout.imitation_features, "decision_features", lambda obs: [[0.0]] * 3)
+    monkeypatch.setattr(rollout.move_prior, "score_options", lambda rows: None)
+
+    assert rollout._candidate_order({}, 3) == [0, 1, 2]
+
+
+def test_candidate_order_never_raises_on_featurizer_error(monkeypatch):
+    monkeypatch.setattr(rollout, "_MOVE_PRIOR", True)
+
+    def _boom(_obs):
+        raise RuntimeError("simulated featurizer failure")
+
+    monkeypatch.setattr(rollout.imitation_features, "decision_features", _boom)
+
+    assert rollout._candidate_order({}, 3) == [0, 1, 2]
+
+
+def test_search_decision_uses_candidate_order(monkeypatch):
+    """search_decision consults _candidate_order once per decision, not per determinization."""
+    from types import SimpleNamespace
+
+    obs = {
+        "select": {"option": [{"type": 0}, {"type": 0}]},
+        "current": {"yourIndex": 0},
+    }
+    calls = []
+
+    def spy(obs_arg, n):
+        calls.append(n)
+        return [1, 0]
+
+    def fake_search_begin(obs_class, **kw):
+        return SimpleNamespace(searchId=1)
+
+    def fake_search_step(search_id, move):
+        # A terminal result (result == your_index, i.e. a win) so rollout()
+        # returns immediately without needing a real select/observation chain.
+        state = SimpleNamespace(result=0)
+        return SimpleNamespace(observation=SimpleNamespace(current=state, select=None), searchId=search_id)
+
+    monkeypatch.setattr(rollout, "_candidate_order", spy)
+    monkeypatch.setattr(rollout, "_cg", lambda: (
+        fake_search_begin, fake_search_step, lambda: None, lambda search_id: None, lambda o: o,
+    ))
+
+    move = rollout.search_decision(
+        obs, [], budget_seconds=1e9, rng=random.Random(0),
+        determinize=lambda *a, **k: SimpleNamespace(as_search_begin_kwargs=lambda: {}),
+        max_determinizations=1, clock=iter([0.0, 0.0, 1.0]).__next__,
+    )
+
+    assert calls == [2]  # called once with n=2, not once per determinization
+    assert move is not None
+
+
 # Test scenario: rollouts reach a terminal result and the driver returns a legal
 # single first move. The determinization sampler is reproducible under a fixed
 # seed (asserted directly), but the argmax over rollouts is not, because the
