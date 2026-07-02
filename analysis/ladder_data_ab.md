@@ -26,3 +26,17 @@ least the gauntlet-only model's AUC. Otherwise keep the gauntlet-only model.
 
 Verdict: **gauntlet-only** wins (gauntlet-only AUC 0.8104, merged AUC 0.8079).
 The exported search/eval_model.json is the gauntlet-only model.
+
+## U3c: top-player training weights
+
+tools/train_eval.py gained --source-weights (plan U3c, addendum v2): a comma
+separated source=weight list applied as sklearn sample weights during fit.
+Chosen defaults: top_player=2.0, every other source (gauntlet, ladder, or a
+csv with no source column) stays at 1.0. This is a hook only here, wired
+through fit_standardized and compare_gauntlet_vs_merged with tests
+(tests/test_train_eval.py); the actual combined gauntlet+ladder+top_player
+retrain that exercises it for real is U6, not this unit. When --ladder-csv is
+given, only the "gauntlet" and "ladder" keys affect the merged fit above; a
+future combined CSV that carries a real source column (gauntlet/ladder/
+top_player rows concatenated) can pass --source-weights directly to the
+single-csv fit path instead.

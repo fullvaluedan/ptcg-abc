@@ -35,6 +35,7 @@ from sklearn.metrics import accuracy_score, roc_auc_score  # noqa: E402
 
 DEFAULT_MODEL_PATH = _ROOT / "search" / "eval_model.json"
 BASELINE_FEATURE = "prize_diff"
+DEFAULT_SOURCE_WEIGHT = 1.0
 
 
 def load_rows(csv_path, tag_prefix=None):
@@ -65,6 +66,44 @@ def load_rows(csv_path, tag_prefix=None):
     return np.array(game_ids), np.array(X, dtype=float), np.array(y, dtype=int)
 
 
+def parse_source_weights(spec) -> dict:
+    """Parse 'top_player=2.0,ladder=1.0' into {"top_player": 2.0, "ladder": 1.0}.
+
+    None or an empty string returns {} (no weighting). Raises ValueError on a
+    malformed pair, same as float() would, so a typo in the CLI flag fails
+    fast instead of silently training unweighted.
+    """
+    if not spec:
+        return {}
+    weights = {}
+    for pair in spec.split(","):
+        pair = pair.strip()
+        if not pair:
+            continue
+        name, _, val = pair.partition("=")
+        weights[name.strip()] = float(val)
+    return weights
+
+
+def load_source_column(csv_path):
+    """The 'source' column for every row in csv_path, in row order.
+
+    A row from a CSV with no 'source' column (tools/gauntlet.py's states_*.csv
+    predates this column) reads as "" so callers can default it to weight 1.0.
+    """
+    with open(csv_path, newline="") as fh:
+        reader = csv.reader(fh)
+        header = next(reader)
+        source_idx = header.index("source") if "source" in header else None
+        sources = [row[source_idx] if source_idx is not None else "" for row in reader]
+    return np.array(sources)
+
+
+def sample_weights_for(sources, weights, default=DEFAULT_SOURCE_WEIGHT):
+    """Per-row sample weight array: weights.get(source, default) for each row."""
+    return np.array([weights.get(s, default) for s in sources], dtype=float)
+
+
 def game_split(game_ids, test_frac=0.2, seed=0):
     """Boolean (train_mask, test_mask) over rows, split by unique game id.
 
@@ -81,13 +120,18 @@ def game_split(game_ids, test_frac=0.2, seed=0):
     return ~test_mask, test_mask
 
 
-def fit_standardized(X_train, y_train):
-    """Standardize by train-set mean/std and fit a logistic regression."""
+def fit_standardized(X_train, y_train, sample_weight=None):
+    """Standardize by train-set mean/std and fit a logistic regression.
+
+    sample_weight, if given, is passed straight to LogisticRegression.fit
+    (plan U3c's --source-weights hook); None (the default) fits unweighted,
+    identical to the original behavior.
+    """
     mean = X_train.mean(axis=0)
     std = X_train.std(axis=0)
     std = np.where(std == 0, 1.0, std)
     model = LogisticRegression(max_iter=1000)
-    model.fit((X_train - mean) / std, y_train)
+    model.fit((X_train - mean) / std, y_train, sample_weight=sample_weight)
     return model, mean, std
 
 
@@ -108,7 +152,7 @@ def export_model(model, mean, std, path):
     Path(path).write_text(json.dumps(payload, indent=2) + "\n")
 
 
-def compare_gauntlet_vs_merged(gauntlet_csv, ladder_csv, test_frac=0.2, seed=0):
+def compare_gauntlet_vs_merged(gauntlet_csv, ladder_csv, test_frac=0.2, seed=0, source_weights=None):
     """Train on gauntlet-only vs gauntlet-plus-ladder, evaluate both on the same
     held-out gauntlet-only test set (plan U4's ladder-merge comparison).
 
@@ -118,8 +162,16 @@ def compare_gauntlet_vs_merged(gauntlet_csv, ladder_csv, test_frac=0.2, seed=0):
     actually plays. Both models are judged on the same test rows, so the
     comparison isolates the effect of adding ladder rows to the training set.
 
+    source_weights, if given (plan U3c's --source-weights hook), applies
+    weights["gauntlet"] to the gauntlet train rows and weights["ladder"] to
+    the ladder rows in the merged fit only (the gauntlet-only fit always stays
+    unweighted, since it has one source). A source missing from the dict
+    defaults to DEFAULT_SOURCE_WEIGHT. None (the default) fits unweighted,
+    identical to the original behavior.
+
     Returns a dict: gauntlet_only / merged sub-dicts (each with model, mean,
-    std, metrics, n_train), the picked variant name, and n_ladder_rows.
+    std, metrics, n_train), the picked variant name, n_ladder_rows, and
+    source_weights (empty dict when none were given).
     """
     gauntlet_ids, gauntlet_X, gauntlet_y = load_rows(gauntlet_csv, tag_prefix="gauntlet")
     train_mask, test_mask = game_split(gauntlet_ids, test_frac, seed)
@@ -132,7 +184,15 @@ def compare_gauntlet_vs_merged(gauntlet_csv, ladder_csv, test_frac=0.2, seed=0):
     _, ladder_X, ladder_y = load_rows(ladder_csv, tag_prefix="ladder")
     merged_X = np.concatenate([X_train, ladder_X], axis=0)
     merged_y = np.concatenate([y_train, ladder_y], axis=0)
-    merged_model, merged_mean, merged_std = fit_standardized(merged_X, merged_y)
+    merged_sample_weight = None
+    if source_weights:
+        merged_sample_weight = np.concatenate([
+            np.full(len(X_train), source_weights.get("gauntlet", DEFAULT_SOURCE_WEIGHT)),
+            np.full(len(ladder_X), source_weights.get("ladder", DEFAULT_SOURCE_WEIGHT)),
+        ])
+    merged_model, merged_mean, merged_std = fit_standardized(
+        merged_X, merged_y, sample_weight=merged_sample_weight
+    )
     merged_metrics = evaluate(merged_model, merged_mean, merged_std, X_test, y_test)
 
     picked = "merged" if merged_metrics["auc"] >= gauntlet_metrics["auc"] else "gauntlet_only"
@@ -149,6 +209,7 @@ def compare_gauntlet_vs_merged(gauntlet_csv, ladder_csv, test_frac=0.2, seed=0):
         "picked": picked,
         "n_test": len(X_test),
         "n_ladder_rows": len(ladder_X),
+        "source_weights": dict(source_weights) if source_weights else {},
     }
 
 
@@ -189,6 +250,19 @@ def write_ladder_ab_report(result, path):
         f"The exported search/eval_model.json is the {picked_label} model.",
         "",
     ]
+    if result.get("source_weights"):
+        lines += [
+            "## Training weights (--source-weights)",
+            "",
+            "Sample weights applied to the merged fit only (plan U3c):",
+            "",
+        ]
+        for src, w in sorted(result["source_weights"].items()):
+            lines.append(f"- {src}: {w}")
+        lines.append(
+            f"- any other source (including gauntlet rows if unlisted): {DEFAULT_SOURCE_WEIGHT}"
+        )
+        lines.append("")
     Path(path).write_text("\n".join(lines))
     return Path(path)
 
@@ -204,10 +278,19 @@ def main():
     ap.add_argument("--test-frac", type=float, default=0.2)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", default=str(DEFAULT_MODEL_PATH))
+    ap.add_argument("--source-weights", default=None,
+                     help="comma separated source=weight pairs applied as training sample "
+                          "weights (plan U3c, e.g. 'top_player=2.0'); a source not listed, "
+                          "or a csv with no 'source' column, defaults to weight "
+                          f"{DEFAULT_SOURCE_WEIGHT}")
     args = ap.parse_args()
+    source_weights = parse_source_weights(args.source_weights)
 
     if args.ladder_csv:
-        result = compare_gauntlet_vs_merged(args.csv_path, args.ladder_csv, args.test_frac, args.seed)
+        result = compare_gauntlet_vs_merged(
+            args.csv_path, args.ladder_csv, args.test_frac, args.seed,
+            source_weights=source_weights or None,
+        )
         g, m = result["gauntlet_only"], result["merged"]
         print(f"gauntlet-only  train rows: {g['n_train']}  AUC={g['metrics']['auc']:.4f}")
         print(f"gauntlet+ladder  train rows: {m['n_train']}  AUC={m['metrics']['auc']:.4f}")
@@ -226,7 +309,12 @@ def main():
     X_train, y_train = X[train_mask], y[train_mask]
     X_test, y_test = X[test_mask], y[test_mask]
 
-    model, mean, std = fit_standardized(X_train, y_train)
+    sample_weight = None
+    if source_weights:
+        sources = load_source_column(args.csv_path)
+        sample_weight = sample_weights_for(sources, source_weights)[train_mask]
+
+    model, mean, std = fit_standardized(X_train, y_train, sample_weight=sample_weight)
     metrics = evaluate(model, mean, std, X_test, y_test)
 
     baseline_idx = [FEATURE_NAMES.index(BASELINE_FEATURE)]

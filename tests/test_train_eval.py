@@ -21,6 +21,9 @@ from tools.train_eval import (
     fit_standardized,
     game_split,
     load_rows,
+    load_source_column,
+    parse_source_weights,
+    sample_weights_for,
     write_ladder_ab_report,
 )
 
@@ -167,6 +170,73 @@ def test_compare_gauntlet_vs_merged_picks_gauntlet_only_when_ladder_contradicts(
 
     assert result["picked"] == "gauntlet_only"
     assert result["gauntlet_only"]["metrics"]["auc"] > result["merged"]["metrics"]["auc"]
+
+
+def test_parse_source_weights_parses_pairs():
+    assert parse_source_weights("top_player=2.0,ladder=1.5") == {"top_player": 2.0, "ladder": 1.5}
+    assert parse_source_weights(None) == {}
+    assert parse_source_weights("") == {}
+
+
+def test_load_source_column_reads_source_or_blank_when_absent(tmp_path):
+    with_source = _write_csv(
+        tmp_path / "with_source.csv", [["g0", 0, 1, *_feature_row(prize_diff=0.5), 1]], source="top_player"
+    )
+    without_source = _write_csv(
+        tmp_path / "without_source.csv", [["g0", 0, 1, *_feature_row(prize_diff=0.5), 1]]
+    )
+
+    assert load_source_column(with_source).tolist() == ["top_player"]
+    assert load_source_column(without_source).tolist() == [""]
+
+
+def test_sample_weights_for_defaults_missing_source_to_one():
+    weights = sample_weights_for(["a", "b", ""], {"a": 2.0})
+    assert weights.tolist() == [2.0, 1.0, 1.0]
+
+
+def test_fit_standardized_accepts_sample_weight():
+    X = np.array([[1.0], [1.0], [-1.0]])
+    y = np.array([1, 1, 0])
+    # unweighted: fits normally with no error
+    model, mean, std = fit_standardized(X, y)
+    assert model.coef_.shape == (1, 1)
+    # weighted: still fits with no error, sample_weight plumbed through to sklearn
+    weighted_model, _, _ = fit_standardized(X, y, sample_weight=np.array([1.0, 1.0, 5.0]))
+    assert weighted_model.coef_.shape == (1, 1)
+
+
+def test_compare_gauntlet_vs_merged_downweighting_contradicting_ladder_helps_merged(tmp_path):
+    gauntlet_csv = _write_csv(tmp_path / "gauntlet.csv", _prize_diff_dataset(30, 5, sign=1, seed=0))
+    ladder_csv = _write_csv(
+        tmp_path / "ladder.csv", _prize_diff_dataset(200, 5, sign=-1, seed=2), source="ladder"
+    )
+
+    unweighted = compare_gauntlet_vs_merged(gauntlet_csv, ladder_csv, test_frac=0.2, seed=0)
+    weighted = compare_gauntlet_vs_merged(
+        gauntlet_csv, ladder_csv, test_frac=0.2, seed=0,
+        source_weights={"ladder": 0.001, "gauntlet": 1.0},
+    )
+
+    assert unweighted["source_weights"] == {}
+    assert weighted["source_weights"] == {"ladder": 0.001, "gauntlet": 1.0}
+    # downweighting the contradicting ladder rows should pull the merged fit
+    # back toward gauntlet-only quality, beating the unweighted merged AUC.
+    assert weighted["merged"]["metrics"]["auc"] > unweighted["merged"]["metrics"]["auc"]
+
+
+def test_write_ladder_ab_report_documents_source_weights_when_given(tmp_path):
+    gauntlet_csv = _write_csv(tmp_path / "gauntlet.csv", _prize_diff_dataset(30, 5, sign=1, seed=0))
+    ladder_csv = _write_csv(
+        tmp_path / "ladder.csv", _prize_diff_dataset(30, 5, sign=1, seed=1), source="ladder"
+    )
+    result = compare_gauntlet_vs_merged(
+        gauntlet_csv, ladder_csv, test_frac=0.2, seed=0, source_weights={"top_player": 2.0}
+    )
+
+    report_path = write_ladder_ab_report(result, tmp_path / "ladder_data_ab.md")
+    text = report_path.read_text()
+    assert "top_player: 2.0" in text
 
 
 def test_write_ladder_ab_report_documents_the_verdict(tmp_path):

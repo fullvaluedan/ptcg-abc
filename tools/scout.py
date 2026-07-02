@@ -99,16 +99,21 @@ def run_kaggle(args, timeout: int = 120) -> dict:
 
 
 def parse_cli_json(text: str):
-    """Parse the leading JSON value out of Kaggle CLI stdout.
+    """Parse the JSON value out of Kaggle CLI stdout.
 
     The CLI prints valid JSON and then appends a human readable usage tip on a
-    trailing line, so plain json.loads raises "Extra data". raw_decode reads the
-    first JSON value and ignores anything after it.
+    trailing line, so plain json.loads raises "Extra data". Some subcommands
+    (leaderboard) also print a leading "Next Page Token = ..." line before the
+    JSON. Scanning for the first '[' or '{' and using raw_decode from there
+    handles both a trailing tip and a leading token line, and still ignores
+    anything after the first JSON value.
     """
-    stripped = (text or "").lstrip()
+    stripped = (text or "").strip()
     if not stripped:
         return []
-    value, _ = json.JSONDecoder().raw_decode(stripped)
+    starts = [i for i in (stripped.find("["), stripped.find("{")) if i != -1]
+    start = min(starts) if starts else 0
+    value, _ = json.JSONDecoder().raw_decode(stripped[start:])
     return value
 
 

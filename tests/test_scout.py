@@ -428,6 +428,17 @@ def test_parse_cli_json_ignores_trailing_usage_tip():
     assert scout.parse_cli_json("") == []
 
 
+def test_parse_cli_json_ignores_leading_page_token():
+    # `kaggle competitions leaderboard --show` prints a "Next Page Token = ..."
+    # line before the JSON array; parse_cli_json must skip it too.
+    out = (
+        "Next Page Token = CfDJ8EgiEKLz2SFKpKvT-xxAYKIpp7\n"
+        '[\n  {"teamId": 1, "teamName": "Alpha", "score": "1200.0"}\n]\n'
+    )
+    parsed = scout.parse_cli_json(out)
+    assert parsed == [{"teamId": 1, "teamName": "Alpha", "score": "1200.0"}]
+
+
 def test_list_episodes_tolerates_trailing_tip(monkeypatch):
     # End to end through list_episodes: the appended tip must not break parsing.
     monkeypatch.setattr(
