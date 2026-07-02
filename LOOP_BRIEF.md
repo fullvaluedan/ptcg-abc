@@ -6,13 +6,23 @@ Do ONE increment, then STOP. Full autonomy authorized.
 SOURCE OF TRUTH: docs/plans/2026-07-02-combined-learned-eval-plan-v2.md
 Read it fully before doing anything.
 
-## RESUME STATE (2026-07-02, plan v2 just adopted, read this first)
-The loop already shipped U1, U2, U3, U4 and is running U5's A/B, but all on GAUNTLET-ONLY data, before the
-ladder-replay units existed. The ladder-replay units U3a and U3b are NEW in v2 and are NOT yet done. Do them
-NEXT (U3a downloader, then U3b converter), do not skip them because U4/U5 already have commits. Then redo
-U4's ladder-merge comparison (train gauntlet-only vs gauntlet+ladder, keep the merged model only if its AUC
-on gauntlet-only test data is at least the gauntlet-only model's, document in analysis/ladder_data_ab.md),
-then re-run the U5 A/B with the retained model, then U6, U7, the Phase A gate, then Phase B (U8-U12).
+## RESUME STATE (2026-07-02, read this first)
+Done and committed: U1, U2, U3 (gauntlet dataset), U3a (ladder downloader), U3b (replay-to-rows), and U4's
+ladder-merge comparison. NEXT UNIT IS U3c, the top-player leaderboard tracker, per
+docs/plans/2026-07-02-addendum-top-player-tracker-v2.md: build tools/top_player_tracker.py, add
+--source-weights to tools/train_eval.py (top_player=2.0, others 1.0), produce
+data/training/top_player_corpus_<date>.csv plus analysis/top_player_report.md, then RUN it once for real with
+--top-n 20 and log the row count, teams found, and unmapped names to autoloop_status.md. After U3c: finalize
+U5's A/B with the retained model, then U6's retrain generation (which now folds in the weighted top_player
+corpus via train_eval --source-weights), then U7, the Phase A gate, then Phase B (U8-U12).
+
+FEASIBILITY NOTE for U3c (checked against the real data): the published episode-dataset replays key seats by
+info.TeamNames (team-name strings) plus rewards, and the Kaggle submissions API lists only OUR submissions,
+so other teams' per-game submission IDs are NOT retrievable. Map the top-N teams from the leaderboard (its
+columns are Rank, TeamId, TeamName, Score) and filter dataset games by exact TeamName match against
+info.TeamNames; prefer a stable id field only if a replay actually carries one. Log unmapped or ambiguous
+names in the report per the addendum rather than silently name-colliding. Use the newest published episode
+dataset available on disk; the weekly refresh keeps it current.
 
 ## Project
 - Repo: C:\Users\danom\ptcg-abc   Branch: feat/phase2-learned-eval (Phase A); feat/phase3-followon (Phase B). Never touch main.
@@ -25,8 +35,9 @@ then re-run the U5 A/B with the retained model, then U6, U7, the Phase A gate, t
 2. Confirm data/training/ and data/replays/ are gitignored (data/ is already ignored, which covers both).
 
 ## EACH ITERATION (one increment, then stop)
-1. git log --oneline to find the last completed unit. v2 order: U1, U2, U3, U3a, U3b, U4, U5, U6, U7, then the
-   Phase A gate check, then U8-U12 on feat/phase3-followon. Honor the RESUME STATE above (U3a is next).
+1. git log --oneline to find the last completed unit. v2 order: U1, U2, U3, U3a, U3b, U3c, U4, U5, U6, U7,
+   then the Phase A gate check, then U8-U12 on feat/phase3-followon. Honor the RESUME STATE above (U3c is next,
+   even though U4's merge already landed; its corpus feeds the U6 retrain).
 2. Implement the NEXT undone unit exactly as the plan specifies. Mirror existing patterns in src/, agents/, search/, tools/.
 3. Write or update that unit's tests. Run python -m pytest tests -q. Must pass before committing.
 4. Review your own diff; apply only safe, verified fixes.
