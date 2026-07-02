@@ -16,6 +16,7 @@ block at the bottom.
 | energy_seq | refuted | 1445 expert ATTACH decisions | n/a (move-ranking) | a richer wrong-target attach model, not the sequencing lever | analysis/energy_seq_refuted_by_expert_moves.md |
 | missed_lethal | falsified | all lost-game MAIN decisions | n/a | n/a (artifact, not a real lever) | analysis/missed_lethal_falsified.md |
 | cem_flat_gradient | resolved | 40 held-out expert episodes / 1427 MAIN decisions | n/a | resolved; a real cem_tune.py run is now the pending action | analysis/cem_signal_flat.md -> analysis/cem_gradient_restored.md |
+| cem_prio_agreement_generalizes | refuted | 116 train / 30 held-out test MAIN decisions (seed 0) | n/a (move-ranking) | a larger expert-move sample (mid-July zip harvest), OR the two-channel fitness on (--pool-matches > 0 regularizes), OR a genome change with a measured non-flat held-out gradient | analysis/cem_run_prio.md |
 
 ## Detail
 
@@ -50,6 +51,10 @@ block at the bottom.
 ### cem_flat_gradient (resolved)
 - claim: CEM cannot tune the pilot because both fitness channels are near-flat over the genome.
 - evidence: True as of cem_signal_flat.md (max per-dim agreement delta 0.0049, 8/11 dims exactly 0). RESOLVED the same day by growing the genome: converting choose()'s fixed category ladder into 7 CEM-tunable PTCG_W_PRIO_* weights lifted the max delta to 0.0526 (>10x). A concrete above-baseline direction now exists (PRIO_ATTACH earlier: 0.2235->0.2495).
+
+### cem_prio_agreement_generalizes (refuted)
+- claim: A CEM PRIO genome tuned to maximize expert-move agreement on the train bucket keeps that agreement gain on held-out expert moves, earning a ladder A/B.
+- evidence: The real U35 seed-0 run (agreement-only, --split train) found a genome that gains +0.060 on train (25->32 of 116 MAIN decisions) but LOSES -0.067 on the held-out test bucket (7->5 of 30). best_fitness was flat across all 12 iterations (weak gradient), and the held-out agreement delta is negative, so the pre-registered offline filter BLOCKS the candidate: no A/B, ship byte-identical. This is 1 of the 2 failing/neutral CEM candidates that trip the plan's CEM-plateau contingency. Sample-conditional (30 held-out decisions is small).
 
 ```json STATE
 {
@@ -137,6 +142,17 @@ block at the bottom.
       "sample_size": "40 held-out expert episodes / 1427 MAIN decisions",
       "source": "analysis/cem_signal_flat.md -> analysis/cem_gradient_restored.md",
       "verdict": "resolved"
+    },
+    {
+      "claim": "A CEM PRIO genome tuned to maximize expert-move agreement on the train bucket keeps that agreement gain on held-out expert moves, earning a ladder A/B.",
+      "deck": "n/a (move-ranking)",
+      "evidence": "The real U35 seed-0 run (agreement-only, --split train) found a genome that gains +0.060 on train (25->32 of 116 MAIN decisions) but LOSES -0.067 on the held-out test bucket (7->5 of 30). best_fitness was flat across all 12 iterations (weak gradient), and the held-out agreement delta is negative, so the pre-registered offline filter BLOCKS the candidate: no A/B, ship byte-identical. 1 of the 2 failing/neutral CEM candidates that trip the plan's CEM-plateau contingency.",
+      "name": "cem_prio_agreement_generalizes",
+      "retest_condition": "a larger expert-move sample (mid-July zip harvest), OR the two-channel fitness on (--pool-matches > 0 regularizes), OR a genome change with a measured non-flat held-out gradient",
+      "retest_sample": null,
+      "sample_size": "116 train / 30 held-out test MAIN decisions (seed 0)",
+      "source": "analysis/cem_run_prio.md",
+      "verdict": "refuted"
     }
   ]
 }
