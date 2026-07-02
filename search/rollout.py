@@ -42,10 +42,10 @@ ROLLOUT_MAX_STEPS = 400
 
 # Reorder candidate first moves by the learned move-prior score (plan U8c) before
 # the per-candidate rollout loop, so a move the model rates likely to be chosen
-# gets sampled first within each determinization. Off by default: keep as an A/B
-# lever until a gauntlet run shows it helps speed or win rate, same posture as
-# PTCG_LEARNED_EVAL and PTCG_ABILITY.
-_MOVE_PRIOR = os.environ.get("PTCG_MOVE_PRIOR", "0") != "0"
+# gets sampled first within each determinization. Default ON: the 400-game/arm
+# gauntlet A/B (analysis/move_prior_search_ab.md) showed on beating off outright
+# by +5.00pp, clearing the 4pp flip-default margin.
+_MOVE_PRIOR = os.environ.get("PTCG_MOVE_PRIOR", "1") != "0"
 
 
 def _candidate_order(obs, n) -> list:
