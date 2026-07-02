@@ -58,7 +58,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 - mastery = expert_wins * expert_win_rate; both seats of 5732 decided episodes classified so losing appearances count (tools/archetype_select.py, analysis/archetype_select.md).
 - mastery target **meta_archaludon** (1111.16) narrowly over meta_grimmsnarl (1059.86), DISAGREEING with the census adoption target.
 - CAVEAT: closed mirror pool, win_rate ~ 0.50, so mastery still tracks volume. meta_grimmsnarl is the ONLY above-0.5 family (0.531); archaludon wins mastery at a BELOW-0.5 rate (0.484) on game count.
-- Discriminating signal is win_rate (agrees with census on grimmsnarl). Recommend **grimmsnarl** as the U37 seeds target; archaludon as mastery runner-up / opponent-model anchor. Miner + seeds emitter are the next U36 increments.
+- Discriminating signal is win_rate (agrees with census on grimmsnarl). Recommend **grimmsnarl** as the U37 seeds target; archaludon as mastery runner-up / opponent-model anchor.
+- U36 piece **2 of 3 LANDED**: analysis/gameplan_mine.py mines six stat blocks (opening_category, attach_target, play_target, evolve_target, first_attack_ordinal, first_evolve_ordinal), each contrasting the family's WINNING vs LOSING appearances, each with a resolution_rate; a block resolving under 0.90 on the winning split is barred. mode_share/consistency are what the emitter thresholds. NEXT: piece 3, the seeds emitter (0.70 share / 0.80 timing / 0.95 unanimity), then U37 consumer.
 
 ## Search-branch verdict (U27)
 
@@ -279,7 +280,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
   "target_selector": {
     "formula": "mastery = expert_wins * expert_win_rate",
     "mastery_target": "meta_archaludon",
-    "note": "U36 selector piece 1 of 3 (tools/archetype_select.py). Classifies BOTH seats of 5732 decided episodes so losing appearances count. By mastery the target is meta_archaludon (1111.16) narrowly over meta_grimmsnarl (1059.86), DISAGREEING with the census adoption target. But this is a closed mirror pool so win_rate ~ 0.50 and mastery still tracks volume: meta_grimmsnarl is the ONLY above-0.5 family (0.531) while archaludon wins mastery at a BELOW-0.5 rate (0.484) on game count. Discriminating signal is win_rate, which agrees with the census on grimmsnarl as the quality pick. Recommend grimmsnarl as the U37 seeds target, archaludon as mastery runner-up / opponent-model anchor. Miner + seeds emitter (pieces 2 and 3) are the next U36 increments.",
+    "note": "U36 selector piece 1 of 3 (tools/archetype_select.py). Classifies BOTH seats of 5732 decided episodes so losing appearances count. By mastery the target is meta_archaludon (1111.16) narrowly over meta_grimmsnarl (1059.86), DISAGREEING with the census adoption target. But this is a closed mirror pool so win_rate ~ 0.50 and mastery still tracks volume: meta_grimmsnarl is the ONLY above-0.5 family (0.531) while archaludon wins mastery at a BELOW-0.5 rate (0.484) on game count. Discriminating signal is win_rate, which agrees with the census on grimmsnarl as the quality pick. Recommend grimmsnarl as the U37 seeds target, archaludon as mastery runner-up / opponent-model anchor. Miner (piece 2) LANDED: analysis/gameplan_mine.py mines six stat blocks (opening_category, attach_target, play_target, evolve_target, first_attack_ordinal, first_evolve_ordinal), each contrasting winning vs losing appearances, each with a resolution_rate; a winning-split resolution under 0.90 bars the block. Seeds emitter (piece 3, 0.70 share / 0.80 timing / 0.95 unanimity) is the next U36 increment.",
     "quality_target": "meta_grimmsnarl",
     "recorded": "2026-07-02",
     "source": "analysis/archetype_select.md"
