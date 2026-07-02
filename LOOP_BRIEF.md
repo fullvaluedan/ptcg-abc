@@ -6,32 +6,46 @@ Do ONE increment, then STOP. Full autonomy authorized.
 SOURCE OF TRUTH: docs/plans/2026-07-02-combined-learned-eval-plan-v2.md
 Read it fully before doing anything.
 
-## RESUME STATE (2026-07-02, read this first)
-Done: U1-U5, U3a/U3b/U3c, U4 ladder-merge, the top-player WIN corpus (173k rows), and U6 tooling (multi-source
-retrain merge + loss-mode measurement).
+## RESUME STATE (2026-07-03): TWO TRACKS. Do not conflate them.
+An audit found the loop had been optimizing an agent that does NOT ship: the shipped ladder agent is
+agents/agent_heuristic.py + its deck (brain = agents/heuristics.py), and NONE of the learned-eval / CEM /
+top-player stack is on a shipped path. So ~2 days of work could not move the ladder by construction. Fix: run
+two explicit tracks and never let TRACK S masquerade as ladder progress.
 
-NEXT UNIT IS U60 (parallel gauntlet), from
-docs/plans/2026-07-02-003-feat-offline-match-scale-topplayer-mining-plan.md. Build it BEFORE running the U6
-retrain: it fans the gauntlet across worker subprocesses (min(cores-2, 16)), each with its OWN temp state-log
-CSV, a shard-namespaced game_id (shard<k>:<i>), and a DISTINCT seed; the parent merges and dedupes by game_id.
-Mirror the subprocess fan-out in tools/cem_tune.py. Every A/B after it (the U6 run, U65) then settles in
-minutes instead of ~30. U61 (raw-engine fast path) stays DEFERRED unless the measured U60 rate still binds.
+### TRACK L (LADDER = rank; HIGHEST PRIORITY; only the SHIPPED agent counts)
+A unit may claim LADDER progress ONLY if it changes a SHIPPED path (agents/heuristics.py or the deck csv) AND
+beats the 569.6 king offline before it spends a slot. Actions in priority order:
+  L1. A/B THE DORMANT ABILITY LEVER (highest-EV untested lever we own). agents/heuristics.py:176 ships
+      `_ABILITY = os.environ.get("PTCG_ABILITY", "0") != "0"`, default OFF, and the pilot agrees with top
+      players on 0/554 ability decisions (analysis/move_ranking_diverges_ability_gap.md); a loop-safe
+      once-per-turn ability guard already exists. NOW: build the submission with the flag baked
+      (tools/build_submission.py --env PTCG_ABILITY=1), gauntlet it vs the current heuristic (must not
+      regress), and PRE-REGISTER the ladder A/B vs the trolley king (direction up, M=60). SUBMIT it at the
+      next FREE slot.
+  L2. SETTLE-OR-EVICT trolley_thick (in-flight since 2026-07-02 03:59 UTC, currently trailing the king). Give
+      it >=30 rated episodes + >=24h, then decide once: promote if it clears the king OUTSIDE the M=60 band,
+      else evict to a king copy. STOP re-reading its number every iteration; that churn produces no code and
+      no rank change.
+  L3. After L1/L2 settle: tune the SHIPPED heuristic + deck only, each candidate gated on beating 569.6
+      offline before a slot.
 
-Order after U60:
-1. Run U6 (multi-source retrain: gauntlet + ladder + top_player win, weighted; loss-mode check) VIA
-   parallel_gauntlet, then U7 writeup, then the Phase A gate.
-2. U62 (top-player LOSS corpus: top team as the LOSING seat, source=top_player_loss, with loss_bucket +
-   opponent) then U63 (the how-the-best-teams-win-vs-lose study). U63 SUPERSEDES the learned-eval Phase B U10
-   (top-bot loss mining), so drop U10.
-3. U64 (append + version loss-pattern features: bench-cliff, deckout-risk, prize tempo) and U65 (enriched
-   retrain with the win corpus, the loss corpus as weighted NEGATIVE signal, and the U64 features; keep only if
-   held-out AUC holds and no loss bucket worsens). U64 and U65 SHIP TOGETHER: a feature-length change
-   invalidates search/eval_model.json, so re-verify tests/test_grader_submission.py.
-4. Then Phase B (U8, U9, U11, U12).
+### TRACK S (STRATEGY prize = the $30k model-approach award; offline; NEVER claims ladder progress)
+Continue the learned-eval + top-player + parallel-gauntlet work as the Strategy-prize deliverable (scored 70%
+model approach): next is U60 (parallel gauntlet), then U6 retrain, U7 writeup, then U62/U63 (top-player loss
+corpus + win-vs-loss study; U63 supersedes Phase B U10), then U64+U65 (ship together), then Phase B
+(U8, U9, U11, U12). This work is real and on-target FOR THAT PRIZE. It does NOT move the ladder as shipped, so
+it may NEVER be logged as ladder progress and NEVER spends a ladder slot unless first wired into a SHIPPED
+agent and PROVEN >569.6 offline. Specs: docs/plans/2026-07-02-combined-learned-eval-plan-v2.md and
+docs/plans/2026-07-02-003-feat-offline-match-scale-topplayer-mining-plan.md.
 
-Two plans live on this branch: U1-U12 in docs/plans/2026-07-02-combined-learned-eval-plan-v2.md, U60-U65 in
-docs/plans/2026-07-02-003-feat-offline-match-scale-topplayer-mining-plan.md. Use the U-ID in each commit to
-find the right spec.
+### Shared rules
+- ONE loop only. Do NOT run parallel sessions: the ladder is quota-bound (5/day), slot-bound (2 scored slots),
+  and noise-bound (~90-130pt same-build band), so more compute cannot buy rank, only more offline infra.
+- STOP re-deriving early_collapse (settled: deck-density-bound). No new empty-bench/collapse analyses unless a
+  genuinely NEW mechanism is tested.
+- Each iteration: if a ladder slot is free and a TRACK L action is ready, do TRACK L (it is the rank lever);
+  otherwise advance TRACK S offline. Prep L1 (build + gauntlet + pre-register) even while slots are full so it
+  ships the instant L2 frees a slot.
 
 ## Project
 - Repo: C:\Users\danom\ptcg-abc   Branch: feat/phase2-learned-eval (Phase A); feat/phase3-followon (Phase B). Never touch main.
@@ -44,9 +58,10 @@ find the right spec.
 2. Confirm data/training/ and data/replays/ are gitignored (data/ is already ignored, which covers both).
 
 ## EACH ITERATION (one increment, then stop)
-1. git log --oneline to find the last completed unit. Order NOW (honor the RESUME STATE above): U60 is next,
-   then finish U6, U7, the Phase A gate, then U62, U63, then U64+U65 (ship together), then Phase B
-   (U8, U9, U11, U12; U10 is replaced by U63). Unit specs live in the two plan docs named in the RESUME STATE.
+1. git log --oneline to find the last completed unit, then pick per the TWO-TRACK RESUME STATE above: if a
+   ladder slot is free and a TRACK L action (L1 ability A/B, L2 settle trolley_thick, L3 shipped tuning) is
+   ready, do TRACK L; otherwise prep the next TRACK L step offline and/or advance TRACK S (U60, then U6, U7,
+   U62, U63, U64+U65, then Phase B). TRACK L is the rank lever; TRACK S is the Strategy-prize deliverable.
 2. Implement the NEXT undone unit exactly as the plan specifies. Mirror existing patterns in src/, agents/, search/, tools/.
 3. Write or update that unit's tests. Run python -m pytest tests -q. Must pass before committing.
 4. Review your own diff; apply only safe, verified fixes.
