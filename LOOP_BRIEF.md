@@ -1,87 +1,70 @@
 # Unattended autoloop brief: ptcg-abc (Pokemon TCG AI Battle Challenge)
 
-You are an autonomous worker running UNATTENDED in a loop. A shell driver invokes
-you once per iteration. Do ONE coherent increment of progress this run, then stop.
-The driver calls you again for the next increment. There is no human to ask, so make
-the best decision and proceed. Full autonomy was authorized by the user.
+You are working UNATTENDED in the ptcg-abc repo, invoked once per iteration by a shell driver.
+Do ONE increment, then STOP. Full autonomy authorized.
+
+SOURCE OF TRUTH: docs/plans/2026-07-02-combined-learned-eval-plan-v2.md
+Read it fully before doing anything.
+
+## RESUME STATE (2026-07-02, plan v2 just adopted, read this first)
+The loop already shipped U1, U2, U3, U4 and is running U5's A/B, but all on GAUNTLET-ONLY data, before the
+ladder-replay units existed. The ladder-replay units U3a and U3b are NEW in v2 and are NOT yet done. Do them
+NEXT (U3a downloader, then U3b converter), do not skip them because U4/U5 already have commits. Then redo
+U4's ladder-merge comparison (train gauntlet-only vs gauntlet+ladder, keep the merged model only if its AUC
+on gauntlet-only test data is at least the gauntlet-only model's, document in analysis/ladder_data_ab.md),
+then re-run the U5 A/B with the retained model, then U6, U7, the Phase A gate, then Phase B (U8-U12).
 
 ## Project
-- Repo: C:\Users\danom\ptcg-abc  (work on branch feat/phase2-learned-eval; commit there)
-- Plan: docs/plans/2026-07-02-002-feat-learned-evaluator-plan.md (READ IT; it is the source of truth)
-- Status: starting from U1. Execute U1 -> U7 IN ORDER, one unit per iteration.
+- Repo: C:\Users\danom\ptcg-abc   Branch: feat/phase2-learned-eval (Phase A); feat/phase3-followon (Phase B). Never touch main.
 - Venv python: .venv/Scripts/python.exe   Tests: python -m pytest tests -q
-- Gauntlet: python tools/gauntlet.py <agent> <opponents...> -n <N>
-- Build submission: python tools/build_submission.py
+- Gauntlet: python tools/gauntlet.py <agent> <opponents...> -n <N>   Build: python tools/build_submission.py
+- Kaggle: .venv/Scripts/kaggle.exe ; token at ~/.kaggle/access_token (never in code or logs)
 
-## What to do THIS iteration (one increment, then stop)
-ROADMAP: Execute docs/plans/2026-07-02-002-feat-learned-evaluator-plan.md. READ IT FIRST; it is the source
-of truth. Goal: replace the hand-tuned constants in search/eval.py with a learned win-probability model
-trained on our own gauntlet games, shipped as JSON weights plus a pure-Python scorer (fully offline, no new
-deps at match time). It is also the core Strategy-prize writeup (a self-improving evaluator trained on the
-agent's own games, validated by measured win rate).
+## SETUP (guard once at the start of a run)
+1. Ensure on branch feat/phase2-learned-eval (Phase A) or feat/phase3-followon (Phase B); create off HEAD if missing.
+2. Confirm data/training/ and data/replays/ are gitignored (data/ is already ignored, which covers both).
 
-Execute the units IN ORDER, one coherent increment per iteration, do not skip ahead:
-  U1 state-outcome logger in tools/gauntlet.py (opt-in flag, one row per decision state per seat, labelled
-     at game end; data/training/ gitignored).
-  U2 pure feature extractor src/ptcg_agent/features.py (fixed-order vector + FEATURE_NAMES, never raises,
-     zero-vector on malformed; mirror the heuristics.py import-fallback so it ships flat).
-  U3 generate the first dataset (>=2000 games vs the pool with logging on; tools/dataset_report.py sanity
-     checks: class balance 35-65%, no NaNs, per-feature min/max).
-  U4 train + export: tools/train_eval.py (dev-only sklearn), split by GAME not row (80/20), logistic
-     regression, must beat the prize-diff-only baseline on AUC or the unit FAILS; export search/eval_model.json;
-     pure search/learned_eval.py returns value = 2*p-1, terminal states short-circuit before the model.
-  U5 integrate behind PTCG_LEARNED_EVAL=1 in search/eval.py + gauntlet A/B (>=400 games/arm), record in
-     analysis/learned_eval_ab.md. GATE: keep the learned eval as default only if it beats hand-tuned by >4pp.
-     A negative result is still writeup material; proceed to U6 either way. (Submission handling: see the
-     SUBMISSION note below before spending any ladder slot.)
-  U6 retrain generation + loss-mode check (regenerate with the improved agent, retrain once, re-run the A/B;
-     run analysis/loss_classifier.py before/after on deckout + early_collapse; add deckout features ONLY if
-     deckout losses did not drop).
-  U7 Strategy writeup docs/writeup/learned_evaluator.md (motivation, data gen, model choice, leakage control,
-     A/B methodology + numbers, loss-mode before/after table, top-8 coefficients interpreted).
+## EACH ITERATION (one increment, then stop)
+1. git log --oneline to find the last completed unit. v2 order: U1, U2, U3, U3a, U3b, U4, U5, U6, U7, then the
+   Phase A gate check, then U8-U12 on feat/phase3-followon. Honor the RESUME STATE above (U3a is next).
+2. Implement the NEXT undone unit exactly as the plan specifies. Mirror existing patterns in src/, agents/, search/, tools/.
+3. Write or update that unit's tests. Run python -m pytest tests -q. Must pass before committing.
+4. Review your own diff; apply only safe, verified fixes.
+5. Commit ONLY that unit's files (never git add -A) with the exact commit message from the plan.
+6. Append to autoloop_status.md: unit advanced, test result, gate pass/fail, whether you submitted, what is next.
+7. TEACH AS YOU GO: in the same autoloop_status.md entry, add 3-5 plain-language sentences explaining what
+   this unit taught (e.g. what AUC means, what the gate result implies) for a coding novice. No jargon
+   without a one-line definition.
+8. STOP. Do not start the next unit.
 
-Each unit gates on tests passing; integration units (U5, U6) gate on gauntlet win rate. Never keep a change
-the gauntlet cannot confirm. Do NOT build the GBT upgrade or a policy/move-ranking model in this plan (both
-are explicitly deferred).
+## PHASE GATE
+Before starting U8, confirm Phase A's definition of done is met: U1-U7 committed, U5's A/B recorded with the
+learned eval at least matching the hand-tuned eval (win or documented tie), submission verified offline-clean,
+writeup drafted. If not met, do not start Phase B; keep working Phase A. If U5 clearly loses, stop and revisit
+the feature set before Phase B.
 
-CONTEXT (accurate, not a blocker): search/eval.py feeds agent_search, which is NOT the shipped ladder agent
-(agent_heuristic ships, and search has been ladder-negative: 514.7 vs 569.6). So a U5 win improves the
-OFFLINE search and is strong Strategy-writeup material; it only reaches the ladder if a later search-revival
-makes agent_search the shipped agent. Build and flag the learned eval per the plan regardless (it is gated
-and reversible behind PTCG_LEARNED_EVAL).
+## SUBMISSION (protect the scarce resource)
+- At most ONE Kaggle submission per iteration, only if the new agent MEASURABLY beats the current best,
+  respecting the 5/day quota. Board-check FIRST: .venv/Scripts/kaggle.exe competitions submissions -c
+  pokemon-tcg-ai-battle. Never resubmit a build already on the ladder. Keep the ledger in autoloop_status.md.
+- search/eval.py and the Phase B search upgrades feed agent_search, which is NOT the shipped ladder agent
+  (agent_heuristic ships; search has been ladder-negative, 514.7 vs 569.6). So these units improve the OFFLINE
+  search and the Strategy writeup (70% of the Strategy score); they only reach the ladder once a search-revival
+  makes agent_search the shipped agent. Treat the gauntlet/offline A/B as the deliverable; do NOT spend a
+  scarce ladder slot on a search-side build while agent_heuristic is the king.
 
-## SUBMISSION note (protect the scarce resource)
-- Do the offline work fully. But DO NOT spend a ladder slot on a search-eval build while agent_heuristic is
-  the shipped king: a search/eval.py change cannot move the shipped heuristic's ladder score, and settled
-  submission slots are the binding resource (few remain before the 16 Aug final). Record the U5/U6 offline
-  A/B result as the deliverable and writeup material; queue the ladder submit ONLY if a search-revival has
-  made agent_search the shipped agent.
-- BEFORE any submit run .venv/Scripts/kaggle.exe competitions submissions -c pokemon-tcg-ai-battle. Never
-  submit a build already on the ladder or one that is not a verified improvement. One submission per
-  iteration max, respect the 5/day quota, keep the ledger in autoloop_status.md.
-
-Mechanical process each iteration: implement one coherent increment with ce-work, mirror existing patterns,
-write/update tests (must pass), code-review the diff and apply safe fixes, ce-debug on failures, commit each
-green step (stage only that step's files, never git add -A).
-
-## Hard constraints (never violate)
+## HARD RULES (never break)
 - No em dashes anywhere in code, comments, docs, or commit messages.
-- The submitted agent runs fully offline. The trained model ships as JSON weights plus pure-Python scoring
-  bundled next to main.py. No sklearn/lightgbm/numpy/network at match time. Training deps (scikit-learn) are
-  dev-only, in a dev requirements file, never in the submission bundle.
-- Keep competition data isolated: never commit data/ or the cg engine binaries, never redistribute. Training
-  CSVs go under data/training/ (gitignored); commit only the exported model JSON (small) and code.
-- Any LLM API keys come from environment variables only. Never hardcode a key.
-- Stay on branch feat/phase2-learned-eval. Do not touch main.
+- Submitted agent runs fully offline. No sklearn/lightgbm/numpy/network at match time. Models ship as JSON plus
+  a pure-Python scorer next to main.py. Training deps (scikit-learn) are dev-only, never in the submission bundle.
+- Never commit data/ or engine binaries. Never commit or redistribute ladder replay JSON. data/training/ and
+  data/replays/ are gitignored.
 - The grader loads main.py via exec() with NO __file__ (guard every repo-relative path with
   if "__file__" in globals()); the entrypoint must be the LAST callable defined; the agent must never raise;
-  the native engine is a process-global singleton (sequential matches). tests/test_grader_submission.py
-  gates every build.
-
-## Logging
-- Append one or two lines to autoloop_status.md: the unit you advanced, the test/gauntlet result, whether
-  you submitted, and what is next.
+  the native engine is a process-global singleton (sequential matches). tests/test_grader_submission.py gates
+  every build.
+- Respect every GATE in the plan. A failed gate means document it and move on, not force the change in.
+- Any LLM API keys come from environment variables only. Never hardcode a key.
 
 ## Stop condition for THIS run
-- After one coherent increment (a committed unit, or a clearly bounded chunk of one), STOP and end your turn.
-  Do not try to build the whole plan in one run.
+After one coherent increment (a committed unit, or a clearly bounded chunk of one), STOP and end your turn.
