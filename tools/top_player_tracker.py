@@ -324,7 +324,7 @@ def read_existing_game_ids(path) -> set:
     path = Path(path)
     if not path.exists():
         return set()
-    with open(path, newline="") as fh:
+    with open(path, newline="", encoding="utf-8") as fh:
         reader = csv.reader(fh)
         header = next(reader, None)
         if header is None or "game_id" not in header:
@@ -344,7 +344,7 @@ def strip_overlap_from_ladder(ladder_csv_path, top_player_game_ids: set) -> int:
     path = Path(ladder_csv_path)
     if not top_player_game_ids or not path.exists():
         return 0
-    with open(path, newline="") as fh:
+    with open(path, newline="", encoding="utf-8") as fh:
         reader = csv.reader(fh)
         header = next(reader, None)
         if header is None or "game_id" not in header:
@@ -354,7 +354,7 @@ def strip_overlap_from_ladder(ladder_csv_path, top_player_game_ids: set) -> int:
     keep = [r for r in rows if r[gid_idx] not in top_player_game_ids]
     removed = len(rows) - len(keep)
     if removed:
-        with open(path, "w", newline="") as fh:
+        with open(path, "w", newline="", encoding="utf-8") as fh:
             writer = csv.writer(fh)
             writer.writerow(header)
             writer.writerows(keep)
@@ -372,7 +372,7 @@ def write_csv(rows, out_path, append: bool = False, extra_columns=None) -> Path:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     write_header = not (append and out_path.exists())
     mode = "a" if append and out_path.exists() else "w"
-    with open(out_path, mode, newline="") as fh:
+    with open(out_path, mode, newline="", encoding="utf-8") as fh:
         writer = csv.writer(fh)
         if write_header:
             writer.writerow(

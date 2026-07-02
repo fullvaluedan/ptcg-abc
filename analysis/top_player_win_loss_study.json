@@ -1,0 +1,1073 @@
+{
+  "win_games": 1441,
+  "loss_games": 1074,
+  "win_rows": 109075,
+  "loss_rows": 71762,
+  "bucket_comparison": {
+    "rows": [
+      {
+        "bucket": "bad_determinization",
+        "top_count": 312,
+        "top_rate": 0.2905027932960894,
+        "our_count": 0,
+        "our_rate": 0.0,
+        "delta": 0.2905027932960894
+      },
+      {
+        "bucket": "endgame_misplay",
+        "top_count": 270,
+        "top_rate": 0.25139664804469275,
+        "our_count": 0,
+        "our_rate": 0.0,
+        "delta": 0.25139664804469275
+      },
+      {
+        "bucket": "deck_matchup",
+        "top_count": 184,
+        "top_rate": 0.1713221601489758,
+        "our_count": 1,
+        "our_rate": 0.07692307692307693,
+        "delta": 0.09439908322589888
+      },
+      {
+        "bucket": "early_collapse",
+        "top_count": 164,
+        "top_rate": 0.1527001862197393,
+        "our_count": 12,
+        "our_rate": 0.9230769230769231,
+        "delta": -0.7703767368571839
+      },
+      {
+        "bucket": "deckout",
+        "top_count": 112,
+        "top_rate": 0.1042830540037244,
+        "our_count": 0,
+        "our_rate": 0.0,
+        "delta": 0.1042830540037244
+      },
+      {
+        "bucket": "slow_search",
+        "top_count": 32,
+        "top_rate": 0.0297951582867784,
+        "our_count": 0,
+        "our_rate": 0.0,
+        "delta": 0.0297951582867784
+      }
+    ],
+    "top_total": 1074,
+    "our_total": 13,
+    "note": null
+  },
+  "feature_deltas_by_bin": {
+    "early": {
+      "prize_diff": {
+        "win_mean": 0.004313252386882418,
+        "loss_mean": 0.007990251892690887,
+        "delta": -0.003676999505808469
+      },
+      "our_prizes_left": {
+        "win_mean": 5.473264321295143,
+        "loss_mean": 5.398693593815545,
+        "delta": 0.07457072747959792
+      },
+      "their_prizes_left": {
+        "win_mean": 5.499143835616438,
+        "loss_mean": 5.446635105171691,
+        "delta": 0.0525087304447478
+      },
+      "our_deck_count": {
+        "win_mean": 41.87928082191781,
+        "loss_mean": 42.750704140948045,
+        "delta": -0.8714233190302352
+      },
+      "their_deck_count": {
+        "win_mean": 43.768212951432126,
+        "loss_mean": 43.76131120033559,
+        "delta": 0.006901751096535236
+      },
+      "deck_diff": {
+        "win_mean": -1.8889321295143213,
+        "loss_mean": -1.0106070593875471,
+        "delta": -0.8783250701267742
+      },
+      "our_hand_count": {
+        "win_mean": 6.0227272727272725,
+        "loss_mean": 5.862707496853838,
+        "delta": 0.16001977587343408
+      },
+      "their_hand_count": {
+        "win_mean": 5.375778331257783,
+        "loss_mean": 5.355366452927429,
+        "delta": 0.020411878330354405
+      },
+      "our_bench_size": {
+        "win_mean": 1.9968088418430885,
+        "loss_mean": 1.8371187151674957,
+        "delta": 0.1596901266755928
+      },
+      "their_bench_size": {
+        "win_mean": 1.550280199252802,
+        "loss_mean": 1.6427158866183256,
+        "delta": -0.09243568736552366
+      },
+      "our_bench_nonempty": {
+        "win_mean": 0.7333826276463262,
+        "loss_mean": 0.7036016060406304,
+        "delta": 0.029781021605695845
+      },
+      "our_active_hp_frac": {
+        "win_mean": 0.801520902874911,
+        "loss_mean": 0.7883381154574114,
+        "delta": 0.013182787417499564
+      },
+      "their_active_hp_frac": {
+        "win_mean": 0.8439281499907434,
+        "loss_mean": 0.8360039155556768,
+        "delta": 0.007924234435066624
+      },
+      "our_bench_hp_frac": {
+        "win_mean": 0.7316993362033272,
+        "loss_mean": 0.7013405872857086,
+        "delta": 0.030358748917618583
+      },
+      "their_bench_hp_frac": {
+        "win_mean": 0.6385512160971671,
+        "loss_mean": 0.6528447223899356,
+        "delta": -0.014293506292768487
+      },
+      "our_energy": {
+        "win_mean": 0.7332658779576587,
+        "loss_mean": 0.5573200695151914,
+        "delta": 0.17594580844246732
+      },
+      "their_energy": {
+        "win_mean": 0.7439679327521793,
+        "loss_mean": 0.7353628573140768,
+        "delta": 0.008605075438102516
+      },
+      "turn_number": {
+        "win_mean": 1.993228518057285,
+        "loss_mean": 1.8941691136813088,
+        "delta": 0.09905940437597627
+      },
+      "is_our_turn": {
+        "win_mean": 0.9910491905354919,
+        "loss_mean": 0.9844190088092527,
+        "delta": 0.006630181726239193
+      },
+      "our_supporter_played": {
+        "win_mean": 0.42695361145703614,
+        "loss_mean": 0.4085216036435549,
+        "delta": 0.018432007813481255
+      },
+      "our_energy_attached": {
+        "win_mean": 0.31790940224159403,
+        "loss_mean": 0.32258644453766405,
+        "delta": -0.004677042296070022
+      }
+    },
+    "mid": {
+      "prize_diff": {
+        "win_mean": -0.021002145651899288,
+        "loss_mean": -0.14092601293960094,
+        "delta": 0.11992386728770166
+      },
+      "our_prizes_left": {
+        "win_mean": 5.324271109428246,
+        "loss_mean": 5.567932916470886,
+        "delta": -0.2436618070426393
+      },
+      "their_prizes_left": {
+        "win_mean": 5.19825823551685,
+        "loss_mean": 4.722376838833267,
+        "delta": 0.4758813966835822
+      },
+      "our_deck_count": {
+        "win_mean": 27.84266060835542,
+        "loss_mean": 29.50681317092565,
+        "delta": -1.66415256257023
+      },
+      "their_deck_count": {
+        "win_mean": 31.062577306575793,
+        "loss_mean": 29.172696714497416,
+        "delta": 1.8898805920783772
+      },
+      "deck_diff": {
+        "win_mean": -3.219916698220371,
+        "loss_mean": 0.3341164564282358,
+        "delta": -3.554033154648607
+      },
+      "our_hand_count": {
+        "win_mean": 8.245563549160671,
+        "loss_mean": 7.438211587812195,
+        "delta": 0.8073519613484761
+      },
+      "their_hand_count": {
+        "win_mean": 6.852404392275653,
+        "loss_mean": 7.859471572631655,
+        "delta": -1.0070671803560023
+      },
+      "our_bench_size": {
+        "win_mean": 3.754335478985233,
+        "loss_mean": 3.377272562981169,
+        "delta": 0.37706291600406416
+      },
+      "their_bench_size": {
+        "win_mean": 3.1232361479237665,
+        "loss_mean": 3.534933314056457,
+        "delta": -0.4116971661326905
+      },
+      "our_bench_nonempty": {
+        "win_mean": 0.9868736589675627,
+        "loss_mean": 0.9630245418729895,
+        "delta": 0.02384911709457327
+      },
+      "our_active_hp_frac": {
+        "win_mean": 0.8263278854553313,
+        "loss_mean": 0.8208307441653432,
+        "delta": 0.005497141289988128
+      },
+      "their_active_hp_frac": {
+        "win_mean": 0.8408772239707633,
+        "loss_mean": 0.8743629738736729,
+        "delta": -0.033485749902909645
+      },
+      "our_bench_hp_frac": {
+        "win_mean": 0.9680814443008394,
+        "loss_mean": 0.9410175679016113,
+        "delta": 0.027063876399228137
+      },
+      "their_bench_hp_frac": {
+        "win_mean": 0.9296633374084488,
+        "loss_mean": 0.9596535886098037,
+        "delta": -0.0299902512013549
+      },
+      "our_energy": {
+        "win_mean": 2.6691909630190582,
+        "loss_mean": 1.854483680919507,
+        "delta": 0.8147072820995511
+      },
+      "their_energy": {
+        "win_mean": 2.173898775716269,
+        "loss_mean": 2.7165937759786027,
+        "delta": -0.5426950002623339
+      },
+      "turn_number": {
+        "win_mean": 5.899861163700619,
+        "loss_mean": 5.952615028734593,
+        "delta": -0.05275386503397428
+      },
+      "is_our_turn": {
+        "win_mean": 0.9609491354284994,
+        "loss_mean": 0.9400730111685401,
+        "delta": 0.020876124259959217
+      },
+      "our_supporter_played": {
+        "win_mean": 0.5503723337119778,
+        "loss_mean": 0.5499692774785846,
+        "delta": 0.0004030562333932064
+      },
+      "our_energy_attached": {
+        "win_mean": 0.3974252177205604,
+        "loss_mean": 0.40799508439657356,
+        "delta": -0.010569866676013173
+      }
+    },
+    "late": {
+      "prize_diff": {
+        "win_mean": 0.10942403192883136,
+        "loss_mean": -0.24290353181552535,
+        "delta": 0.3523275637443567
+      },
+      "our_prizes_left": {
+        "win_mean": 3.100059409560369,
+        "loss_mean": 4.30407180385289,
+        "delta": -1.2040123942925205
+      },
+      "their_prizes_left": {
+        "win_mean": 3.7566036011333517,
+        "loss_mean": 2.8466506129597198,
+        "delta": 0.9099529881736319
+      },
+      "our_deck_count": {
+        "win_mean": 17.107074307650123,
+        "loss_mean": 16.987959719789842,
+        "delta": 0.11911458786028106
+      },
+      "their_deck_count": {
+        "win_mean": 17.055090942327027,
+        "loss_mean": 18.323591652072388,
+        "delta": -1.2685007097453607
+      },
+      "deck_diff": {
+        "win_mean": 0.05198336532309661,
+        "loss_mean": -1.3356319322825452,
+        "delta": 1.3876152976056417
+      },
+      "our_hand_count": {
+        "win_mean": 10.191824330499955,
+        "loss_mean": 8.992958260361938,
+        "delta": 1.198866070138017
+      },
+      "their_hand_count": {
+        "win_mean": 8.06448222283155,
+        "loss_mean": 8.885143023934617,
+        "delta": -0.8206608011030667
+      },
+      "our_bench_size": {
+        "win_mean": 3.9085778265240836,
+        "loss_mean": 3.4432282545242265,
+        "delta": 0.46534957199985705
+      },
+      "their_bench_size": {
+        "win_mean": 2.988369436066173,
+        "loss_mean": 3.529152072387624,
+        "delta": -0.5407826363214512
+      },
+      "our_bench_nonempty": {
+        "win_mean": 0.9751393839685586,
+        "loss_mean": 0.9571657910099242,
+        "delta": 0.017973592958634432
+      },
+      "our_active_hp_frac": {
+        "win_mean": 0.7790072892140273,
+        "loss_mean": 0.7903106127819389,
+        "delta": -0.011303323567911638
+      },
+      "their_active_hp_frac": {
+        "win_mean": 0.7616030298768055,
+        "loss_mean": 0.8063162971169233,
+        "delta": -0.044713267240117816
+      },
+      "our_bench_hp_frac": {
+        "win_mean": 0.9384600127558679,
+        "loss_mean": 0.9190393949982593,
+        "delta": 0.019420617757608616
+      },
+      "their_bench_hp_frac": {
+        "win_mean": 0.8866971013260131,
+        "loss_mean": 0.9157465393952222,
+        "delta": -0.02904943806920912
+      },
+      "our_energy": {
+        "win_mean": 3.572479663650489,
+        "loss_mean": 2.354458552247519,
+        "delta": 1.2180211114029702
+      },
+      "their_energy": {
+        "win_mean": 2.69721689059501,
+        "loss_mean": 3.667177466433158,
+        "delta": -0.9699605758381482
+      },
+      "turn_number": {
+        "win_mean": 13.110250434146787,
+        "loss_mean": 13.281596614127261,
+        "delta": -0.17134617998047474
+      },
+      "is_our_turn": {
+        "win_mean": 0.9645599122566493,
+        "loss_mean": 0.9375,
+        "delta": 0.027059912256649277
+      },
+      "our_supporter_played": {
+        "win_mean": 0.4941275934558084,
+        "loss_mean": 0.49233800350262696,
+        "delta": 0.0017895899531814585
+      },
+      "our_energy_attached": {
+        "win_mean": 0.36107302805959235,
+        "loss_mean": 0.35438558085230587,
+        "delta": 0.006687447207286479
+      }
+    }
+  },
+  "top_discriminative_features": [
+    {
+      "turn_bin": "mid",
+      "feature": "deck_diff",
+      "win_mean": -3.219916698220371,
+      "loss_mean": 0.3341164564282358,
+      "delta": -3.554033154648607
+    },
+    {
+      "turn_bin": "mid",
+      "feature": "their_deck_count",
+      "win_mean": 31.062577306575793,
+      "loss_mean": 29.172696714497416,
+      "delta": 1.8898805920783772
+    },
+    {
+      "turn_bin": "mid",
+      "feature": "our_deck_count",
+      "win_mean": 27.84266060835542,
+      "loss_mean": 29.50681317092565,
+      "delta": -1.66415256257023
+    },
+    {
+      "turn_bin": "late",
+      "feature": "deck_diff",
+      "win_mean": 0.05198336532309661,
+      "loss_mean": -1.3356319322825452,
+      "delta": 1.3876152976056417
+    },
+    {
+      "turn_bin": "late",
+      "feature": "their_deck_count",
+      "win_mean": 17.055090942327027,
+      "loss_mean": 18.323591652072388,
+      "delta": -1.2685007097453607
+    },
+    {
+      "turn_bin": "late",
+      "feature": "our_energy",
+      "win_mean": 3.572479663650489,
+      "loss_mean": 2.354458552247519,
+      "delta": 1.2180211114029702
+    },
+    {
+      "turn_bin": "late",
+      "feature": "our_prizes_left",
+      "win_mean": 3.100059409560369,
+      "loss_mean": 4.30407180385289,
+      "delta": -1.2040123942925205
+    },
+    {
+      "turn_bin": "late",
+      "feature": "our_hand_count",
+      "win_mean": 10.191824330499955,
+      "loss_mean": 8.992958260361938,
+      "delta": 1.198866070138017
+    }
+  ],
+  "opponents": [
+    [
+      "kazuki0123",
+      63
+    ],
+    [
+      "THIRD PTCG Club",
+      40
+    ],
+    [
+      "tonakaiiii",
+      39
+    ],
+    [
+      "The Debauchery Tea Party",
+      38
+    ],
+    [
+      "aidy",
+      37
+    ],
+    [
+      "monnosuke",
+      36
+    ],
+    [
+      "Yushin Ito",
+      35
+    ],
+    [
+      "Moegi",
+      35
+    ],
+    [
+      "ShumpeiNomura",
+      32
+    ],
+    [
+      "pztriatomic",
+      26
+    ],
+    [
+      "Takaaki Matsuda",
+      24
+    ],
+    [
+      "Michael Krager",
+      23
+    ],
+    [
+      "Shun",
+      20
+    ],
+    [
+      "\u30ab\u30c9\u30e9\u30d0 Kadoraba",
+      20
+    ],
+    [
+      "tomatomato",
+      20
+    ],
+    [
+      "S4nkurero",
+      20
+    ],
+    [
+      "Dongwook Kim",
+      19
+    ],
+    [
+      "katsudon 421",
+      18
+    ],
+    [
+      "Gotem Penguin",
+      18
+    ],
+    [
+      "yamy893",
+      18
+    ],
+    [
+      "zoroark190",
+      16
+    ],
+    [
+      "capbloo",
+      16
+    ],
+    [
+      "iwashi",
+      16
+    ],
+    [
+      "\u307f\u305a\u3042\u3081",
+      13
+    ],
+    [
+      "kawachi",
+      13
+    ],
+    [
+      "yoshimasak",
+      12
+    ],
+    [
+      "milix",
+      11
+    ],
+    [
+      "ykuroka",
+      11
+    ],
+    [
+      "\u30c1\u30fc\u30e0\u30ed\u30b9\u30ae\u30e9",
+      11
+    ],
+    [
+      "kashiwashira",
+      11
+    ],
+    [
+      "Himi Yamato",
+      11
+    ],
+    [
+      "nattomaki",
+      9
+    ],
+    [
+      "wangyuou",
+      9
+    ],
+    [
+      "barrybao123",
+      8
+    ],
+    [
+      "\u3010\uff21\uff29\u3068\u5171\u306b\u3001\uff21\uff29\u3068\u6226\u3046\u3011tubotu",
+      8
+    ],
+    [
+      "Kohenyan",
+      8
+    ],
+    [
+      "puraza",
+      8
+    ],
+    [
+      "suwat513",
+      8
+    ],
+    [
+      "sqrt4kaido",
+      8
+    ],
+    [
+      "Budew",
+      7
+    ],
+    [
+      "\u307f\u304c\u308f\u308a",
+      7
+    ],
+    [
+      "Yasuo 0/10/0",
+      7
+    ],
+    [
+      "kenkoooo",
+      7
+    ],
+    [
+      "Inlon Kou",
+      6
+    ],
+    [
+      "MtN",
+      6
+    ],
+    [
+      "ysakuragi",
+      6
+    ],
+    [
+      "omoch1...?",
+      6
+    ],
+    [
+      "TTT Is All You Need",
+      6
+    ],
+    [
+      "suguuuuu & hiehie",
+      6
+    ],
+    [
+      "anngle",
+      5
+    ],
+    [
+      "nsytsqdtn",
+      5
+    ],
+    [
+      "takumina",
+      5
+    ],
+    [
+      "Blacklions.",
+      5
+    ],
+    [
+      "snowsapphire",
+      5
+    ],
+    [
+      "Akira-Ninth",
+      5
+    ],
+    [
+      "keidroid",
+      5
+    ],
+    [
+      "HCRL",
+      5
+    ],
+    [
+      "Kunal Aarse",
+      5
+    ],
+    [
+      "Myckel Uribe",
+      4
+    ],
+    [
+      "Jaga",
+      4
+    ],
+    [
+      "Dick Jessen William",
+      4
+    ],
+    [
+      "Libra",
+      4
+    ],
+    [
+      "aca-ta",
+      4
+    ],
+    [
+      "foo_foo",
+      4
+    ],
+    [
+      "yiyu0716",
+      4
+    ],
+    [
+      "Ketchum Alt",
+      4
+    ],
+    [
+      "Xander",
+      3
+    ],
+    [
+      "Kimiaki Nakamura",
+      3
+    ],
+    [
+      "Team Rocket",
+      3
+    ],
+    [
+      "romthpt",
+      3
+    ],
+    [
+      "Ajishio",
+      3
+    ],
+    [
+      "\u30cc\u30e1\u30eb\u30b4\u30f3ex",
+      3
+    ],
+    [
+      "Rojiomote",
+      3
+    ],
+    [
+      "jiatu.l",
+      3
+    ],
+    [
+      "hatakazu93",
+      3
+    ],
+    [
+      "TOMOYA Tsunakawa",
+      3
+    ],
+    [
+      "taka",
+      3
+    ],
+    [
+      "taka0808",
+      3
+    ],
+    [
+      "Psychic Genesis",
+      3
+    ],
+    [
+      "Kiratan",
+      3
+    ],
+    [
+      "Ramesh Arvind",
+      3
+    ],
+    [
+      "Super Mippo",
+      3
+    ],
+    [
+      "UBI=ISHI",
+      2
+    ],
+    [
+      "Peng Wang",
+      2
+    ],
+    [
+      "Hamu.py",
+      2
+    ],
+    [
+      "Tokiya Osuka",
+      2
+    ],
+    [
+      "taopy2",
+      2
+    ],
+    [
+      "Jack",
+      2
+    ],
+    [
+      "david valor",
+      2
+    ],
+    [
+      "\u6a39\u795e",
+      2
+    ],
+    [
+      "Dmitry Volovikov",
+      2
+    ],
+    [
+      "codebeforework",
+      2
+    ],
+    [
+      "Zhenyu Zhang",
+      2
+    ],
+    [
+      "L-WALID",
+      2
+    ],
+    [
+      "takusemba",
+      2
+    ],
+    [
+      "tmizm",
+      2
+    ],
+    [
+      "yaruwo",
+      2
+    ],
+    [
+      "MERO TOKI",
+      2
+    ],
+    [
+      "Soulemane ISSIFOU",
+      2
+    ],
+    [
+      "cimyzzz",
+      2
+    ],
+    [
+      "shibushun",
+      2
+    ],
+    [
+      "Legend Brothers",
+      2
+    ],
+    [
+      "f.a.nina",
+      2
+    ],
+    [
+      "Gotta catch 'em all",
+      2
+    ],
+    [
+      "Hayhay2323",
+      1
+    ],
+    [
+      "pokeka_ryo",
+      1
+    ],
+    [
+      "lingyu07",
+      1
+    ],
+    [
+      "askamijo",
+      1
+    ],
+    [
+      "kami",
+      1
+    ],
+    [
+      "hikarimaru",
+      1
+    ],
+    [
+      "c-number",
+      1
+    ],
+    [
+      "HIROYA KIKUCHI",
+      1
+    ],
+    [
+      "Takanori Kotama",
+      1
+    ],
+    [
+      "Kasasree Google",
+      1
+    ],
+    [
+      "Xenon Soh",
+      1
+    ],
+    [
+      "k66",
+      1
+    ],
+    [
+      "Pixegami",
+      1
+    ],
+    [
+      "Ryo Ochi",
+      1
+    ],
+    [
+      "tachyon_c2",
+      1
+    ],
+    [
+      "cununn",
+      1
+    ],
+    [
+      "ne Artem Savchenko",
+      1
+    ],
+    [
+      "Shirag Maharaj",
+      1
+    ],
+    [
+      "Niko Kristanto",
+      1
+    ],
+    [
+      "suzume41",
+      1
+    ],
+    [
+      "llkarill",
+      1
+    ],
+    [
+      "DaJimmy",
+      1
+    ],
+    [
+      "DataLover",
+      1
+    ],
+    [
+      "rinov321",
+      1
+    ],
+    [
+      "\u305d\u3046\u3081\u3093",
+      1
+    ],
+    [
+      "Lapra5",
+      1
+    ],
+    [
+      "pompom555",
+      1
+    ],
+    [
+      "Pokk\u00e9n",
+      1
+    ],
+    [
+      "dddmd",
+      1
+    ],
+    [
+      "Akshay Punjabi",
+      1
+    ],
+    [
+      "Morim",
+      1
+    ],
+    [
+      "Gappy",
+      1
+    ],
+    [
+      "Kuriboh",
+      1
+    ],
+    [
+      "TrustHub hiroingk",
+      1
+    ],
+    [
+      "Team BlackBox",
+      1
+    ],
+    [
+      "matsurih",
+      1
+    ],
+    [
+      "Karolina Kafel",
+      1
+    ],
+    [
+      "showtree",
+      1
+    ],
+    [
+      "Hamachi",
+      1
+    ],
+    [
+      "vibechu",
+      1
+    ],
+    [
+      "BluezLee",
+      1
+    ],
+    [
+      "Anirudh K",
+      1
+    ],
+    [
+      "konaito",
+      1
+    ],
+    [
+      "Yxy2001",
+      1
+    ],
+    [
+      "CardPilotLab",
+      1
+    ],
+    [
+      "\u30ad\u30fc\u30a6\u30a3",
+      1
+    ],
+    [
+      "tw_shin",
+      1
+    ],
+    [
+      "gurene-do",
+      1
+    ],
+    [
+      "Ryosei Kojima",
+      1
+    ],
+    [
+      "kemurayama",
+      1
+    ],
+    [
+      "J.Moriuchi",
+      1
+    ],
+    [
+      "Dicer992",
+      1
+    ],
+    [
+      "Yuiki",
+      1
+    ]
+  ],
+  "notes": []
+}

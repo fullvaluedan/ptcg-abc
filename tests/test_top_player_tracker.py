@@ -240,6 +240,27 @@ def test_read_existing_game_ids_round_trips_with_write_csv(tmp_path):
         assert sum(1 for _ in csv.reader(fh)) == 3  # header + 2 rows
 
 
+def test_write_csv_round_trips_non_ascii_team_names(tmp_path):
+    """Team/opponent handles carry CJK characters and accents; write_csv and
+    read_existing_game_ids must round-trip them as utf-8 rather than falling
+    back to a locale codec (cp1252 on Windows) that cannot encode them."""
+    from ptcg_agent.features import FEATURE_NAMES
+
+    rows = [
+        ["1", 0, 3, *[0.0] * len(FEATURE_NAMES), 1, "top_player", "élite チーム"],
+        ["2", 1, 4, *[0.0] * len(FEATURE_NAMES), 0, "top_player_loss", "Alpha",
+         "early_collapse", "élite チーム"],
+    ]
+    out = tpt.write_csv(rows[:1], tmp_path / "corpus.csv")
+    assert tpt.read_existing_game_ids(out) == {"1"}
+    loss_out = tpt.write_csv(rows[1:], tmp_path / "loss_corpus.csv", extra_columns=["loss_bucket", "opponent"])
+    with open(loss_out, newline="", encoding="utf-8") as fh:
+        loss_reader = csv.reader(fh)
+        next(loss_reader)
+        row = next(loss_reader)
+    assert row[-1] == "élite チーム"
+
+
 def test_write_csv_extra_columns_extend_header(tmp_path):
     from ptcg_agent.features import FEATURE_NAMES
 
