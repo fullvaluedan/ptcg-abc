@@ -20,6 +20,7 @@ Design choices, all aimed at a never crash agent that beats the random baseline:
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 from functools import lru_cache
@@ -173,6 +174,73 @@ _BENCH_DIG = os.environ.get("PTCG_BENCH_DIG", "0") != "0"
 # until it is validated (the move-ranking breakdown) and A/B'd on the ladder; offline
 # weak-bot gauntlets are not predictive, so the ladder is the judge.
 _ABILITY = os.environ.get("PTCG_ABILITY", "0") != "0"
+
+# Deck-aware game-plan seeds (PTCG_SEEDS, default off). The U36 miner distills a
+# target family's WINNING expert episodes into concentrated play seeds (attach /
+# play / evolve card-id targets); analysis/gameplan_seeds.py emits only the blocks
+# that clear BOTH the 0.90 resolution bar and their concentration bar, and
+# tools/build_submission.py --env bakes the emitted seeds JSON into PTCG_SEEDS_JSON.
+# This lever consumes a baked attach_target seed to steer the ATTACH step toward the
+# seeded receiving Pokemon (the card the winning expert put energy on). Two
+# independent guarantees keep every shipped build byte-identical today: the flag is
+# default-off, AND the mined seeds channel is empty for both live targets
+# (analysis/gameplans/seeds_real_run.md: meta_grimmsnarl emits 0 seeds; the one
+# meta_archaludon evolve_target seed is a deck-identity fact, not a win-vs-loss edge).
+# The seam exists so a future concentrated AND win-vs-loss-discriminating seed can be
+# baked and A/B'd without re-architecting the pilot; no ladder slot is spent until
+# such a seed exists. The remaining application points the plan names (bench / play
+# targets, fetch priorities, the deckout floor) are deferred until a seed for their
+# block clears the bars, to avoid speculative code the empty channel cannot exercise.
+_SEEDS = os.environ.get("PTCG_SEEDS", "0") != "0"
+
+# Block names whose emitted seed is an int card id a resolver can act on.
+_SEED_TARGET_BLOCKS = ("attach_target", "play_target", "evolve_target")
+
+
+def _load_seeds(raw):
+    """Parse the baked seeds JSON into {block_name: card_id} for consumable blocks.
+
+    `raw` is the PTCG_SEEDS_JSON string build_submission bakes from an
+    analysis/gameplan_seeds.py emit -- either the full emit payload (with a `seeds`
+    object) or the bare `seeds` object, keyed by block name with a {value, metric,
+    kind} payload. Keeps only the categorical target blocks whose value is an int
+    card id. Fail-open: unset, malformed, or seedless JSON returns {}, so an
+    un-seeded build reads no seeds and stays byte-identical. Pure, never raises.
+    """
+    if not raw:
+        return {}
+    try:
+        payload = json.loads(raw)
+    except (TypeError, ValueError):
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+    seeds_obj = payload.get("seeds", payload)
+    if not isinstance(seeds_obj, dict):
+        return {}
+    out = {}
+    for name in _SEED_TARGET_BLOCKS:
+        entry = seeds_obj.get(name)
+        if isinstance(entry, dict) and isinstance(entry.get("value"), int):
+            out[name] = entry["value"]
+    return out
+
+
+SEEDS = _load_seeds(os.environ.get("PTCG_SEEDS_JSON"))
+
+
+def seed_target(block):
+    """The seeded card id for a categorical target block, or None when unseeded.
+
+    Returns None whenever the seeds lever is off or the block has no baked seed, so
+    every consumption site collapses to its default path unless a real seed is
+    present (default-off and empty-dict both yield None). Reads module state (the
+    _SEEDS flag and the SEEDS table built at import); never raises.
+    """
+    if not _SEEDS:
+        return None
+    return SEEDS.get(block)
+
 
 # Category ordering priorities for the pilot's MAIN decision. CEM-tunable: these
 # are the genome levers the U6 gradient diagnostic showed were missing (both
@@ -441,6 +509,25 @@ def _attached_count(slot) -> int:
     return len(slot.get("energies") or []) if slot else 0
 
 
+def _attach_slot_card_id(op, me):
+    """Card id of the in-play Pokemon an ATTACH option would power, or None.
+
+    The energy lands on the active or a bench slot; this reads back the card in
+    that slot so a seeded attach_target can be matched against it. Pure, never
+    raises on a well-formed option/me.
+    """
+    area = op.get("inPlayArea")
+    if area == AREA_ACTIVE:
+        active = _active(me)
+        return active.get("id") if active else None
+    if area == AREA_BENCH:
+        bench = me.get("bench") or []
+        bi = op.get("inPlayIndex")
+        if bi is not None and 0 <= bi < len(bench) and bench[bi]:
+            return bench[bi].get("id")
+    return None
+
+
 def _choose_attach(attach, me) -> int:
     """Index of the ATTACH option to take.
 
@@ -461,6 +548,17 @@ def _choose_attach(attach, me) -> int:
         (i for i, op in attach if op.get("inPlayArea") == AREA_ACTIVE), None
     )
     default = active_attach if active_attach is not None else attach[0][0]
+    # Deck-aware seed: when a baked attach_target names the winning expert's
+    # receiving Pokemon, steer the energy onto whichever option targets a slot
+    # holding that card. Inert unless the seeds lever is on and a seed is baked
+    # (seed_target returns None otherwise), so an un-seeded build never enters here
+    # and stays byte-identical. Falls through to the default / sequencing paths when
+    # no option targets the seeded card.
+    seed = seed_target("attach_target")
+    if seed is not None:
+        for i, op in attach:
+            if _attach_slot_card_id(op, me) == seed:
+                return i
     if not _ENERGY_SEQ:
         return default
     active = _active(me)

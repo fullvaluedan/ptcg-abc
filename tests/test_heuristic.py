@@ -120,6 +120,122 @@ def test_energy_seq_skips_fully_powered_bench(monkeypatch):
     assert heuristics._choose_attach(_attach_opts(), me) == 1
 
 
+# Deck-aware game-plan seeds consumer (PTCG_SEEDS + PTCG_SEEDS_JSON). The mined
+# seeds channel is empty for the live targets, so a shipped build bakes no seed and
+# must be byte-identical; these check the loader, the default-off gating, and the
+# one wired consumption point (attach targeting) when a seed IS baked.
+def test_load_seeds_unset_is_empty():
+    assert heuristics._load_seeds(None) == {}
+    assert heuristics._load_seeds("") == {}
+
+
+def test_load_seeds_malformed_is_empty():
+    assert heuristics._load_seeds("{not json") == {}
+    assert heuristics._load_seeds("[1, 2, 3]") == {}  # not a dict
+    assert heuristics._load_seeds('{"seeds": 5}') == {}  # seeds value not a dict
+
+
+def test_load_seeds_reads_categorical_targets():
+    raw = '{"seeds": {"attach_target": {"value": 200, "metric": 0.8, "kind": "categorical"}}}'
+    assert heuristics._load_seeds(raw) == {"attach_target": 200}
+
+
+def test_load_seeds_accepts_bare_seeds_object():
+    raw = '{"attach_target": {"value": 77, "metric": 0.9, "kind": "categorical"}}'
+    assert heuristics._load_seeds(raw) == {"attach_target": 77}
+
+
+def test_load_seeds_skips_non_int_and_unknown_blocks():
+    raw = (
+        '{"seeds": {'
+        '"attach_target": {"value": null, "kind": "categorical"},'
+        '"opening_category": {"value": 5, "kind": "categorical"}}}'
+    )
+    assert heuristics._load_seeds(raw) == {}
+
+
+def test_seed_target_off_returns_none_even_when_dict_populated(monkeypatch):
+    # Lever off: even a populated dict yields no seed, so consumers stay default.
+    monkeypatch.setattr(heuristics, "_SEEDS", False)
+    monkeypatch.setattr(heuristics, "SEEDS", {"attach_target": 200})
+    assert heuristics.seed_target("attach_target") is None
+
+
+def test_seed_target_on_returns_value(monkeypatch):
+    monkeypatch.setattr(heuristics, "_SEEDS", True)
+    monkeypatch.setattr(heuristics, "SEEDS", {"attach_target": 200})
+    assert heuristics.seed_target("attach_target") == 200
+    assert heuristics.seed_target("play_target") is None
+
+
+def test_attach_unaffected_by_seed_when_lever_off(monkeypatch):
+    # Default-off build with a bench seed baked: attach still powers the active.
+    monkeypatch.setattr(heuristics, "_SEEDS", False)
+    monkeypatch.setattr(heuristics, "_ENERGY_SEQ", False)
+    monkeypatch.setattr(heuristics, "SEEDS", {"attach_target": 200})
+    me = {"active": [{"id": 100, "energies": []}],
+          "bench": [{"id": 200, "energies": []}]}
+    assert heuristics._choose_attach(_attach_opts(), me) == 1  # active, not the seed
+
+
+def test_attach_seed_steers_to_bench_slot_holding_seeded_card(monkeypatch):
+    # Seed names the bench payoff card; energy is steered onto its slot over the active.
+    monkeypatch.setattr(heuristics, "_SEEDS", True)
+    monkeypatch.setattr(heuristics, "SEEDS", {"attach_target": 200})
+    me = {"active": [{"id": 100, "energies": []}],
+          "bench": [{"id": 200, "energies": []}]}
+    assert heuristics._choose_attach(_attach_opts(), me) == 0  # bench slot 0 holds 200
+
+
+def test_attach_seed_wins_over_energy_seq(monkeypatch):
+    # Both levers on: the seed is a stronger directive than sequencing, so the
+    # seeded slot is chosen even though energy-seq would otherwise steer elsewhere.
+    monkeypatch.setattr(heuristics, "_SEEDS", True)
+    monkeypatch.setattr(heuristics, "_ENERGY_SEQ", True)
+    monkeypatch.setattr(heuristics, "SEEDS", {"attach_target": 200})
+    costs = {100: [1], 200: [3]}
+    monkeypatch.setattr(heuristics, "_attack_costs", lambda cid: costs.get(cid, []))
+    me = {"active": [{"id": 100, "energies": ["G"]}],
+          "bench": [{"id": 200, "energies": []}]}
+    assert heuristics._choose_attach(_attach_opts(), me) == 0  # seed slot, not seq default
+
+
+def test_attach_seed_steers_to_active_slot_holding_seeded_card(monkeypatch):
+    # Seed names the active card: the AREA_ACTIVE readback matches and the active
+    # option is chosen (covers the active branch of _attach_slot_card_id).
+    monkeypatch.setattr(heuristics, "_SEEDS", True)
+    monkeypatch.setattr(heuristics, "SEEDS", {"attach_target": 100})
+    me = {"active": [{"id": 100, "energies": []}],
+          "bench": [{"id": 200, "energies": []}]}
+    assert heuristics._choose_attach(_attach_opts(), me) == 1  # active option holds 100
+
+
+def test_attach_seed_falls_through_when_no_option_targets_seed(monkeypatch):
+    # Seed names a card that is not in any attach option's target slot: default wins.
+    monkeypatch.setattr(heuristics, "_SEEDS", True)
+    monkeypatch.setattr(heuristics, "_ENERGY_SEQ", False)
+    monkeypatch.setattr(heuristics, "SEEDS", {"attach_target": 999})
+    me = {"active": [{"id": 100, "energies": []}],
+          "bench": [{"id": 200, "energies": []}]}
+    assert heuristics._choose_attach(_attach_opts(), me) == 1  # active default
+
+
+def test_attach_seed_falls_through_on_out_of_range_bench_index(monkeypatch):
+    # Seed matches nothing because the bench option's index is out of range: the
+    # bounds guard in _attach_slot_card_id returns None and the default wins.
+    monkeypatch.setattr(heuristics, "_SEEDS", True)
+    monkeypatch.setattr(heuristics, "_ENERGY_SEQ", False)
+    monkeypatch.setattr(heuristics, "SEEDS", {"attach_target": 200})
+    opts = [
+        (0, {"type": heuristics.OPT_ATTACH,
+             "inPlayArea": heuristics.AREA_BENCH, "inPlayIndex": 9}),  # out of range
+        (1, {"type": heuristics.OPT_ATTACH, "inPlayArea": heuristics.AREA_ACTIVE}),
+    ]
+    me = {"active": [{"id": 100, "energies": []}],
+          "bench": [{"id": 200, "energies": []}]}
+    assert heuristics._choose_attach(opts, me) == 1  # active default, seed unmatched
+
+
 # Test scenario: a lethal attack is chosen when available, over other actions.
 def test_lethal_attack_is_taken():
     attacks = heuristics.attack_index()
