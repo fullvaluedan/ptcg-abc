@@ -17,6 +17,7 @@ block at the bottom.
 | missed_lethal | falsified | all lost-game MAIN decisions | n/a | n/a (artifact, not a real lever) | analysis/missed_lethal_falsified.md |
 | cem_flat_gradient | resolved | 40 held-out expert episodes / 1427 MAIN decisions | n/a | resolved; a real cem_tune.py run is now the pending action | analysis/cem_signal_flat.md -> analysis/cem_gradient_restored.md |
 | cem_prio_agreement_generalizes | refuted | 116 train / 30 held-out test MAIN decisions (seed 0) | n/a (move-ranking) | a larger expert-move sample (mid-July zip harvest), OR the two-channel fitness on (--pool-matches > 0 regularizes), OR a genome change with a measured non-flat held-out gradient | analysis/cem_run_prio.md |
+| gameplan_seeds_diffuse | refuted | 5732 real episodes; grimmsnarl 1996/1763, archaludon 2294/2442 | meta_grimmsnarl + meta_archaludon | a NARROWER cohort (single top handle vs all winning seats), OR a new miner block shape that concentrates (turn-conditioned attach, bench-count opening) | analysis/gameplans/seeds_real_run.md |
 
 ## Detail
 
@@ -56,9 +57,38 @@ block at the bottom.
 - claim: A CEM PRIO genome tuned to maximize expert-move agreement on the train bucket keeps that agreement gain on held-out expert moves, earning a ladder A/B.
 - evidence: The real U35 seed-0 run (agreement-only, --split train) found a genome that gains +0.060 on train (25->32 of 116 MAIN decisions) but LOSES -0.067 on the held-out test bucket (7->5 of 30). best_fitness was flat across all 12 iterations (weak gradient), and the held-out agreement delta is negative, so the pre-registered offline filter BLOCKS the candidate: no A/B, ship byte-identical. This is 1 of the 2 failing/neutral CEM candidates that trip the plan's CEM-plateau contingency. Sample-conditional (30 held-out decisions is small).
 
+### gameplan_seeds_diffuse (refuted)
+- claim: Mining the target family's real expert episodes yields concentrated
+  winning-play blocks the U37 consumer can bake as hard constants (opening, attach
+  / play / evolve targets, first-attack / first-evolve timing).
+- evidence: On the full 5732-episode dataset, meta_grimmsnarl (the quality target,
+  1996 win / 1763 loss appearances) emits ZERO seeds -- every block is either
+  barred (play_target 0.0 resolution; both timing blocks under the 0.90 resolution
+  bar) or below its concentration bar (best is evolve_target at 0.489 < 0.70;
+  opening 0.482 PLAY < 0.95). meta_archaludon emits exactly one (evolve_target =
+  card 190 at 0.875), but its LOSING split modes to card 190 too, so the seed is a
+  deck-identity fact, not a win-vs-loss edge. play_target is structurally barred
+  (0.0 resolution) for both: PLAY decisions never expose the placed card id in the
+  observation iter_resolved_decisions reads. The --limit 200 smoke run looked
+  concentrated (grimmsnarl attach 0.470, evolve 0.543); that was a small-N artifact
+  that washed out at scale. So the mined-seeds channel is nearly empty and cannot
+  carry the deck-aware edge; it has to come from the guard stack / card_effects /
+  ranker.
+
 ```json STATE
 {
   "hypotheses": [
+    {
+      "claim": "Mining the target family's real expert episodes yields concentrated winning-play blocks the U37 consumer can bake as hard constants (opening, attach/play/evolve targets, first-attack/first-evolve timing).",
+      "deck": "meta_grimmsnarl + meta_archaludon",
+      "evidence": "On the full 5732-episode dataset, meta_grimmsnarl (quality target, 1996 win / 1763 loss) emits ZERO seeds -- every block barred (play_target 0.0 resolution; both timing under the 0.90 resolution bar) or below its concentration bar (best evolve_target 0.489 < 0.70; opening 0.482 PLAY < 0.95). meta_archaludon emits one (evolve_target=card 190 @ 0.875) but its losing split modes to 190 too, so it is a deck-identity fact not a win-vs-loss edge. play_target structurally barred (0.0 resolution) for both. The --limit 200 smoke concentration was a small-N artifact. The mined-seeds channel is nearly empty; the deck-aware edge must come from the guard stack / card_effects / ranker.",
+      "name": "gameplan_seeds_diffuse",
+      "retest_condition": "a NARROWER cohort (single top handle vs all winning seats), OR a new miner block shape that concentrates (turn-conditioned attach, bench-count opening); play_target re-tests only after the PLAY resolver in analysis/replay_trace exposes the placed card id",
+      "retest_sample": null,
+      "sample_size": "5732 real episodes; grimmsnarl 1996/1763, archaludon 2294/2442",
+      "source": "analysis/gameplans/seeds_real_run.md",
+      "verdict": "refuted"
+    },
     {
       "claim": "Copying a proven 1300+ meta decklist lets the heuristic ride a higher ceiling past the ~570 floor.",
       "deck": "meta_archaludon/meta_grimmsnarl",
