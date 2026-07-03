@@ -127,6 +127,62 @@ different region of weight space with an observed non-flat held-out gradient;
 a third attempt at the same configuration and sample size is explicitly not
 expected to change the answer and is not planned.
 
+## Attempt 3: teacher-student distillation at scale (in progress, 2026-07-03)
+
+The prior section named two concrete re-test conditions and explicitly ruled
+out a third attempt at the *same* configuration and sample size. This attempt
+is not that: it targets re-open condition (a) directly, a materially larger
+expert-move sample, using a different data source than the real-ladder replay
+dump the first two attempts were capped by.
+
+Instead of waiting for more real ladder games (rate-limited by the 5/day
+submission quota and the opponents' pace, not by us), U83 builds a **teacher**:
+the full search-stack build (determinized lookahead plus the learned evaluator
+and move prior, all gates already green) at a generous per-move budget, playing
+self-play games against the L5 bracket ring's opponents, the same ring
+`tools/ring_calibrate.py` measured at tau 0.857 against real ladder scores.
+`analysis/teacher_labels.py`'s `TeacherLogger` records every scorable MAIN
+decision the teacher makes, win or lose, in the same `agreement()` contract
+the real-replay move-ranking validator already used, so the CEM fitness
+channel needed no new scoring logic, only a new label source.
+`tools/teacher_selfplay.py` runs this harvest, and
+`run_teacher_selfplay_parallel` splits it across worker subprocesses (default
+`min(20, cpu_count)`, one native-engine singleton per process) rather than a
+thread or multiprocessing pool, matching the L7 plan's "20-core parallel
+gauntlet" line. `tools/harvest_status.py` tracks progress the correct way,
+counting distinct games rather than decision rows, since one long game can
+produce dozens of rows: by the time the CEM sweep below was launched, the
+harvest had reached 1157 train-split games and 398 held-out test-split games,
+roughly ten times the 116/30 real-replay sample the first two attempts were
+limited to.
+
+Two more pieces closed out before spending this larger sample on a real sweep,
+both because the first two attempts' honest failures set a higher bar for the
+third. First, `tools/cem_tune.py` gained a `--ring-matches` fitness channel
+that plays the candidate genome against the same calibrated L5 ring (via the
+existing `run_gauntlet` call, just a different opponent list) instead of the
+older, uncalibrated U4 diverse pool the pooled-fitness attempt used, so the
+win-rate half of the fitness function now points at the one proxy this project
+has actually validated against ladder outcomes. Second,
+`tools/cem_held_out_gate.py` automates the exact verdict rule the first two
+attempts applied by hand, including the strictly-positive-not-merely-
+non-negative reading of "non-negative held-out delta" that attempt 2's own
+exactly-zero case forced: it runs the default and tuned genomes separately
+against the held-out test split and returns WIN only on a strictly positive
+agreement delta, BLOCKED otherwise, removing the chance of a third attempt
+being graded more leniently than the first two just because a human was
+tired of writing the same by-hand diff a third time.
+
+A real sweep (`tools/cem_tune.py --population 16 --elite 4 --iterations 6
+--injected-variance 0.05 --ring-matches 6 --pool-matches 0 --teacher-labels
+data/training --limit 4000 --split train`, seed 0) is running in the
+background as of this writing (`analysis/cem_runs/u83_teacher_ring_seed0.json`
+once complete). Consistent with the discipline in the rest of this writeup,
+no result is reported here until `tools/cem_held_out_gate.py` has scored it
+against the clean held-out test split; this section will be updated with a
+WIN or BLOCKED verdict, not a training-side number alone, once that run
+finishes.
+
 ## Bottom line for the Strategy prize
 
 This is the same discipline demonstrated in the offline-to-ladder transfer
@@ -142,3 +198,11 @@ their hand-set defaults as a direct result: not because tuning was never
 tried, but because two independent, honestly-reported attempts to improve on
 them did not survive the same held-out bar every other offline claim in this
 project has to clear.
+
+A third attempt is now in flight (above), but it earns its place under this
+project's own re-open conditions rather than by exception: it targets the
+named data-scale gap with a ten-times-larger sample from a different source,
+reuses the calibrated L5 ring instead of an uncalibrated pool, and is graded
+by an automated gate that enforces the exact strictly-positive rule the first
+two attempts were held to. Whether it lands WIN or BLOCKED, this section will
+report the outcome with the same mechanism-level honesty as attempts 1 and 2.
