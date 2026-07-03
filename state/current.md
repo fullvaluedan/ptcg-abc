@@ -6,11 +6,15 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Top loss bucket (what this iteration targets)
 
-**early_collapse** over 47 classified replays (W/D/L 26/0/21).
+**early_collapse** over 224 classified replays (W/D/L 98/1/125).
 
 | bucket | losses |
 | --- | --- |
-| early_collapse | 21 |
+| early_collapse | 60 |
+| bad_determinization | 22 |
+| deck_matchup | 20 |
+| deckout | 17 |
+| endgame_misplay | 6 |
 
 ## Kings
 
@@ -242,25 +246,22 @@ _none calibrated; every proxy gate is refused (default-deny)_
   ],
   "loss_distribution": {
     "buckets": {
-      "bad_determinization": 0,
-      "deck_matchup": 0,
-      "deckout": 0,
-      "early_collapse": 21,
-      "endgame_misplay": 0,
+      "bad_determinization": 22,
+      "deck_matchup": 20,
+      "deckout": 17,
+      "early_collapse": 60,
+      "endgame_misplay": 6,
       "slow_search": 0
     },
-    "draws": 0,
-    "games": 47,
-    "losses": 21,
-    "sample_size": 47,
+    "draws": 1,
+    "games": 224,
+    "losses": 125,
+    "sample_size": 224,
     "sources": [
-      "replays_tr558_full",
-      "replays_trolley558",
-      "replays_trolley_54215558",
-      "replays_bg910_full"
+      "data/replays"
     ],
     "top_bucket": "early_collapse",
-    "wins": 26
+    "wins": 98
   },
   "noise_model": {
     "basis": "same-behavior pair 591.9/569.6 + KD2 king resubmission heuristic+trolley 569.6 -> 600.0 byte-identical (same-build spread ~30 either side; true estimate ~585)",

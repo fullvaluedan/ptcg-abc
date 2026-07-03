@@ -12,72 +12,72 @@ game minus this window are dropped before matching).
 
 | rank | team | rating | corpus games | corpus win rate |
 |---|---|---|---|---|
-| 1 | The Debauchery Tea Party | 1221.4 | 159 | 60% |
-| 2 | tonakaiiii | 1216.5 | 145 | 68% |
-| 3 | ShumpeiNomura | 1170.1 | 150 | 60% |
-| 4 | zoroark190 | 1151.7 | 112 | 55% |
-| 5 | kazuki0123 | 1151.4 | 246 | 66% |
-| 6 | Dick Jessen William | 1147.4 | 72 | 56% |
-| 7 | Yushin Ito | 1146.4 | 201 | 50% |
-| 8 | を | 1137.0 | 0 | n/a |
-| 9 | THIRD PTCG Club | 1136.4 | 296 | 63% |
-| 10 | easonyanyan | 1131.8 | 8 | 38% |
-| 11 | Michael Krager | 1131.2 | 107 | 60% |
-| 12 | aidy | 1125.3 | 208 | 50% |
-| 13 | kashiwashira | 1125.0 | 121 | 54% |
-| 14 | Ajishio | 1119.3 | 82 | 61% |
-| 15 | btk15049 | 1117.7 | 6 | 17% |
-| 16 | Nghia Tran | 1115.4 | 0 | n/a |
-| 17 | kawachi | 1109.7 | 149 | 47% |
-| 18 | Akira-Ninth | 1109.3 | 97 | 48% |
-| 19 | yamy893 | 1105.1 | 103 | 51% |
-| 20 | やる気元気ミワハルキ | 1104.9 | 0 | n/a |
+| 1 | tonakaiiii | 1283.1 | 846 | 58% |
+| 2 | Yushin Ito | 1199.9 | 548 | 53% |
+| 3 | chamboabi | 1156.6 | 16 | 50% |
+| 4 | 渡邊征央 | 1155.1 | 0 | n/a |
+| 5 | kazuki0123 | 1153.7 | 815 | 55% |
+| 6 | btk15049 | 1128.7 | 266 | 55% |
+| 7 | Akira-Ninth | 1124.7 | 371 | 51% |
+| 8 | aidy | 1121.3 | 296 | 43% |
+| 9 | yamy893 | 1118.0 | 324 | 50% |
+| 10 | zoroark190 | 1116.1 | 429 | 54% |
+| 11 | TEAM NAME | 1112.1 | 11 | 27% |
+| 12 | BluezLee | 1110.1 | 6 | 17% |
+| 13 | XP3RiX | 1107.0 | 0 | n/a |
+| 14 | MtN | 1104.5 | 0 | n/a |
+| 15 | The Debauchery Tea Party | 1104.4 | 863 | 57% |
+| 16 | pokeka_ryo | 1102.4 | 110 | 62% |
+| 17 | Ajishio | 1097.0 | 233 | 37% |
+| 18 | Kohenyan | 1090.3 | 29 | 24% |
+| 19 | ykuroka | 1084.2 | 157 | 49% |
+| 20 | Yufeng | 1082.4 | 0 | n/a |
 
 ## Coverage
 
-- Games considered (post recency filter): 5734
-- Games matched to a top-N team: 1911
-- Training rows written: 99159
-- Date range of matched games: 2026-06-30 to 2026-06-30
+- Games considered (post recency filter): 5153
+- Games matched to a top-N team: 3924
+- Training rows written: 239232
+- Date range of matched games: 2026-07-02 to 2026-07-02
 
 ## Archetype breakdown
 
-- meta_grimmsnarl: 1084
-- meta_archaludon: 464
-- other: 420
-- meta_grimmsnarl_tonakaiiii: 294
+- meta_grimmsnarl: 2309
+- other: 1178
+- meta_archaludon: 987
+- meta_grimmsnarl_tonakaiiii: 846
 
 ## Unmapped team names
 
-- Nghia Tran (no game in the scanned dataset names this team)
-- やる気元気ミワハルキ (no game in the scanned dataset names this team)
-- を (no game in the scanned dataset names this team)
+- MtN (no game in the scanned dataset names this team)
+- XP3RiX (no game in the scanned dataset names this team)
+- Yufeng (no game in the scanned dataset names this team)
+- 渡邊征央 (no game in the scanned dataset names this team)
 
 ## Losses
 
 | team | losses | dominant loss bucket | most common opponent |
 |---|---|---|---|
-| THIRD PTCG Club | 110 | bad_determinization | Moegi |
-| aidy | 105 | deck_matchup | kazuki0123 |
-| Yushin Ito | 100 | early_collapse | ShumpeiNomura |
-| kazuki0123 | 83 | bad_determinization | ShumpeiNomura |
-| kawachi | 79 | bad_determinization | Yushin Ito |
-| The Debauchery Tea Party | 64 | bad_determinization | THIRD PTCG Club |
-| ShumpeiNomura | 60 | bad_determinization | kazuki0123 |
-| kashiwashira | 56 | bad_determinization | monnosuke |
-| Akira-Ninth | 50 | bad_determinization | ykuroka |
-| yamy893 | 50 | deck_matchup | THIRD PTCG Club |
-| zoroark190 | 50 | endgame_misplay | The Debauchery Tea Party |
-| tonakaiiii | 47 | endgame_misplay | The Debauchery Tea Party |
-| Michael Krager | 43 | early_collapse | monnosuke |
-| Ajishio | 32 | bad_determinization | THIRD PTCG Club |
-| Dick Jessen William | 32 | deck_matchup | jiatu.l |
-| btk15049 | 5 | slow_search | kenkoooo |
-| easonyanyan | 5 | bad_determinization | Yushin Ito |
+| The Debauchery Tea Party | 369 | endgame_misplay | tonakaiiii |
+| kazuki0123 | 369 | bad_determinization | tonakaiiii |
+| tonakaiiii | 357 | bad_determinization | The Debauchery Tea Party |
+| Yushin Ito | 258 | early_collapse | kazuki0123 |
+| zoroark190 | 199 | bad_determinization | tonakaiiii |
+| Akira-Ninth | 180 | bad_determinization | The Debauchery Tea Party |
+| aidy | 168 | deckout | Yushin Ito |
+| yamy893 | 161 | deck_matchup | The Debauchery Tea Party |
+| Ajishio | 146 | deckout | Yushin Ito |
+| btk15049 | 119 | slow_search | kazuki0123 |
+| ykuroka | 80 | deck_matchup | Yushin Ito |
+| pokeka_ryo | 42 | early_collapse | Michael Krager |
+| Kohenyan | 22 | bad_determinization | kazuki0123 |
+| TEAM NAME | 8 | bad_determinization | kazuki0123 |
+| chamboabi | 8 | deck_matchup | aidy |
+| BluezLee | 5 | early_collapse | kazuki0123 |
 
 ## Staleness
 
-- newest matched game is 1 day(s) old (as of 2026-07-02)
+- newest matched game is 0 day(s) old (as of 2026-07-03)
 
 ## Weekly refresh
 
