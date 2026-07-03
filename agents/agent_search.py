@@ -24,11 +24,13 @@ except ImportError:  # inside a submission, support modules sit at the top level
 try:
     from search import rollout
     from search import endgame as endgame_solver
+    from search import learned_eval
     from search.determinize import determinize
     from search.timebudget import TimeBudget
 except ImportError:
     import rollout
     import endgame as endgame_solver
+    import learned_eval
     from determinize import determinize
     from timebudget import TimeBudget
 
@@ -85,7 +87,32 @@ _ROBUST_COEF = float(os.environ.get("PTCG_SEARCH_ROBUST", "0.25"))
 # the bank and more determinizations on the pivotal decision. On by default; the
 # gauntlet can disable it (PTCG_ENDGAME=0) to A/B the effect.
 _ENDGAME = os.environ.get("PTCG_ENDGAME", "1") != "0"
+# Confidence-based time allocation (plan U12): scale the per-decision cap by the
+# learned evaluator's uncertainty about the root position (search/timebudget's
+# confidence_multiplier). Default ON: its gauntlet A/B gate passed (win rate held,
+# 72.0% -> 73.0%, and average bank spend dropped, 12.69s -> 11.01s; see
+# analysis/confidence_budget_ab.md). Env override still works either direction.
+_CONFIDENCE_BUDGET = os.environ.get("PTCG_CONFIDENCE_BUDGET", "1") != "0"
 _BUDGET = TimeBudget(soft_cap=_SOFT_CAP)
+
+
+def _root_confidence(obs):
+    """Confidence in [0, 1] that the learned evaluator has an opinion on `obs`.
+
+    0.0 at win probability 0.5 (maximally uncertain), 1.0 at 0.0 or 1.0
+    (maximally confident). Returns None (no scaling) on any missing field or
+    scoring failure rather than raising, mirroring learned_eval's own
+    never-raise contract.
+    """
+    try:
+        state = obs.get("current") or {}
+        your_index = state.get("yourIndex")
+        if your_index is None:
+            return None
+        p = learned_eval.predict_win_probability(state, your_index)
+        return abs(p - 0.5) * 2.0
+    except Exception:
+        return None
 
 
 def _is_legal(move, sel) -> bool:
@@ -162,7 +189,8 @@ def agent(obs):
             else:
                 cap = None
                 dets = _MAX_DETS
-            budget = _BUDGET.allot(cap)
+            confidence = _root_confidence(obs) if _CONFIDENCE_BUDGET else None
+            budget = _BUDGET.allot(cap, confidence)
             if budget > 0:
                 start = time.perf_counter()
                 # Bias the determinization prior toward the opponent's likely

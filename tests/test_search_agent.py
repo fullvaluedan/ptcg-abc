@@ -15,7 +15,15 @@ import agents.agent_search as agent_search
 from search import eval as ev
 from search import rollout
 from search.determinize import determinize
-from search.timebudget import HARD_BANK, SAFETY_RESERVE, SOFT_CAP, TimeBudget
+from search.timebudget import (
+    CONFIDENCE_MAX_MULT,
+    CONFIDENCE_MIN_MULT,
+    HARD_BANK,
+    SAFETY_RESERVE,
+    SOFT_CAP,
+    TimeBudget,
+    confidence_multiplier,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -90,6 +98,38 @@ def test_full_match_of_default_decisions_never_reaches_the_guard():
         b.record(b.allot())
     assert b.spent < HARD_BANK - SAFETY_RESERVE
     assert not b.at_risk
+
+
+# --- confidence-based allocation (plan U12) ----------------------------------
+
+def test_confidence_multiplier_endpoints_and_midpoint():
+    assert confidence_multiplier(0.0) == CONFIDENCE_MAX_MULT   # maximally uncertain: boost
+    assert confidence_multiplier(1.0) == CONFIDENCE_MIN_MULT   # maximally confident: cut
+    mid = confidence_multiplier(0.5)
+    assert CONFIDENCE_MIN_MULT < mid < CONFIDENCE_MAX_MULT
+
+
+def test_confidence_multiplier_clamps_out_of_range_input():
+    assert confidence_multiplier(-1.0) == CONFIDENCE_MAX_MULT
+    assert confidence_multiplier(2.0) == CONFIDENCE_MIN_MULT
+
+
+def test_allot_scales_cap_by_confidence():
+    b = TimeBudget(hard_bank=100.0, soft_cap=1.0)
+    uncertain = b.allot(confidence=0.0)
+    confident = b.allot(confidence=1.0)
+    plain = b.allot()
+    assert uncertain > plain > confident
+    assert uncertain == 1.0 * CONFIDENCE_MAX_MULT
+    assert confident == 1.0 * CONFIDENCE_MIN_MULT
+
+
+def test_allot_confidence_never_breaches_reserve_fraction():
+    # Even the maximum boost multiplier must stay bounded by the remaining-bank
+    # reserve fraction, so a confidence override can never approach a timeout.
+    b = TimeBudget(hard_bank=100.0, soft_cap=10.0)
+    b.record(98.0)  # remaining 2.0, reserve fraction 0.25 -> 0.5
+    assert b.allot(confidence=0.0) == 0.5
 
 
 # --- rollout legality helper -------------------------------------------------
@@ -204,6 +244,78 @@ def test_agent_defers_to_heuristic_when_bench_is_thin(monkeypatch):
     monkeypatch.setattr(agent_search.rollout, "search_decision", tracker)
     move = agent_search.agent(obs)
     assert agent_search._is_legal(move, sel)
+
+
+# --- confidence-based allocation wiring (plan U12, PTCG_CONFIDENCE_BUDGET) ---
+
+def test_root_confidence_scales_learned_win_probability(monkeypatch):
+    monkeypatch.setattr(agent_search.learned_eval, "predict_win_probability", lambda state, idx: 0.9)
+    obs = {"current": {"yourIndex": 0}}
+    assert agent_search._root_confidence(obs) == abs(0.9 - 0.5) * 2.0
+
+
+def test_root_confidence_none_without_your_index():
+    assert agent_search._root_confidence({"current": {}}) is None
+
+
+def test_root_confidence_never_raises(monkeypatch):
+    def boom(*a, **k):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(agent_search.learned_eval, "predict_win_probability", boom)
+    assert agent_search._root_confidence({"current": {"yourIndex": 0}}) is None
+
+
+class _CapturingBudget(TimeBudget):
+    """A TimeBudget that records every allot() call's arguments for assertions."""
+
+    def __init__(self, *a, **k):
+        super().__init__(*a, **k)
+        self.allot_calls = []
+
+    def allot(self, soft_cap=None, confidence=None):
+        self.allot_calls.append((soft_cap, confidence))
+        return super().allot(soft_cap, confidence)
+
+
+def _healthy_bench_obs():
+    from agents import heuristics
+
+    sel = {
+        "type": heuristics.SEL_MAIN, "minCount": 1, "maxCount": 1,
+        "option": [{"type": heuristics.OPT_END}, {"type": heuristics.OPT_PLAY}],
+    }
+    state = {
+        "yourIndex": 0,
+        "players": [
+            {"active": [None], "bench": [{"id": 1}, {"id": 2}], "deckCount": 40,
+             "prize": [None] * 5, "hand": []},
+            {"active": [None], "bench": [], "prize": [None] * 5},
+        ],
+    }
+    return {"select": sel, "current": state, "search_begin_input": "x"}
+
+
+def test_agent_passes_confidence_to_allot_when_flag_on(monkeypatch):
+    budget = _CapturingBudget(soft_cap=0.5)
+    monkeypatch.setattr(agent_search, "_BUDGET", budget)
+    monkeypatch.setattr(agent_search, "_CONFIDENCE_BUDGET", True)
+    monkeypatch.setattr(agent_search, "_root_confidence", lambda obs: 0.3)
+    monkeypatch.setattr(agent_search.rollout, "search_api_available", lambda: True)
+    monkeypatch.setattr(agent_search.rollout, "search_decision", lambda *a, **k: [0])
+    agent_search.agent(_healthy_bench_obs())
+    assert budget.allot_calls[-1] == (None, 0.3)
+
+
+def test_agent_passes_no_confidence_when_flag_off(monkeypatch):
+    budget = _CapturingBudget(soft_cap=0.5)
+    monkeypatch.setattr(agent_search, "_BUDGET", budget)
+    monkeypatch.setattr(agent_search, "_CONFIDENCE_BUDGET", False)
+    monkeypatch.setattr(agent_search, "_root_confidence", lambda obs: 0.3)
+    monkeypatch.setattr(agent_search.rollout, "search_api_available", lambda: True)
+    monkeypatch.setattr(agent_search.rollout, "search_decision", lambda *a, **k: [0])
+    agent_search.agent(_healthy_bench_obs())
+    assert budget.allot_calls[-1] == (None, None)
 
 
 # --- integration: capture a real MAIN observation ----------------------------

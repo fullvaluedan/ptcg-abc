@@ -154,7 +154,7 @@ def _aggregate_stats(agent, opponent_names, requested_n, shard_results, errors, 
     invalid = sum(s["invalid_moves"] for s in stats_list)
     time_ms = sum(s["avg_decision_ms"] * s["decisions"] for s in stats_list)
     lo, hi = _wilson(wins, completed)
-    return {
+    result = {
         "agent": agent,
         "opponents": opponent_names,
         "jobs": jobs,
@@ -173,6 +173,15 @@ def _aggregate_stats(agent, opponent_names, requested_n, shard_results, errors, 
         "invalid_rate": round(invalid / decisions, 6) if decisions else 0.0,
         "shard_errors": errors,
     }
+    # Only agents.agent_search's shards report avg_bank_spend_s (plan U12); every
+    # other agent's shard stats simply omit the key, matching run_gauntlet.
+    bank_shards = [s for s in stats_list if "avg_bank_spend_s" in s]
+    if bank_shards:
+        bank_time = sum(s["avg_bank_spend_s"] * s["matches"] for s in bank_shards)
+        bank_matches = sum(s["matches"] for s in bank_shards)
+        result["avg_bank_spend_s"] = round(bank_time / bank_matches, 3) if bank_matches else 0.0
+        result["max_bank_spend_s"] = max((s["max_bank_spend_s"] for s in bank_shards), default=0.0)
+    return result
 
 
 def run_parallel_gauntlet(

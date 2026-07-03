@@ -34,6 +34,29 @@ RESERVE_FRACTION = 0.25
 # a timeout (an automatic loss).
 SAFETY_RESERVE = 60.0
 
+# Confidence-based allocation (plan U12): scale the per-decision soft cap by how
+# uncertain the learned evaluator is about the current position. confidence=0.0
+# (win probability near 0.5, maximally uncertain) boosts the cap toward
+# CONFIDENCE_MAX_MULT so an undecided position gets more determinizations;
+# confidence=1.0 (win probability near 0 or 1, maximally confident) cuts it
+# toward CONFIDENCE_MIN_MULT so an already-decided position spends less. Both
+# multipliers are close to 1.0 by design: allot() still clamps the result to the
+# remaining-bank reserve fraction, so a bad or missing confidence signal can
+# only ever reshuffle spend across decisions, never breach the hard time guard.
+CONFIDENCE_MAX_MULT = 1.5
+CONFIDENCE_MIN_MULT = 0.5
+
+
+def confidence_multiplier(confidence: float) -> float:
+    """Soft-cap scale factor for a win-probability confidence in [0, 1].
+
+    Linear interpolation between CONFIDENCE_MAX_MULT (confidence 0.0) and
+    CONFIDENCE_MIN_MULT (confidence 1.0); the input is clamped first so an
+    out-of-range value can never push the result outside that band.
+    """
+    c = max(0.0, min(1.0, confidence))
+    return CONFIDENCE_MAX_MULT - c * (CONFIDENCE_MAX_MULT - CONFIDENCE_MIN_MULT)
+
 
 class TimeBudget:
     """Tracks cumulative search time and allots a per-decision budget."""
@@ -43,15 +66,19 @@ class TimeBudget:
         self.soft_cap = soft_cap
         self.spent = 0.0
 
-    def allot(self, soft_cap=None) -> float:
+    def allot(self, soft_cap=None, confidence=None) -> float:
         """Seconds to spend on the current decision (0 once the bank is at risk).
 
         A per-decision soft_cap override raises the ceiling for a pivotal decision
-        (the endgame solver passes a larger cap), but the result is still bounded
-        by the remaining-bank reserve fraction, so the hard time guard always holds
-        and a single boosted decision can never approach a timeout.
+        (the endgame solver passes a larger cap); confidence (plan U12), if given,
+        further scales that cap via confidence_multiplier so an uncertain decision
+        gets more of the bank and a confident one gets less. Either way the result
+        is still bounded by the remaining-bank reserve fraction, so the hard time
+        guard always holds and no combination of overrides can approach a timeout.
         """
         cap = self.soft_cap if soft_cap is None else soft_cap
+        if confidence is not None:
+            cap = cap * confidence_multiplier(confidence)
         remaining = self.hard_bank - self.spent
         if remaining <= 0:
             return 0.0

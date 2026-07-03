@@ -65,6 +65,18 @@ def _instrument(fn, record):
     return wrapped
 
 
+def _bank_budget(agent_fn):
+    """The agent module's search/timebudget.TimeBudget instance, or None.
+
+    Only agents.agent_search carries real per-match thinking-bank state (a
+    module-level `_BUDGET` reset to 0 at every deck selection, plan KTD2); every
+    other bundled agent has no such attribute, so run_gauntlet simply omits the
+    bank-spend stats for them rather than raising.
+    """
+    module = sys.modules.get(getattr(agent_fn, "__module__", None))
+    return getattr(module, "_BUDGET", None)
+
+
 class _StateLogger:
     """Buffers one feature row per decision state per seat, labels at game end.
 
@@ -190,6 +202,8 @@ def run_gauntlet(agent_name, opponent_names, n_matches, log_states=False, log_pa
     """
     agent_fn = opponents.get(agent_name)
     rewards, times, invalid = [], [], 0
+    bank_budget = _bank_budget(agent_fn)
+    bank_spends = [] if bank_budget is not None else None
     logger = None
     if log_states or log_moves:
         logger = _StateLogger(
@@ -213,6 +227,8 @@ def run_gauntlet(agent_name, opponent_names, n_matches, log_states=False, log_pa
             rewards.append(res["reward_a"])
             times.extend(rec["times"])
             invalid += rec["invalid"]
+            if bank_budget is not None:
+                bank_spends.append(bank_budget.spent)
     finally:
         if logger is not None:
             logger.close()
@@ -236,6 +252,9 @@ def run_gauntlet(agent_name, opponent_names, n_matches, log_states=False, log_pa
         "invalid_moves": invalid,
         "invalid_rate": round(invalid / len(times), 6) if times else 0.0,
     }
+    if bank_spends is not None:
+        stats["avg_bank_spend_s"] = round(sum(bank_spends) / len(bank_spends), 3) if bank_spends else 0.0
+        stats["max_bank_spend_s"] = round(max(bank_spends), 3) if bank_spends else 0.0
     if logger is not None:
         if logger.path is not None:
             stats["log_path"] = str(logger.path)

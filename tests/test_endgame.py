@@ -189,6 +189,7 @@ def test_endgame_budget_is_boosted_when_engaged(monkeypatch):
         return [0]
 
     monkeypatch.setattr(agent_search, "_BUDGET", TimeBudget(soft_cap=0.5))
+    monkeypatch.setattr(agent_search, "_CONFIDENCE_BUDGET", False)
     monkeypatch.setattr(agent_search.rollout, "search_decision", spy)
     agent_search.agent(obs)
     # Fresh bank, so the boosted soft cap binds (well under remaining * fraction).
@@ -216,6 +217,7 @@ def test_prize_race_decision_gets_the_moderate_budget(monkeypatch):
         return [0]
 
     monkeypatch.setattr(agent_search, "_BUDGET", TimeBudget(soft_cap=0.5))
+    monkeypatch.setattr(agent_search, "_CONFIDENCE_BUDGET", False)
     monkeypatch.setattr(agent_search.rollout, "search_decision", spy)
     agent_search.agent(obs)
     assert captured["budget"] == endgame.PRIZE_RACE_SOFT_CAP
@@ -238,6 +240,7 @@ def test_endgame_tier_takes_precedence_over_prize_race(monkeypatch):
         return [0]
 
     monkeypatch.setattr(agent_search, "_BUDGET", TimeBudget(soft_cap=0.5))
+    monkeypatch.setattr(agent_search, "_CONFIDENCE_BUDGET", False)
     monkeypatch.setattr(agent_search.rollout, "search_decision", spy)
     agent_search.agent(obs)
     assert captured["budget"] == endgame.ENDGAME_SOFT_CAP
@@ -259,6 +262,7 @@ def test_normal_decision_keeps_the_small_budget(monkeypatch):
         return [0]
 
     monkeypatch.setattr(agent_search, "_BUDGET", TimeBudget(soft_cap=0.5))
+    monkeypatch.setattr(agent_search, "_CONFIDENCE_BUDGET", False)
     monkeypatch.setattr(agent_search.rollout, "search_decision", spy)
     agent_search.agent(obs)
     assert captured["budget"] == 0.5

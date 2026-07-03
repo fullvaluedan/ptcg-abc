@@ -33,6 +33,29 @@ def test_gauntlet_stats_shape():
     assert len(stats["win_rate_ci95"]) == 2
 
 
+def test_bank_spend_absent_for_agents_without_a_timebudget():
+    # Only agents.agent_search carries a search/timebudget.TimeBudget (plan U12);
+    # baseline has no such state, so run_gauntlet must omit both keys entirely
+    # rather than reporting a misleading zero.
+    stats = run_gauntlet("baseline", ["random"], 2)
+    assert "avg_bank_spend_s" not in stats
+    assert "max_bank_spend_s" not in stats
+
+
+def test_bank_spend_tracked_for_search_agent(monkeypatch):
+    import agents.agent_search as agent_search
+    from search.timebudget import TimeBudget
+
+    # A small soft cap keeps this a fast unit test regardless of how many
+    # searchable decisions the real match happens to reach.
+    monkeypatch.setattr(agent_search, "_BUDGET", TimeBudget(soft_cap=0.05))
+    stats = run_gauntlet("search", ["random"], 1)
+    assert "avg_bank_spend_s" in stats
+    assert "max_bank_spend_s" in stats
+    assert stats["avg_bank_spend_s"] >= 0.0
+    assert stats["max_bank_spend_s"] >= stats["avg_bank_spend_s"]
+
+
 def test_state_logging_writes_labelled_rows_for_both_seats(tmp_path):
     log_path = tmp_path / "states.csv"
     stats = run_gauntlet("baseline", ["random"], 2, log_states=True, log_path=log_path)

@@ -111,6 +111,30 @@ def test_run_shard_forwards_env_to_subprocess(monkeypatch):
     assert captured["env"] is env
 
 
+def test_aggregate_stats_merges_bank_spend_when_present():
+    shard_results = [
+        (0, {"matches": 5, "wins": 3, "draws": 1, "losses": 1, "decisions": 50,
+             "invalid_moves": 0, "avg_decision_ms": 2.0, "max_decision_ms": 5.0,
+             "avg_bank_spend_s": 10.0, "max_bank_spend_s": 20.0}),
+        (1, {"matches": 5, "wins": 2, "draws": 0, "losses": 3, "decisions": 40,
+             "invalid_moves": 1, "avg_decision_ms": 3.0, "max_decision_ms": 9.0,
+             "avg_bank_spend_s": 30.0, "max_bank_spend_s": 40.0}),
+    ]
+    result = pg._aggregate_stats("search", ["random"], 10, shard_results, [], 2)
+    assert result["avg_bank_spend_s"] == 20.0  # (10*5 + 30*5) / 10
+    assert result["max_bank_spend_s"] == 40.0
+
+
+def test_aggregate_stats_omits_bank_spend_when_absent():
+    shard_results = [
+        (0, {"matches": 5, "wins": 3, "draws": 1, "losses": 1, "decisions": 50,
+             "invalid_moves": 0, "avg_decision_ms": 2.0, "max_decision_ms": 5.0}),
+    ]
+    result = pg._aggregate_stats("baseline", ["random"], 5, shard_results, [], 1)
+    assert "avg_bank_spend_s" not in result
+    assert "max_bank_spend_s" not in result
+
+
 def test_aggregate_stats_reports_shortfall_from_errors():
     shard_results = [
         (0, {"matches": 5, "wins": 5, "draws": 0, "losses": 0, "decisions": 20,
