@@ -21,10 +21,12 @@ log here.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
 SEL_MAIN = 0
+SPLIT_TEST_PCT = 25
 
 
 def is_scorable_main(obs):
@@ -110,7 +112,10 @@ def load_records(source, limit=None):
     A directory is read as every `*.jsonl` member, sorted, mirroring
     `move_ranking_validator.load_replays`'s dir-of-files shape. A malformed line
     is skipped rather than aborting the batch. `limit` caps how many records are
-    yielded so a CLI run stays bounded.
+    yielded so a CLI run stays bounded. Each record is stamped with its source
+    file name under `"_source"` (a game_id is only unique within one harvest
+    file, so `match_key` needs both to identify one game across the whole
+    corpus).
     """
     src = Path(source)
     paths = sorted(src.glob("*.jsonl")) if src.is_dir() else [src]
@@ -130,7 +135,35 @@ def load_records(source, limit=None):
                 except json.JSONDecodeError:
                     continue
                 count += 1
+                rec["_source"] = path.name
                 yield rec
+
+
+def match_key(record) -> str:
+    """A stable per-game identity: source file name plus its in-file game_id."""
+    return f"{record.get('_source', '')}:{record.get('game_id')}"
+
+
+def match_bucket(record) -> int:
+    """md5(match_key) mod 100: a stable bucket in [0, 100) for one game.
+
+    Mirrors `analysis.replay_trace.episode_bucket` exactly (same hashing rule),
+    so a real-ladder-trained held-out discipline and this self-play one behave
+    the same way for callers that switch between the two label sources.
+    """
+    return int(hashlib.md5(match_key(record).encode("utf-8")).hexdigest(), 16) % 100
+
+
+def split_of(record, test_pct: int = SPLIT_TEST_PCT) -> str:
+    """"test" when the record's game falls in the held-out bucket, else "train".
+
+    Splits by GAME (via `match_key`), not by individual decision, so every
+    decision from one self-play game lands in the same bucket; scoring some of
+    a game's decisions as "train" and others as "test" would leak within-game
+    correlation into the held-out read, the same leakage
+    `analysis.replay_trace.split_of` avoids by splitting on the whole episode.
+    """
+    return "test" if match_bucket(record) < test_pct else "train"
 
 
 def agreement(records, pilot_choose):

@@ -154,3 +154,40 @@ def test_load_records_reads_directory_of_jsonl(tmp_path):
     )
     loaded = list(tl.load_records(tmp_path))
     assert len(loaded) == 2
+
+
+def test_load_records_stamps_the_source_file_name(tmp_path):
+    (tmp_path / "a.jsonl").write_text(
+        json.dumps({"game_id": 0, "played": 0, "obs": {}}) + "\n", encoding="utf-8"
+    )
+    loaded = list(tl.load_records(tmp_path / "a.jsonl"))
+    assert loaded[0]["_source"] == "a.jsonl"
+
+
+def test_match_key_combines_source_and_game_id():
+    assert tl.match_key({"_source": "a.jsonl", "game_id": 3}) == "a.jsonl:3"
+    assert tl.match_key({"game_id": 3}) == ":3"
+
+
+def test_match_key_distinguishes_same_game_id_across_files():
+    # game_id resets to 0 in every harvest run/file, so the source name must
+    # disambiguate or two unrelated games would collide onto one split bucket.
+    a = tl.match_key({"_source": "a.jsonl", "game_id": 0})
+    b = tl.match_key({"_source": "b.jsonl", "game_id": 0})
+    assert a != b
+
+
+def test_split_of_is_stable_and_covers_both_buckets():
+    records = [{"_source": "a.jsonl", "game_id": i} for i in range(200)]
+    splits = {tl.split_of(rec) for rec in records}
+    assert splits <= {"train", "test"}
+    assert "test" in splits and "train" in splits
+    # Same record, same split, every time (no wall-clock or randomness involved).
+    assert tl.split_of(records[0]) == tl.split_of(records[0])
+
+
+def test_split_of_keeps_every_decision_of_one_game_together():
+    game = [
+        {"_source": "a.jsonl", "game_id": 5, "decision_id": i} for i in range(4)
+    ]
+    assert len({tl.split_of(rec) for rec in game}) == 1

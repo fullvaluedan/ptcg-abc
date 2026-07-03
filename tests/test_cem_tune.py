@@ -288,3 +288,62 @@ def test_internal_evaluate_scores_all_replays_when_split_is_all(monkeypatch):
     out = ct._internal_evaluate({"replays": "x", "split": "all"})
     assert out["agreement"] == 0.5
     assert seen["labels"] == ["1.json", "2.json", "3.json"]
+
+
+def _stub_teacher_labels_channel(monkeypatch, records):
+    import analysis.teacher_labels as tl
+
+    monkeypatch.setattr(tl, "load_records", lambda src, limit=None: list(records))
+    return tl
+
+
+def test_internal_evaluate_scores_teacher_labels_when_no_replays_given(monkeypatch):
+    records = [
+        {"_source": "a.jsonl", "game_id": 0, "obs": {"i": 0}, "played": 1},
+        {"_source": "a.jsonl", "game_id": 1, "obs": {"i": 1}, "played": 0},
+    ]
+    _stub_teacher_labels_channel(monkeypatch, records)
+    monkeypatch.setattr("agents.heuristics.choose", lambda obs: [1])
+    out = ct._internal_evaluate({"teacher_labels": "x"})
+    assert out == {"win_rate": None, "agreement": 0.5}
+
+
+def test_internal_evaluate_prefers_replays_over_teacher_labels(monkeypatch):
+    # Both given: the real-ladder U5 channel wins, teacher_labels is not touched.
+    _stub_replay_channel(
+        monkeypatch,
+        {"1.json": "train", "2.json": "train", "3.json": "train"},
+    )
+    tl = _stub_teacher_labels_channel(monkeypatch, [])
+
+    def boom(*a, **k):
+        raise AssertionError("teacher_labels channel should not run")
+
+    monkeypatch.setattr(tl, "load_records", boom)
+    out = ct._internal_evaluate({"replays": "x", "teacher_labels": "y", "split": "all"})
+    assert out["agreement"] == 0.5
+
+
+def test_internal_evaluate_filters_teacher_labels_to_the_requested_split(monkeypatch):
+    import analysis.teacher_labels as tl
+
+    records = [{"_source": "a.jsonl", "game_id": i} for i in range(50)]
+    for rec in records:
+        rec["obs"] = {}
+        rec["played"] = 0
+    train = [r for r in records if tl.split_of(r) == "train"]
+    test = [r for r in records if tl.split_of(r) == "test"]
+    assert train and test  # sanity: the fixture actually covers both buckets
+
+    _stub_teacher_labels_channel(monkeypatch, records)
+    seen = {}
+
+    def fake_agreement(passed, choose):
+        seen["n"] = len(list(passed))
+        return {"n": seen["n"], "agree": 0, "agreement": 0.0}
+
+    monkeypatch.setattr(tl, "agreement", fake_agreement)
+    monkeypatch.setattr("agents.heuristics.choose", lambda obs: [0])
+
+    ct._internal_evaluate({"teacher_labels": "x", "split": "train"})
+    assert seen["n"] == len(train)

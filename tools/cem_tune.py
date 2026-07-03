@@ -296,9 +296,13 @@ def _internal_evaluate(spec):
 
     `pool_matches` > 0 runs the gauntlet as the heuristic pilot against the U4
     diverse pool (falling back to the built-in heuristic if the pool is empty).
-    `replays` runs the U5 move-ranking validator over that dataset for the pilot.
-    Either half is skipped when not requested, so a caller can score on one signal
-    alone. Defensive: a component that raises reports None rather than aborting.
+    `replays` runs the U5 move-ranking validator over that dataset for the pilot;
+    if `replays` is absent, `teacher_labels` (a U83 self-play JSONL file or dir)
+    is scored instead via `analysis.teacher_labels.agreement`, the same {"n",
+    "agree", "agreement"} shape, so a run can fit against the much larger
+    teacher-self-play sample when the real-ladder replay sample is not given.
+    Both are optional; a caller can score on one signal alone. Defensive: a
+    component that raises reports None rather than aborting.
     """
     win_rate = None
     n = int(spec.get("pool_matches", 0) or 0)
@@ -341,6 +345,24 @@ def _internal_evaluate(spec):
         except Exception:
             agreement = None
 
+    teacher_labels_path = spec.get("teacher_labels")
+    if agreement is None and teacher_labels_path:
+        try:
+            from analysis import teacher_labels as tl
+            from agents.heuristics import choose
+
+            records = list(tl.load_records(teacher_labels_path, limit=spec.get("limit")))
+            # Same KD4 held-out discipline as the replays branch above, just
+            # keyed on the self-play game identity (tl.match_key) instead of a
+            # ladder episode label.
+            split = spec.get("split")
+            if split in ("train", "test"):
+                records = [rec for rec in records if tl.split_of(rec) == split]
+            result = tl.agreement(records, choose)
+            agreement = result["agreement"]
+        except Exception:
+            agreement = None
+
     return {"win_rate": win_rate, "agreement": agreement}
 
 
@@ -350,6 +372,7 @@ def _run_cem(args) -> int:
     spec = {
         "pool_matches": args.pool_matches,
         "replays": args.replays,
+        "teacher_labels": args.teacher_labels,
         "limit": args.limit,
         "split": args.split,
         "teams": args.teams,
@@ -420,6 +443,13 @@ def main(argv=None) -> int:
         "--replays",
         default=None,
         help="a .zip or dir of episode JSONs for the U5 move-ranking validator",
+    )
+    ap.add_argument(
+        "--teacher-labels",
+        dest="teacher_labels",
+        default=None,
+        help="a .jsonl file or dir from tools/teacher_selfplay.py (U83); scored "
+        "only when --replays is not given",
     )
     ap.add_argument("--limit", type=int, default=200)
     ap.add_argument(
