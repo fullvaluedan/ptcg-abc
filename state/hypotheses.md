@@ -8,6 +8,7 @@ block at the bottom.
 
 | lever | verdict | sample | deck | re-test when | source |
 | --- | --- | --- | --- | --- | --- |
+| gameplan_seeds_diffuse | refuted | 5732 real episodes; grimmsnarl 1996/1763, archaludon 2294/2442 | meta_grimmsnarl + meta_archaludon | a NARROWER cohort (single top handle vs all winning seats), OR a new miner block shape that concentrates (turn-conditioned attach, bench-count opening); play_target re-tests only after the PLAY resolver in analysis/replay_trace exposes the placed card id | analysis/gameplans/seeds_real_run.md |
 | meta_deck_copy | refuted | 2 ladder A/Bs | meta_archaludon/meta_grimmsnarl | a deck-AWARE pilot on the same meta deck was NEVER measured (382.5/510.1 used the GENERIC pilot; review P0-1 / KD9): re-test via U38 step 1 once a deck-aware differentiator exists (a concentrated win-vs-loss seed, a card_effects/ability lever that changes meta-card decisions, or the U40/U41 learned per-archetype pilot). Also still stands: U13 cloned-opponent search showing the pilot can execute complex lines. | analysis/meta_decks_underperform_on_ladder.md |
 | search_active_beats_heuristic | refuted | ladder A/B pair | trolley | MET 2026-07-02: the U27 PIMC determinization diagnostic is FAVORABLE (analysis/pimc_diagnostic.md), so the P3 U45 belief-weighted-search lane may re-confirm 514.7 vs 569.6 under the protocol as part of that lane, never before. | analysis/ladder_search_inert.md + analysis/ladder_scored_pair_reclaim.md |
 | bench_floor_leaf_term | refuted | depth sweep | trolley | n/a in search leaf; the term was RE-HOMED into agents/heuristics.py (P1/U2) | analysis/bench_floor_search_lever_squeezed.md |
@@ -16,25 +17,17 @@ block at the bottom.
 | energy_seq | refuted | 1445 expert ATTACH decisions | n/a (move-ranking) | a richer wrong-target attach model, not the sequencing lever | analysis/energy_seq_refuted_by_expert_moves.md |
 | missed_lethal | falsified | all lost-game MAIN decisions | n/a | n/a (artifact, not a real lever) | analysis/missed_lethal_falsified.md |
 | cem_flat_gradient | resolved | 40 held-out expert episodes / 1427 MAIN decisions | n/a | resolved; a real cem_tune.py run is now the pending action | analysis/cem_signal_flat.md -> analysis/cem_gradient_restored.md |
-| cem_prio_agreement_generalizes | refuted | 116 train / 30 held-out test MAIN decisions (seed 0) | n/a (move-ranking) | a larger expert-move sample (mid-July zip harvest), OR the two-channel fitness on (--pool-matches > 0 regularizes), OR a genome change with a measured non-flat held-out gradient | analysis/cem_run_prio.md |
-| gameplan_seeds_diffuse | refuted | 5732 real episodes; grimmsnarl 1996/1763, archaludon 2294/2442 | meta_grimmsnarl + meta_archaludon | a NARROWER cohort (single top handle vs all winning seats), OR a new miner block shape that concentrates (turn-conditioned attach, bench-count opening) | analysis/gameplans/seeds_real_run.md |
+| cem_prio_agreement_generalizes | refuted | 116 train / 30 held-out test MAIN decisions (seed 0); pooled re-test same buckets | n/a (move-ranking) | condition (b) now exhausted (pool-matches>0 tried, still flat/negative held-out). Re-test only with (a) a materially larger expert-move sample (mid-July zip harvest) or (c) a genome region with a measured non-flat held-out gradient. | analysis/cem_run_prio.md, analysis/cem_run_prio_pooled.md |
 
 ## Detail
+
+### gameplan_seeds_diffuse (refuted)
+- claim: Mining the target family's real expert episodes yields concentrated winning-play blocks the U37 consumer can bake as hard constants (opening, attach/play/evolve targets, first-attack/first-evolve timing).
+- evidence: On the full 5732-episode dataset, meta_grimmsnarl (quality target, 1996 win / 1763 loss) emits ZERO seeds -- every block barred (play_target 0.0 resolution; both timing under the 0.90 resolution bar) or below its concentration bar (best evolve_target 0.489 < 0.70; opening 0.482 PLAY < 0.95). meta_archaludon emits one (evolve_target=card 190 @ 0.875) but its losing split modes to 190 too, so it is a deck-identity fact not a win-vs-loss edge. play_target structurally barred (0.0 resolution) for both. The --limit 200 smoke concentration was a small-N artifact. The mined-seeds channel is nearly empty; the deck-aware edge must come from the guard stack / card_effects / ranker.
 
 ### meta_deck_copy (refuted)
 - claim: Copying a proven 1300+ meta decklist lets the heuristic ride a higher ceiling past the ~570 floor.
 - evidence: Archaludon 382.5 and Grimmsnarl 510.1 both landed WELL BELOW the trolley floor 569.6; the simple pilot cannot extract a meta deck's ceiling and plays WORSE with one.
-- KD9 re-walk (2026-07-02, U38): amended before any attribution candidate runs. Both refuted copies used
-  the GENERIC pilot; a deck-AWARE pilot on the same meta deck has NEVER been measured (review P0-1). U38
-  step 1 (target deck + aware pilot vs same deck + generic pilot) is the registered re-test. CAVEAT
-  surfaced this iteration: the hand-coded aware pilot (U37 seeds + guard stack) is currently
-  BYTE-IDENTICAL to the generic pilot on both live meta decks -- the mined seeds channel is empty for
-  grimmsnarl and the one archaludon evolve seed is unconsumed (only ATTACH is wired and neither family
-  emits an attach seed), and the guard stack already shipped inside the 382.5/510.1 copies. So step 1 has
-  NO hand-coded content to measure yet; its first measurable candidate is a real deck-aware
-  differentiator (a concentrated win-vs-loss seed per gameplan_seeds_diffuse re-test, a card_effects /
-  ability lever that changes meta-card decisions, or the U40/U41 learned per-archetype pilot). Re-walks
-  are registered, never asserted.
 
 ### search_active_beats_heuristic (refuted)
 - claim: Running determinized search on the ladder beats the plain heuristic.
@@ -66,25 +59,7 @@ block at the bottom.
 
 ### cem_prio_agreement_generalizes (refuted)
 - claim: A CEM PRIO genome tuned to maximize expert-move agreement on the train bucket keeps that agreement gain on held-out expert moves, earning a ladder A/B.
-- evidence: The real U35 seed-0 run (agreement-only, --split train) found a genome that gains +0.060 on train (25->32 of 116 MAIN decisions) but LOSES -0.067 on the held-out test bucket (7->5 of 30). best_fitness was flat across all 12 iterations (weak gradient), and the held-out agreement delta is negative, so the pre-registered offline filter BLOCKS the candidate: no A/B, ship byte-identical. This is 1 of the 2 failing/neutral CEM candidates that trip the plan's CEM-plateau contingency. Sample-conditional (30 held-out decisions is small).
-
-### gameplan_seeds_diffuse (refuted)
-- claim: Mining the target family's real expert episodes yields concentrated
-  winning-play blocks the U37 consumer can bake as hard constants (opening, attach
-  / play / evolve targets, first-attack / first-evolve timing).
-- evidence: On the full 5732-episode dataset, meta_grimmsnarl (the quality target,
-  1996 win / 1763 loss appearances) emits ZERO seeds -- every block is either
-  barred (play_target 0.0 resolution; both timing blocks under the 0.90 resolution
-  bar) or below its concentration bar (best is evolve_target at 0.489 < 0.70;
-  opening 0.482 PLAY < 0.95). meta_archaludon emits exactly one (evolve_target =
-  card 190 at 0.875), but its LOSING split modes to card 190 too, so the seed is a
-  deck-identity fact, not a win-vs-loss edge. play_target is structurally barred
-  (0.0 resolution) for both: PLAY decisions never expose the placed card id in the
-  observation iter_resolved_decisions reads. The --limit 200 smoke run looked
-  concentrated (grimmsnarl attach 0.470, evolve 0.543); that was a small-N artifact
-  that washed out at scale. So the mined-seeds channel is nearly empty and cannot
-  carry the deck-aware edge; it has to come from the guard stack / card_effects /
-  ranker.
+- evidence: The real U35 seed-0 run (agreement-only, --split train) found a genome that gains +0.060 on train (25->32 of 116 MAIN decisions) but LOSES -0.067 on the held-out test bucket (7->5 of 30). best_fitness was flat across all 12 iterations (weak gradient), and the held-out agreement delta is negative, so the pre-registered offline filter BLOCKS the candidate: no A/B, ship byte-identical. 1 of the 2 failing/neutral CEM candidates that trip the plan's CEM-plateau contingency. RE-TEST (2026-07-03, retest condition b): a reduced-scale pooled run (population 6-8, iterations 3-4, --pool-matches 10, --w-pool 0.5 --w-val 0.5, seed 0) found a best genome with train agreement 0.25 (29/116, up from default 0.2155/25) but held-out test agreement EXACTLY UNCHANGED at 7/30 (0 of 30 held-out decisions flipped) and a WORSE train-bucket pool win rate (0.567 vs default 0.700, n=30 each, noisy). Zero held-out transfer: BLOCKED again, ship byte-identical. This is CEM candidate 2 of 2 that trips the plan's CEM-plateau contingency (two consecutive non-WIN candidates), met ahead of the ~Jul 15 calendar checkpoint; recorded for the next weekly plan review per the plan-freeze rule, not acted on unilaterally this iteration.
 
 ```json STATE
 {
@@ -105,9 +80,9 @@ block at the bottom.
       "deck": "meta_archaludon/meta_grimmsnarl",
       "evidence": "Archaludon 382.5 and Grimmsnarl 510.1 both landed WELL BELOW the trolley floor 569.6; the simple pilot cannot extract a meta deck's ceiling and plays WORSE with one.",
       "name": "meta_deck_copy",
+      "retest_caveat": "the hand-coded aware pilot (U37 seeds + guards) is byte-identical to the generic pilot on both live meta decks (empty seeds channel, unconsumed archaludon seed, guards already shipped in the 382.5/510.1 copies), so step 1 has no hand-coded content to measure yet; first candidate is a real deck-aware differentiator.",
       "retest_condition": "a deck-AWARE pilot on the same meta deck was NEVER measured (382.5/510.1 used the GENERIC pilot; review P0-1 / KD9): re-test via U38 step 1 once a deck-aware differentiator exists (a concentrated win-vs-loss seed, a card_effects/ability lever that changes meta-card decisions, or the U40/U41 learned per-archetype pilot). Also still stands: U13 cloned-opponent search showing the pilot can execute complex lines.",
       "retest_kd9_amended": "2026-07-02",
-      "retest_caveat": "the hand-coded aware pilot (U37 seeds + guards) is byte-identical to the generic pilot on both live meta decks (empty seeds channel, unconsumed archaludon seed, guards already shipped in the 382.5/510.1 copies), so step 1 has no hand-coded content to measure yet; first candidate is a real deck-aware differentiator.",
       "sample_size": "2 ladder A/Bs",
       "source": "analysis/meta_decks_underperform_on_ladder.md",
       "verdict": "refuted"
@@ -189,12 +164,12 @@ block at the bottom.
     {
       "claim": "A CEM PRIO genome tuned to maximize expert-move agreement on the train bucket keeps that agreement gain on held-out expert moves, earning a ladder A/B.",
       "deck": "n/a (move-ranking)",
-      "evidence": "The real U35 seed-0 run (agreement-only, --split train) found a genome that gains +0.060 on train (25->32 of 116 MAIN decisions) but LOSES -0.067 on the held-out test bucket (7->5 of 30). best_fitness was flat across all 12 iterations (weak gradient), and the held-out agreement delta is negative, so the pre-registered offline filter BLOCKS the candidate: no A/B, ship byte-identical. 1 of the 2 failing/neutral CEM candidates that trip the plan's CEM-plateau contingency.",
+      "evidence": "The real U35 seed-0 run (agreement-only, --split train) found a genome that gains +0.060 on train (25->32 of 116 MAIN decisions) but LOSES -0.067 on the held-out test bucket (7->5 of 30). best_fitness was flat across all 12 iterations (weak gradient), and the held-out agreement delta is negative, so the pre-registered offline filter BLOCKS the candidate: no A/B, ship byte-identical. 1 of the 2 failing/neutral CEM candidates that trip the plan's CEM-plateau contingency. RE-TEST (2026-07-03, retest condition b): a reduced-scale pooled run (population 6-8, iterations 3-4, --pool-matches 10, --w-pool 0.5 --w-val 0.5, seed 0) found a best genome with train agreement 0.25 (29/116, up from default 0.2155/25) but held-out test agreement EXACTLY UNCHANGED at 7/30 (0 of 30 held-out decisions flipped) and a WORSE train-bucket pool win rate (0.567 vs default 0.700, n=30 each, noisy). Zero held-out transfer: BLOCKED again, ship byte-identical. This is CEM candidate 2 of 2 that trips the plan's CEM-plateau contingency (two consecutive non-WIN candidates), met ahead of the ~Jul 15 calendar checkpoint; recorded for the next weekly plan review per the plan-freeze rule, not acted on unilaterally this iteration.",
       "name": "cem_prio_agreement_generalizes",
-      "retest_condition": "a larger expert-move sample (mid-July zip harvest), OR the two-channel fitness on (--pool-matches > 0 regularizes), OR a genome change with a measured non-flat held-out gradient",
+      "retest_condition": "condition (b) now exhausted (pool-matches>0 tried, still flat/negative held-out). Re-test only with (a) a materially larger expert-move sample (mid-July zip harvest) or (c) a genome region with a measured non-flat held-out gradient.",
       "retest_sample": null,
-      "sample_size": "116 train / 30 held-out test MAIN decisions (seed 0)",
-      "source": "analysis/cem_run_prio.md",
+      "sample_size": "116 train / 30 held-out test MAIN decisions (seed 0); pooled re-test same buckets",
+      "source": "analysis/cem_run_prio.md, analysis/cem_run_prio_pooled.md",
       "verdict": "refuted"
     }
   ]
