@@ -14,14 +14,12 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Kings
 
-- **shadow-king** (best live build): heuristic+trolley (ref 54252006, ladder 600.0)
-- **reclaim-king** (safe floor): heuristic+trolley (ref 54252006, ladder 600.0)
+- **shadow-king** (best live build): heuristic+trolley (ref 54281812, ladder PENDING (600.0 same-build historical high))
+- **reclaim-king** (safe floor): heuristic+trolley (ref 54281812, ladder PENDING (600.0 same-build historical high))
 
 ## Candidates awaiting a ladder slot
 
-- heuristic+trolley_thick (U3/U31 deck A/B): thicker-basic trolley (Kyogre 2->4, energy 35->33); cut mirror empty-bench collapse 80.8%->65.4% (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md). Tarball grader-verified. SUBMITTED to U20 slot 2 (ref 54252291, 2026-07-02) under a complete pre-registration; now IN-FLIGHT, settling by 2026-07-06.
 - cem-grown-genome (PRIO ordering): REAL U35 run executed (seed 0, agreement-only, --split train; analysis/cem_run_prio.md, artifact analysis/cem_runs/cem_run_prio_train_seed0.json). Best genome raises PRIO_ATTACK 0->3.13 and PRIO_ATTACH 3->3.74; gains +0.060 agreement on train (25->32/116) but LOSES -0.067 on the held-out test bucket (7->5/30). best_fitness flat across all 12 iterations (weak gradient). Held-out agreement delta NEGATIVE => pre-registered offline filter BLOCKS: no ladder A/B, ship byte-identical. CEM candidate 1 of the 2 failing/neutral that trip the CEM-plateau contingency (~Jul 15). Re-test only with a larger expert sample, the two-channel fitness on (--pool-matches>0), or a genome with a non-flat held-out gradient.
-- heuristic+trolley-ability (L1 ladder lever): PTCG_ABILITY=1 baked (once-per-turn ability activation via agents/heuristics.py _is_once_per_turn_ability guard); pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md). Tarball built+grader-verified (submission_trolley_ability.tar.gz, tests/test_grader_submission.py[heuristic-trolley-ability]). Offline gauntlet deck:trolley vs 8-deck pool, 200 games/arm: off 67.5%, on 71.5%, diff_pp +4.0, no regression (analysis/ability_ab.md). Pre-registered vs the trolley king (up, M=60, N=30, settle-by 2026-07-08). NOT submitted: both slots occupied (king + in-flight trolley_thick A/B); fully staged to submit the instant a slot frees.
 
 ## Noise model (U22)
 
@@ -36,7 +34,7 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
 | build | hypothesis | dir | M | N | settle-by | complete |
 | --- | --- | --- | --- | --- | --- | --- |
 | heuristic+trolley_thick | trolley_thick basic-density cuts early_collapse (thin_bench_threshold deck-change re-test) | up | 60 | 30 | 2026-07-06 | yes |
-| heuristic+trolley-ability | PTCG_ABILITY on (once-per-turn ability activation) improves ladder win rate; pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md) | up | 60 | 30 | 2026-07-08 | yes |
+| heuristic+trolley-ability | PTCG_ABILITY on (once-per-turn ability activation) improves ladder win rate; pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md) | up | 60 | 30 | 2026-07-07 | yes |
 
 - **heuristic+trolley_thick** filters: mirror empty-bench collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md); tarball grader-verified
   - WIN: promote heuristic+trolley_thick to shadow-king; reclaim-king stays heuristic+trolley
@@ -85,21 +83,16 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | meta_grimmsnarl | n/a | n/a | 510.1 |  | meta-deck copy; refuted, below trolley |
 | meta_archaludon | n/a | n/a | 382.5 |  | meta-deck copy; refuted, well below trolley |
 | search (baseline) | n/a | n/a | 591.9 |  | STALE + INERT: search fell back to heuristic; not real search |
+| heuristic+trolley_thick | n/a | n/a | 446.2 | 0 | SETTLED LOSS 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp, far past the M=60 LOSS threshold. Evicted; slot 2 reclaimed by a king copy (ref 54281812). |
+| heuristic+trolley (reclaim, 2026-07-03) | n/a | n/a | PENDING | 0 | L2 slot-2 reclaim: byte-identical king copy submitted to evict the settled-LOSS trolley_thick. |
+| heuristic+trolley-ability | n/a | n/a | PENDING | 0 | L1 ability A/B SUBMITTED into the slot L2 freed. See pre_registrations and in_flight for the settle protocol. |
 
 ```json STATE
 {
   "active_candidates": [
     {
-      "build": "heuristic+trolley_thick (U3/U31 deck A/B)",
-      "note": "thicker-basic trolley (Kyogre 2->4, energy 35->33); cut mirror empty-bench collapse 80.8%->65.4% (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md). Tarball grader-verified. SUBMITTED to U20 slot 2 (ref 54252291, 2026-07-02) under a complete pre-registration; now IN-FLIGHT, settling by 2026-07-06."
-    },
-    {
       "build": "cem-grown-genome (PRIO ordering)",
       "note": "REAL U35 run executed (seed 0, agreement-only, --split train; analysis/cem_run_prio.md, artifact analysis/cem_runs/cem_run_prio_train_seed0.json). Best genome raises PRIO_ATTACK 0->3.13 and PRIO_ATTACH 3->3.74; gains +0.060 agreement on train (25->32/116) but LOSES -0.067 on the held-out test bucket (7->5/30). best_fitness flat across all 12 iterations (weak gradient). Held-out agreement delta NEGATIVE => pre-registered offline filter BLOCKS: no ladder A/B, ship byte-identical. CEM candidate 1 of the 2 failing/neutral that trip the CEM-plateau contingency (~Jul 15). Re-test only with a larger expert sample, the two-channel fitness on (--pool-matches>0), or a genome with a non-flat held-out gradient."
-    },
-    {
-      "build": "heuristic+trolley-ability (L1 ladder lever)",
-      "note": "PTCG_ABILITY=1 baked (once-per-turn ability activation via agents/heuristics.py _is_once_per_turn_ability guard); pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md). Tarball built+grader-verified (submission_trolley_ability.tar.gz, tests/test_grader_submission.py[heuristic-trolley-ability]). Offline gauntlet deck:trolley vs 8-deck pool, 200 games/arm: off 67.5%, on 71.5%, diff_pp +4.0, no regression (analysis/ability_ab.md). Pre-registered vs the trolley king (up, M=60, N=30, settle-by 2026-07-08). NOT submitted: both slots occupied (king + in-flight trolley_thick A/B); fully staged to submit the instant a slot frees."
     }
   ],
   "attribution_u38": {
@@ -130,10 +123,10 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "source": "analysis/final_scoring_semantics.md"
   },
   "in_flight": {
-    "board_reading": 470.9,
-    "build": "heuristic+trolley_thick",
-    "note": "U20 slot-2 deck A/B SUBMITTED (ref 54252291, 2026-07-02 03:59 UTC) after U22 gate ALLOW and grader exec test green. Pre-registered vs the trolley king: direction up, M=60, N>=30, settle-by 2026-07-06. Settlement needs >=30 rated episodes AND >=24h; early-evict under 35% raw win rate after 15 episodes. WIN>=king+60 promote; LOSS<=king-60 evict+revert to king copy; BAND one repeat then U23 scoreboard. BOARD 2026-07-02 (U27 iter): thick COMPLETE 536.4 vs reclaim king 54252006 491.7 (gap +44.7 in favor of thick, still inside BAND M=60). NOT settled: sub is <24h old, earliest settle 2026-07-03 04:00 UTC. BOARD 2026-07-02 (U28 iter): thick COMPLETE 552.0 vs reclaim king 54252006 472.1 (gap +79.9, now OUTSIDE BAND M=60 in favor of thick). Still NOT settled: sub is <24h old, earliest settle 2026-07-03 04:00 UTC; also needs >=30 rated episodes. No submit this iter. BOARD 2026-07-02 (U29 iter): thick COMPLETE 551.8 vs reclaim king 54252006 497.2 (gap +54.6, back inside BAND M=60). Still NOT settled: sub <24h old (earliest 2026-07-03 04:00 UTC) and needs >=30 rated episodes. No submit this iter. BOARD 2026-07-02 (U32 iter): thick COMPLETE 488.9 vs reclaim king 54252006 507.0 (gap -18.1, king now leads, still well inside BAND M=60; reading reversed from prior readings, consistent with same-build drift). Still NOT settled: sub <24h old (earliest 2026-07-03 04:00 UTC) and needs >=30 rated episodes. No submit this iter. BOARD 2026-07-02 (U33 iter): unchanged from U32, thick COMPLETE 488.9 vs reclaim king 54252006 507.0 (gap -18.1, king leads, well inside BAND M=60); no public-score movement. Still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched. BOARD 2026-07-02 (U35-prep iter): thick COMPLETE 480.6 vs reclaim king 54252006 507.0 (gap -26.4, king leads, well inside BAND M=60; same-build/deck drift continues). Still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched. BOARD 2026-07-02 (U35 iter): thick COMPLETE 470.9 vs reclaim king 54252006 512.2 (gap -41.3, king leads, inside BAND M=60; same-build/deck drift continues). Still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched. BOARD 2026-07-02 (U36 selector iter): unchanged from U35, thick COMPLETE 470.9 vs reclaim king 54252006 512.2 (gap -41.3, king leads, inside BAND M=60; no public-score movement). Still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched. BOARD 2026-07-02 (U36 emitter iter): unchanged, thick COMPLETE 470.9 vs reclaim king 54252006 512.2 (gap -41.3, king leads, inside BAND M=60; no public-score movement). Still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched. BOARD 2026-07-02 09:12 UTC (U37 guard-stack iter): reclaim king 54252006 517.6, thick 54252291 470.9 (gap -47.1, king leads, inside BAND M=60; unchanged). Thick sub 03:59 today so ~5h old: still NOT settled (earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched. BOARD 2026-07-02 (U38 attribution iter): reclaim king 54252006 534.4, thick 54252291 470.9 (gap -63.6, king leads, now just OUTSIDE BAND M=60 in favor of the king; same-build/deck drift). Still NOT settled (thick sub <24h, earliest 2026-07-03 04:00 UTC; needs >=30 rated episodes). Best-ever 600.0 clears the 540 floor guard. No submit this iter; quota untouched (5/day intact).",
-    "ref": "54252291"
+    "board_reading": null,
+    "build": "heuristic+trolley-ability",
+    "note": "L1 ladder lever SUBMITTED 2026-07-03 01:01:28 UTC (ref 54281824) as the pre-registered A/B vs the trolley king, into the slot freed by evicting trolley_thick (ref 54281812 king copy submitted 2026-07-03 01:00:59 UTC, one minute earlier, same iteration). Pre-registered: direction up, M=60, N=30, settle-by 2026-07-07. WIN>=king+60 promote to shadow-king; LOSS<=king-60 evict, revert slot to a king copy; BAND one repeat then U23 scoreboard. Both submissions PENDING as of this iteration; no board score yet. Quota used today: 2/5.",
+    "ref": "54281824"
   },
   "ledger": [
     {
@@ -198,6 +191,33 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "oracle": "n/a",
       "ref": "54208986",
       "sample_size": ""
+    },
+    {
+      "build": "heuristic+trolley_thick",
+      "ladder": 446.2,
+      "move_agreement_delta": "n/a",
+      "note": "SETTLED LOSS 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp, far past the M=60 LOSS threshold. Evicted; slot 2 reclaimed by a king copy (ref 54281812).",
+      "oracle": "n/a",
+      "ref": "54252291",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley (reclaim, 2026-07-03)",
+      "ladder": "PENDING",
+      "move_agreement_delta": "n/a",
+      "note": "L2 slot-2 reclaim: byte-identical king copy submitted to evict the settled-LOSS trolley_thick.",
+      "oracle": "n/a",
+      "ref": "54281812",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-ability",
+      "ladder": "PENDING",
+      "move_agreement_delta": "n/a",
+      "note": "L1 ability A/B SUBMITTED into the slot L2 freed. See pre_registrations and in_flight for the settle protocol.",
+      "oracle": "n/a",
+      "ref": "54281824",
+      "sample_size": 0
     }
   ],
   "loss_distribution": {
@@ -255,14 +275,14 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "hypothesis": "PTCG_ABILITY on (once-per-turn ability activation) improves ladder win rate; pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md)",
       "margin": 60,
       "n": 30,
-      "settle_by": "2026-07-08"
+      "settle_by": "2026-07-07"
     }
   ],
   "reclaim_king": {
     "build": "heuristic+trolley",
-    "ladder": 600.0,
-    "note": "safe floor to revert to before any A/B; two live copies exist (54215558=569.6, 54252006=600.0)",
-    "ref": "54252006"
+    "ladder": "PENDING (600.0 same-build historical high)",
+    "note": "safe floor to revert to before any A/B; slot 2 reclaimed 2026-07-03 with a byte-identical king copy (ref 54281812, PENDING) after evicting the settled-LOSS trolley_thick (446.2 vs 558.5); prior scored copy 54252006 (600.0) is the same-build historical high",
+    "ref": "54281812"
   },
   "reconciliation": {
     "census_tier": "FULL (167531 groups >> 2500)",
@@ -282,9 +302,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
   },
   "shadow_king": {
     "build": "heuristic+trolley",
-    "ladder": 600.0,
-    "note": "best live reading (byte-identical king copy); same-build true estimate ~585 from 569.6/600.0",
-    "ref": "54252006"
+    "ladder": "PENDING (600.0 same-build historical high)",
+    "note": "safe floor to revert to before any A/B; slot 2 reclaimed 2026-07-03 with a byte-identical king copy (ref 54281812, PENDING) after evicting the settled-LOSS trolley_thick (446.2 vs 558.5); prior scored copy 54252006 (600.0) is the same-build historical high",
+    "ref": "54281812"
   },
   "tag_coverage": {
     "gate": "no deck-aware build may spend a ladder slot unless deck_covered_100pct(target) is true (advisory until U37/U40 land)",
