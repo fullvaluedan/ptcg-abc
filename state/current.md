@@ -18,8 +18,8 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Kings
 
-- **shadow-king** (best live build): heuristic+trolley (ref 54282104, ladder 691.5)
-- **reclaim-king** (safe floor): heuristic+trolley (ref 54282104, ladder 691.5)
+- **shadow-king** (best live build): heuristic+trolley-ability (ref 54282097, ladder 561.1)
+- **reclaim-king** (safe floor): heuristic+trolley (ref 54282104, ladder 494.8)
 
 ## Candidates awaiting a ladder slot
 
@@ -97,6 +97,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley-ability | n/a | n/a | PENDING | 0 | L1 ability A/B SUBMITTED into the slot L2 freed. See pre_registrations and in_flight for the settle protocol. |
 | heuristic+trolley (reclaim, cleanup) | n/a | n/a | 691.5 | 0 | L1 fix cleanup slot-1 king copy (ref 54282104): evicts the dead ERRORed ability build (ref 54281824) from the tracked latest-2 window so the ability fix (ref 54282097) has a live floor to be compared against, not a permanently-inert ERROR entry. |
 | heuristic+trolley-ability (ERRORed, superseded) | n/a | n/a | ERROR | 0 | SETTLED (non-scoring): ref 54281824 ERRORed at grader load, missing agents/card_effects.py in the tarball (build command omitted --extra agents/card_effects.py). Never played an episode. Superseded by ref 54282097 (fix: card_effects.py bundled, COMPLETE 536.7 first reading), which carries forward the same pre-registration under a fresh settle-by. |
+| heuristic+trolley-ability | n/a | n/a | 561.1 | 0 | SETTLED WIN 2026-07-04: 561.1 vs reclaim king 494.8 (ref 54282104), +66.3pp, clears the M=60 WIN threshold. Promoted to shadow-king. Evicted from the tracked latest-2 in the same iteration by the attack_first submission (54304483); 561.1 is its final frozen reading. |
+| heuristic+trolley-attack_first | n/a | n/a | PENDING | 0 | U93 step 3 SUBMITTED into the slot the ability WIN settlement freed. See pre_registrations and in_flight for the settle protocol. |
 
 ```json STATE
 {
@@ -134,10 +136,10 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "source": "analysis/final_scoring_semantics.md"
   },
   "in_flight": {
-    "board_reading": 536.7,
-    "build": "heuristic+trolley-ability",
-    "note": "L1 FIX resubmission ref 54282097: the prior ref 54281824 ERRORed (missing agents/card_effects.py in the tarball, hand-run build command omitted --extra agents/card_effects.py; heuristics.py imports card_effects unconditionally since U33, 2e18145; never played an episode). Rebuilt with card_effects.py bundled, verified via tests/test_grader_submission.py[heuristic-trolley-ability] AND a direct extracted-tarball kaggle_environments env.run (reward=1, DONE, 25 steps) before resubmitting. Board-checked this iteration: COMPLETE 536.7 (first reading, not yet settled), the king-copy cleanup (ref 54282104) also COMPLETE 691.5. Both scored slots now hold live, playable builds (the dead ERRORed ref 54281824 was evicted from the tracked latest-2 window by these two resubmissions). Pre-registered: direction up, M=60, N=30, settle-by 2026-07-08 (fresh clock, since the ERRORed build's original clock never validly started). WIN>=king+60 promote to shadow-king; LOSS<=king-60 evict, revert slot to a king copy; BAND one repeat then U23 scoreboard. Quota used today: 4/5.",
-    "ref": "54282097"
+    "board_reading": "PENDING",
+    "build": "heuristic+trolley-attack_first",
+    "note": "U93 step 3 / L9: submitted this iteration into the slot the ability build's WIN settlement freed (settling first, then submitting, per latest-2 eviction-by-submission-order: the older of the two live submissions, 54282097, dropped out of the tracked pair when this landed, leaving [54304483 attack_first, 54282104 reclaim-king]). Pre-registered: direction up, M=60, N=30, settle-by 2026-07-11. WIN>=king+60 promote to shadow-king; LOSS<=king-60 evict, revert slot to a king copy; BAND one repeat then U23 scoreboard. Quota used today: 1/5.",
+    "ref": "54304483"
   },
   "ledger": [
     {
@@ -247,6 +249,24 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "oracle": "n/a",
       "ref": "54281824",
       "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-ability",
+      "ladder": 561.1,
+      "move_agreement_delta": "n/a",
+      "note": "SETTLED WIN 2026-07-04: 561.1 vs reclaim king 494.8 (ref 54282104), +66.3pp, clears the M=60 WIN threshold. Promoted to shadow-king. Evicted from the tracked latest-2 in the same iteration by the attack_first submission (54304483); 561.1 is its final frozen reading.",
+      "oracle": "n/a",
+      "ref": "54282097",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-attack_first",
+      "ladder": "PENDING",
+      "move_agreement_delta": "n/a",
+      "note": "U93 step 3 SUBMITTED into the slot the ability WIN settlement freed. See pre_registrations and in_flight for the settle protocol.",
+      "oracle": "n/a",
+      "ref": "54304483",
+      "sample_size": 0
     }
   ],
   "loss_distribution": {
@@ -320,7 +340,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
   ],
   "reclaim_king": {
     "build": "heuristic+trolley",
-    "ladder": "691.5",
+    "ladder": "494.8",
+    "note": "board check 2026-07-04: 494.8 (was 691.5 first reading 2026-07-03); same-build ladder drift, ref/build unchanged, still the reclaim-king safe floor.",
     "ref": "54282104"
   },
   "reconciliation": {
@@ -340,9 +361,10 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "verdict": "FAVORABLE"
   },
   "shadow_king": {
-    "build": "heuristic+trolley",
-    "ladder": "691.5",
-    "ref": "54282104"
+    "build": "heuristic+trolley-ability",
+    "ladder": "561.1",
+    "note": "WIN settled 2026-07-04 (board check): candidate 561.1 vs reclaim-king 494.8 (ref 54282104), diff +66.3pp, clears the M=60 WIN threshold on the standing instant-settlement rule (tools/loop_state.py auto-settle). Promoted per its own pre-registration's WIN action. Reading is now FROZEN: submitting heuristic+trolley-attack_first (ref 54304483) into the other slot this same iteration evicted 54282097 from the tracked latest-2 (it was the older of the two live submissions by 28s), so this is its last live board reading, not an ongoing one.",
+    "ref": "54282097"
   },
   "tag_coverage": {
     "gate": "no deck-aware build may spend a ladder slot unless deck_covered_100pct(target) is true (advisory until U37/U40 land)",

@@ -186,6 +186,14 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   `tools/attack_first_ring_check.py`). Tarball built and grader-verified, and pre-registered as
   heuristic+trolley-attack_first (up, M=60, N=30, settle-by 2026-07-11); staged, not yet submitted (both
   ladder slots occupied).
+- L1's ability lever SETTLED WIN on the ladder (2026-07-04): board check ref 54282097 561.1 vs reclaim-king
+  ref 54282104 494.8, +66.3pp, clears the M=60 margin via the standing instant-settlement rule
+  (`tools/loop_state.py auto-settle`). Promoted to shadow-king. This is the first real WIN verdict this loop
+  has recorded on the actual ladder (prior verdicts were LOSS or offline BLOCKED), and it landed on the SAME
+  lever the U90 comprehension-track WHY layer named (the 0/554 real ABILITY-decision blind spot). U93 step 3
+  then submitted heuristic+trolley-attack_first (ref 54304483) into the slot this settlement freed, via the
+  latest-2 eviction-by-submission-order mechanic (the older live submission drops automatically, no manual
+  revert needed). `state/current.md`, `LOOP_BRIEF.md` L1/L9.
 
 ### 4D. Methodological findings (the meta-record, the strongest Strategy material)
 

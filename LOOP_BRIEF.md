@@ -28,7 +28,12 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
       Fresh pre-registration settle-by 2026-07-08. Note the offline +4.0pp still had the documented confound
       (PTCG_ABILITY is process-global, so the "on" arm's opponents also played abilities) -- not
       re-validated this iteration; if the ladder verdict is a surprising LOSS, re-check that confound before
-      trusting the offline gauntlet.
+      trusting the offline gauntlet. SETTLED 2026-07-04, WIN: board check ref 54282097 (ability) 561.1 vs
+      ref 54282104 (reclaim-king) 494.8, diff +66.3pp, clears M=60 via the standing instant-settlement rule
+      (tools/loop_state.py auto-settle). Promoted to shadow-king (state/current.md). ref 54282097 is now
+      evicted from the tracked latest-2 (see L9 same-iteration attack_first submission below); 561.1 is its
+      final frozen reading, not an ongoing one. The process-global-confound caveat above was never
+      re-checked, so treat this WIN as directionally real but not confound-clean.
   L2. DONE 2026-07-03 01:00-01:01: trolley_thick settled LOSS and was evicted; slot 1 = king copy 54281812
       (settled 600.0, new best-ever). Standing rule stays: settle any candidate the instant it reads clearly
       outside the M=60 band; a mandatory per-iteration auto-settlement step (compute band position from the
@@ -161,9 +166,16 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
           bracket-ring +10.0pp, agrees in direction (analysis/attack_first_ring_check.md, new
           tools/attack_first_ring_check.py mirroring ability_ring_check.py). Tarball built and grader-verified
           (tests/test_grader_submission.py[heuristic-trolley-attack_first]); pre-registered as
-          heuristic+trolley-attack_first (state/current.md, up, M=60, N=30, settle-by 2026-07-11). NOT yet
-          submitted: both ladder slots occupied (trolley king copy + the in-flight L1 ability A/B, settle-by
-          2026-07-08). NEXT: submit the instant a slot frees, per TRACK L priority.
+          heuristic+trolley-attack_first (state/current.md, up, M=60, N=30, settle-by 2026-07-11). Step 3
+          DONE 2026-07-04: L1's ability build settled WIN this same iteration (board check 561.1 vs
+          reclaim-king 494.8, +66.3pp, clears M=60), which froze its final reading and made it safe to spend
+          the slot; submitted heuristic+trolley-attack_first (ref 54304483, PENDING) into the slot the
+          settlement freed. This is the eviction-by-submission-order mechanic, not a manual revert: the
+          older of the two live submissions (54282097, the just-settled ability build) dropped out of the
+          tracked latest-2 automatically once the new build landed, leaving [54304483 attack_first, 54282104
+          reclaim-king] as the live pair. Pre-registration unchanged: up, M=60, N=30, settle-by 2026-07-11.
+          NEXT: board-check until PENDING resolves, then settle per the M=60 protocol the instant it reads
+          clearly outside the band (do not wait idly for the settle-by date if it clears sooner).
       U94 WRITEUP CHAPTER: DONE 2026-07-04. docs/writeup/comprehension.md written: the full arc (autopsy, WHY
           layer, playbooks, U93 transfer, honest FAILs) with an 18-row claims ledger, every row citing a
           committed analysis/state file. Added tests/test_comprehension_writeup.py (4 tests) that parses the
@@ -175,7 +187,13 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
   L9. Standing: each shipped-path candidate that survives its gate gets a pre-registered ladder A/B; slot
       discipline and the M=60 protocol unchanged; the Aug 10-16 endgame noise campaign stays booked and must
       not be displaced. U92 closed 2026-07-04 (FAIL); comprehension track (U90+U91+U93+U94) fully shipped and
-      written up as of U94.
+      written up as of U94. Board state as of 2026-07-04: tracked latest-2 = [heuristic+trolley-attack_first
+      (ref 54304483, PENDING, U93 step 3, settle-by 2026-07-11), heuristic+trolley reclaim-king (ref
+      54282104, 494.8)]. heuristic+trolley-ability settled WIN this iteration (561.1 vs 494.8, +66.3pp) and
+      is now shadow-king (state/current.md); it is no longer on the board (evicted by the attack_first
+      submission), so its 561.1 reading is final. NEXT TRACK L action: board-check attack_first until it
+      resolves outside the M=60 band, then settle per its pre-registration (state/current.md
+      pre_registrations).
 
 ### TRACK S (STRATEGY prize = the $30k model-approach award; offline; NEVER claims ladder progress)
 U60-U65, the Phase A DoD, and U8 (U8a/U8b/U8c) are all DONE as of 019dfa2 (move-prior default flipped on after
