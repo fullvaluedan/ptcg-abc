@@ -307,8 +307,9 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
 - Per-finding analyses: `analysis/*.md` (indexed by first heading; see the win/loss study, the ability gap,
   the ring calibration, the transfer record, the clone autopsy inputs).
 - Intent evolution: `docs/plans/*.md` (9 plans, 2026-06-30 to 2026-07-03) show what we believed at each step.
-- Strategy writeup drafts: `docs/writeup/` (learned_evaluator, offline_ladder_transfer, genome_tuning, and the
-  planned comprehension chapter).
+- Strategy writeup drafts: `docs/writeup/` (learned_evaluator, offline_ladder_transfer, genome_tuning, and
+  comprehension, all four now written; comprehension shipped 2026-07-04 with U94's machine-audited claims
+  ledger).
 - The audits that produced the meta-findings ran as ephemeral multi-agent workflows this session (loop-value
   audit, engagement report card, clone-failure autopsy). Their conclusions are captured above; if a fuller
   transcript is wanted for the report, they can be re-run.
