@@ -122,6 +122,18 @@ def seat_decklists(replay) -> tuple | None:
     return (tuple(d0), tuple(d1))
 
 
+# tools/bracket_decks.py harvests one decklist per rating-band opponent slot
+# under this filename prefix (mirrored here, not imported, to keep this module
+# cg-free / dependency-free of tools/). Some harvested bracket decks turn out
+# byte-identical, by signature, to a named meta family (a real player's own
+# archaludon or grimmsnarl copy) -- see analysis/gameplan_claims_bracket_4.md's
+# bracket_4 == meta_archaludon signature match. Bracket names are a mining
+# convenience, not a canonical family, so on an exact-cover tie the canonical
+# (non-bracket) name should win; otherwise "bracket_" sorting before "meta_"
+# would silently and permanently shadow the real family name.
+_BRACKET_PREFIX = "bracket_"
+
+
 def classify_family(decklist, signatures, threshold: float = 0.35) -> str:
     """Name the archetype family of a decklist, or "other".
 
@@ -131,13 +143,16 @@ def classify_family(decklist, signatures, threshold: float = 0.35) -> str:
     fraction of that family's signature cards present in the deck. Requiring a
     coverage fraction (not a raw overlap count) above `threshold` stops a deck
     that merely shares a few staple trainers from being mislabeled as a meta
-    pillar; a deck below threshold on every family is "other". Ties break on name
-    for determinism. Pure, never raises.
+    pillar; a deck below threshold on every family is "other". Ties break on
+    name, preferring a non-bracket name first (see _BRACKET_PREFIX) so a
+    harvested bracket deck can never shadow a named family it happens to
+    exactly match, then alphabetically for determinism. Pure, never raises.
     """
     deck_ids = set(decklist)
     best_name = "other"
     best_cover = 0.0
-    for name in sorted(signatures):
+    ordered = sorted(signatures, key=lambda n: (n.startswith(_BRACKET_PREFIX), n))
+    for name in ordered:
         sig = signatures[name]
         if not sig:
             continue

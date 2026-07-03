@@ -125,6 +125,17 @@ def test_classify_family_empty_signatures():
     assert ec.classify_family(_deck(SIG_ALPHA), {"x": frozenset()}) == "other"
 
 
+def test_classify_family_bracket_name_never_shadows_a_tied_canonical_name():
+    # A harvested bracket_* deck that happens to exactly match a named family's
+    # signature (bracket_4 == meta_archaludon in the real deck pool) must not
+    # win the tie just because "bracket_" sorts before the canonical name.
+    tied = {"bracket_1": SIG_ALPHA, "alpha": SIG_ALPHA, "beta": SIG_BETA}
+    assert ec.classify_family(_deck(SIG_ALPHA), tied) == "alpha"
+    # A bracket deck with no canonical duplicate still classifies as itself.
+    distinct = {"bracket_1": SIG_ALPHA, "beta": SIG_BETA}
+    assert ec.classify_family(_deck(SIG_ALPHA), distinct) == "bracket_1"
+
+
 def test_census_episode_counts():
     # Winner is seat 0 (alpha). Three MAIN decisions by seat 0: two scorable
     # ranking groups (>1 option, in-range single pick) and one forced single

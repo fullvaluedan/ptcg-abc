@@ -226,6 +226,16 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   not just written: `tests/test_comprehension_writeup.py` parses the table and asserts every cited source
   path exists on disk, so a future rename or deletion of an analysis file fails a test instead of leaving a
   dangling claim in the writeup.
+- Archetype-registry shadowing bug fixed (2026-07-04): `classify_family` broke coverage ties alphabetically,
+  and `tools/bracket_decks.py`'s harvested `bracket_N` decks sat in the same signature dict as the named
+  meta families. Two of the six harvested bracket decks turn out byte-identical, by signature, to a named
+  family (`bracket_4` == `meta_archaludon`, `bracket_1` == `meta_grimmsnarl_tonakaiiii`), and "bracket_"
+  sorts before "meta_", so every deck matching that signature silently classified as the bracket name
+  instead, making the two named meta families permanently unminable whenever `--decks-dir decks` was used
+  (0 appearances, not an error). Fixed by preferring a non-bracket name on exact ties
+  (`analysis/expert_cohort.py`). Confirmed on the real 2026-06-30 dataset (400-episode slice): `meta_archaludon`
+  and `meta_grimmsnarl` went from 0 to 219 and 13 real episode counts. Bracket decks with no duplicate
+  signature (`bracket_2/3/5/6`) are unaffected.
 
 ---
 

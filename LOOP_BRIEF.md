@@ -125,7 +125,18 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
           table, 3/20 flipped the end-to-end pilot decision. Verdict LIVE, not inert (analysis/
           attack_first_flip_check.md). STILL TODO (U93 step 2): the bracket-ring A/B (>=+5pp with
           gauntlet-direction agreement) before any ladder slot; the archetype-registry shadowing fix is
-          still open for whoever wants the two named meta families back.
+          still open for whoever wants the two named meta families back. DONE 2026-07-04: fixed
+          (analysis/expert_cohort.py's classify_family now breaks exact-cover ties in favor of a
+          non-"bracket_"-prefixed name, so a harvested bracket deck that happens to duplicate a named
+          family's signature -- bracket_4 == meta_archaludon, bracket_1 == meta_grimmsnarl_tonakaiiii,
+          both confirmed by direct signature diff -- can no longer shadow it just because "bracket_" sorts
+          first alphabetically; bracket_2/3/5/6, which have no such duplicate, still classify as
+          themselves unchanged). Verified two ways: 2 new unit tests
+          (tests/test_expert_cohort.py::test_classify_family_bracket_name_never_shadows_a_tied_canonical_name)
+          and a real run over a 400-episode slice of the 2026-06-30 dataset with --decks-dir decks, where
+          meta_archaludon/meta_grimmsnarl now get 219/13 real episode counts instead of 0. This reopens
+          the "still open" item above: the two named meta families can be re-mined directly now (no need
+          to go via bracket_4 as a stand-in).
       U92 CLONE REBUILT: step 0 (DONE 2026-07-04, FAIL, CLOSED): the half-day KILL TEST -- rerun the U26
           pairwise RankNet (analysis/unit_zero_spike.py's PairwiseLinearRanker, generalized to any feature
           width so it could be pointed at agents.imitation_features rows) against FIRST-LEGAL on the exact
