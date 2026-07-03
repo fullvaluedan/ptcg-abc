@@ -40,6 +40,9 @@ real expert promote (post-knockout TO_ACTIVE) decisions scored: 91
   expert picked the max-energy bench option:  36.3%
   expert picked the best type-matchup option: 39.6%
   expert picked bench index 0:                36.3%
+  expert picked max-energy tie-broken by matchup: 40.7%
+  a knockout-capable candidate existed:       0.0%
+  ...and the expert picked it (of those):     0.0%
 ```
 
 (n=91 is the real promote-decision population found across the entire
@@ -71,25 +74,38 @@ per-candidate feature here explains anywhere near a majority of real picks,
 and that now includes type matchup: checked directly (not just theorized),
 it still tops out at 39.6%. This does not mean the decision is random: it
 means HP ratio, raw energy count, and type matchup, each checked one at a
-time, are not the (or not the only) governing signal. Plausible remaining
-candidates not yet checked: whether a bench mon can score an immediate
-knockout on promotion, retained Prize-card implications, or some combination
-of the fields already checked (e.g. matchup AND energy together) rather than
-any single field alone.
+time, are not the (or not the only) governing signal.
+
+The two named follow-ons (an immediate-knockout-on-promotion check, and a
+combined "most energy, tie-broken by matchup" signal) are now both measured,
+via `analysis.matchup_delta.can_knock_out` and the new `energy_then_matchup`
+field. Neither closes the gap. The knockout check is not just weak, it is
+**inapplicable**: across all 91 real decisions, zero ever had a bench
+candidate that could knock out the opponent's active on the spot
+(`ko_now_available_rate` = 0.0%), so a KO-on-promotion rule would never fire
+in this population and cannot be the missing signal. The combined signal
+edges out every single-field candidate at 40.7% (vs 39.6% for matchup alone),
+but a 1.1pp gain over the best single field, still short of a majority, is
+not a real improvement, it is noise at n=91. Both of the follow-ons this doc
+itself proposed are now closed off, the same shape as the RETREAT gap's own
+matchup-swap theory being closed off twice (PROMOTE, then RETREAT-target).
 
 ## Why this is not a shippable lever yet
 
-At n=91 with no candidate signal (including the newly-added type matchup)
-clearing 40%, there is not yet a concrete, well-supported rule to write
-(unlike ABILITY, a clean capability flip). Coding "promote highest HP",
-"promote most energy", or "promote the best matchup" against this evidence
-would be guessing at the same strength as the current arbitrary
+At n=91, the best of six candidate signals checked (index-zero, HP ratio,
+energy, type matchup, energy-then-matchup, and immediate-knockout) tops out
+at 40.7%, still well short of a majority. Coding any one of them against this
+evidence would be guessing at the same strength as the current arbitrary
 `_first_legal`, and risks the same shape of refutation the ATTACH
 energy-sequencing lever already hit when it was shipped on intuition instead
-of measurement. The concrete next step (not yet built) is to check whether a
-combined signal (e.g. best matchup among only the max-energy candidates, or
-an immediate-knockout-on-promotion check) explains a majority, since no
-single field examined so far does.
+of measurement. Every combined-signal follow-on named in the previous
+version of this doc has now been tried and closed off; PROMOTE joins RETREAT
+target choice as a gap with no confirmed cause among the features tested so
+far. The remaining untested candidates (retained Prize-card implications,
+or the current game plan / archetype the hand is building toward, the same
+wall RETREAT's own MAIN decision and the deck-search gap independently hit)
+would need new data, not a new combination of the fields already measured
+here.
 
 ## Conclusion
 
@@ -97,10 +113,12 @@ PROMOTE is a confirmed, previously-unmeasured, currently-unruled category (the
 pilot's answer here is pure `_first_legal`, not even the thin-bench Basic-fetch
 logic other CARD contexts get). Type-matchup awareness, once actually measured
 (not just theorized), turned out NOT to be the missing piece here either: it
-is the strongest of four candidate signals but still explains under 40% of
-real picks alone. Recorded here, with the new general-purpose
+is the strongest single field but still explains under 40% of real picks
+alone, and the two combined follow-ons this doc named (immediate-knockout,
+and energy-then-matchup) are now both measured and both closed off too (the
+knockout case never even occurs in this data; the combined signal gains
+only 1.1pp over matchup alone). Recorded here, with the new general-purpose
 `iter_expert_card_decisions` spine primitive and the new general-purpose
-`analysis/matchup_delta.py` (`matchup_score`), so a future unit can (a) re-run
-the RETREAT gap's own matchup-swap theory through the same tested primitive
-(not yet done, see `analysis/retreat_gap_conditional.md`) and (b) try combined
-signals here instead of guessing at a single-field promote rule.
+`analysis/matchup_delta.py` (`matchup_score`, `can_knock_out`), so a future
+unit can pursue the remaining candidate (the current game plan / archetype)
+instead of guessing at another single-field or combined promote rule.

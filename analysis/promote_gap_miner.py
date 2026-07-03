@@ -16,7 +16,11 @@ simply arbitrary.
 This module runs the shipped pilot on every real expert promote decision and
 profiles what the top players actually pick, so a concrete replacement rule (e.g.
 "promote the highest current HP") can be proposed and checked against real data
-before it is built, rather than guessed.
+before it is built, rather than guessed. `analysis/promote_gap_conditional.md`
+found none of hp ratio, energy, or type matchup alone explains a majority of
+real picks, and named two untested follow-ons: an immediate-knockout-on-
+promotion check and a combined signal (most energy, tie-broken by matchup).
+Both are profiled here via `analysis.matchup_delta.can_knock_out`.
 
 Pure over the raw replay dicts and the injected pilot; reads the competition
 dataset but never redistributes it (replay files stay gitignored).
@@ -32,7 +36,7 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from analysis.matchup_delta import matchup_score  # noqa: E402
+from analysis.matchup_delta import can_knock_out, matchup_score  # noqa: E402
 from analysis.move_ranking_validator import (  # noqa: E402
     DEFAULT_EXPERT_TEAMS,
     load_replays,
@@ -90,11 +94,12 @@ def _bench_card_id(bench, idx):
     return mon.get("id") if isinstance(mon, dict) else None
 
 
-def _opponent_active_id(obs, seat):
-    """Card id of the opponent's active Pokemon at decision time, or None.
+def _opponent_active(obs, seat):
+    """The opponent's active Pokemon dict at decision time, or None.
 
     Mirrors `agents.heuristics._active`'s own extraction (2-player, opponent is
-    the other seat) so the matchup feature reads exactly what a live rule would.
+    the other seat) so the matchup/KO features read exactly what a live rule
+    would.
     """
     state = obs.get("current") or {}
     players = state.get("players") or []
@@ -106,7 +111,19 @@ def _opponent_active_id(obs, seat):
         return None
     active = opp.get("active") or []
     mon = active[0] if active and active[0] is not None else None
-    return mon.get("id") if isinstance(mon, dict) else None
+    return mon if isinstance(mon, dict) else None
+
+
+def _opponent_active_id(obs, seat):
+    """Card id of the opponent's active Pokemon at decision time, or None."""
+    mon = _opponent_active(obs, seat)
+    return mon.get("id") if mon else None
+
+
+def _opponent_active_hp(obs, seat):
+    """Current HP of the opponent's active Pokemon at decision time, or None."""
+    mon = _opponent_active(obs, seat)
+    return mon.get("hp") if mon else None
 
 
 def promote_gap_rows(replays, expert_teams, pilot_choose=None):
@@ -156,6 +173,7 @@ def promote_gap_rows(replays, expert_teams, pilot_choose=None):
             max_energy_idx = max(known_energies, key=known_energies.get, default=None)
 
             opp_id = _opponent_active_id(obs, seat)
+            opp_hp = _opponent_active_hp(obs, seat)
             ids = {i: _bench_card_id(bench, idx) for i, idx in bench_opts.items()}
             matchups = (
                 {i: matchup_score(cid, opp_id) for i, cid in ids.items() if cid is not None}
@@ -163,6 +181,28 @@ def promote_gap_rows(replays, expert_teams, pilot_choose=None):
                 else {}
             )
             max_matchup_idx = max(matchups, key=matchups.get, default=None)
+
+            ko_idxs = (
+                {
+                    i
+                    for i, cid in ids.items()
+                    if cid is not None
+                    and can_knock_out(cid, known_energies.get(i, 0), opp_id, opp_hp)
+                }
+                if opp_id is not None and opp_hp is not None
+                else set()
+            )
+
+            # Combined signal: among the candidates tied for max energy, the one
+            # with the best type matchup (named as an untested follow-on in
+            # analysis/promote_gap_conditional.md, since no single field alone
+            # explained a majority).
+            combined_idx = None
+            if known_energies:
+                max_energy_val = max(known_energies.values())
+                tied = [i for i in bench_opts if known_energies.get(i) == max_energy_val]
+                if tied:
+                    combined_idx = max(tied, key=lambda i: matchups.get(i, 0))
 
             rows.append(
                 {
@@ -181,6 +221,11 @@ def promote_gap_rows(replays, expert_teams, pilot_choose=None):
                     "played_is_best_matchup": (
                         max_matchup_idx is not None and played == max_matchup_idx
                     ),
+                    "played_can_ko_now": played in ko_idxs,
+                    "any_can_ko_now": bool(ko_idxs),
+                    "played_is_energy_then_matchup": (
+                        combined_idx is not None and played == combined_idx
+                    ),
                 }
             )
     return rows
@@ -190,11 +235,15 @@ def summarize(rows) -> dict:
     """Agreement rate plus how often the expert's pick matches simple profiles.
 
     Reports, over every scored promote decision, the pilot agreement rate (how
-    often `_first_legal`'s index-0 guess happens to match) alongside four
+    often `_first_legal`'s index-0 guess happens to match) alongside six
     candidate signals for a real rule: how often the expert picked the highest hp
     ratio bench option, the most-energy bench option, the best type-matchup
-    option (`analysis.matchup_delta.matchup_score` vs the opponent's active), or
-    index 0 itself (the baseline `_first_legal` already produces for free). Pure.
+    option (`analysis.matchup_delta.matchup_score` vs the opponent's active),
+    index 0 itself (the baseline `_first_legal` already produces for free), the
+    combined "most energy, tie-broken by best matchup" candidate, and the two
+    immediate-knockout-on-promotion stats (`analysis.matchup_delta.can_knock_out`):
+    how often a knockout-capable candidate existed at all, and, of those
+    decisions, how often the expert actually picked one. Pure.
     """
     n = len(rows)
     if n == 0:
@@ -205,7 +254,11 @@ def summarize(rows) -> dict:
             "max_energy_rate": 0.0,
             "best_matchup_rate": 0.0,
             "index_zero_rate": 0.0,
+            "energy_then_matchup_rate": 0.0,
+            "ko_now_available_rate": 0.0,
+            "ko_now_capture_rate": 0.0,
         }
+    ko_available = [r for r in rows if r["any_can_ko_now"]]
     return {
         "n": n,
         "agree_rate": sum(1 for r in rows if r["agree"]) / n,
@@ -213,6 +266,15 @@ def summarize(rows) -> dict:
         "max_energy_rate": sum(1 for r in rows if r["played_is_max_energy"]) / n,
         "best_matchup_rate": sum(1 for r in rows if r["played_is_best_matchup"]) / n,
         "index_zero_rate": sum(1 for r in rows if r["played_is_index_zero"]) / n,
+        "energy_then_matchup_rate": (
+            sum(1 for r in rows if r["played_is_energy_then_matchup"]) / n
+        ),
+        "ko_now_available_rate": len(ko_available) / n,
+        "ko_now_capture_rate": (
+            sum(1 for r in ko_available if r["played_can_ko_now"]) / len(ko_available)
+            if ko_available
+            else 0.0
+        ),
     }
 
 
@@ -241,6 +303,9 @@ def main(argv=None) -> int:
     print(f"  expert picked the max-energy bench option:  {summary['max_energy_rate'] * 100:.1f}%")
     print(f"  expert picked the best type-matchup option: {summary['best_matchup_rate'] * 100:.1f}%")
     print(f"  expert picked bench index 0:                {summary['index_zero_rate'] * 100:.1f}%")
+    print(f"  expert picked max-energy tie-broken by matchup: {summary['energy_then_matchup_rate'] * 100:.1f}%")
+    print(f"  a knockout-capable candidate existed:       {summary['ko_now_available_rate'] * 100:.1f}%")
+    print(f"  ...and the expert picked it (of those):     {summary['ko_now_capture_rate'] * 100:.1f}%")
     return 0
 
 

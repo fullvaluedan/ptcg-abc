@@ -62,6 +62,39 @@ def matchup_score(mine_id, opponent_id) -> int:
     return score
 
 
+def can_knock_out(card_id, energy_count, opponent_id, opponent_hp) -> bool:
+    """True when `card_id`, with `energy_count` energy already attached, has at
+    least one attack it can already pay for that would knock out `opponent_id`
+    at `opponent_hp` right now.
+
+    Cost is compared by energy COUNT only (attack energy-type requirements are
+    not modeled), mirroring `agents.heuristics._attack_costs`'s own
+    simplification. Damage applies the same weakness/resistance rule a live
+    attack choice would via `effective_damage`. False on any missing or
+    unresolvable id/count, so this degrades to "not lethal" rather than
+    raising: a caller can use it as an immediate-knockout-on-promotion signal
+    for a bench candidate that has not attacked yet.
+    """
+    if card_id is None or opponent_id is None or opponent_hp is None:
+        return False
+    from agents.heuristics import attack_index, card_index, effective_damage
+
+    card = card_index().get(card_id)
+    if card is None:
+        return False
+    atks = attack_index()
+    for aid in getattr(card, "attacks", None) or []:
+        attack = atks.get(aid)
+        if attack is None:
+            continue
+        cost = len(getattr(attack, "energies", None) or [])
+        if cost > (energy_count or 0):
+            continue
+        if effective_damage(card_id, attack, opponent_id) >= opponent_hp:
+            return True
+    return False
+
+
 def best_matchup_index(candidate_ids, opponent_id):
     """Index into `candidate_ids` with the highest `matchup_score` vs
     `opponent_id`, or None when `candidate_ids` is empty. Ties keep the first
