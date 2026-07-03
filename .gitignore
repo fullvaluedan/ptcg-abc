@@ -19,6 +19,7 @@ replays_*/
 # Unattended autoloop runtime logs
 autoloop.log
 autoloop_status.md
+.autoloop_iteration_count
 
 # OS
 Thumbs.db
