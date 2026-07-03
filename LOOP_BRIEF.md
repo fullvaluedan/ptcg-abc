@@ -15,19 +15,24 @@ two explicit tracks and never let TRACK S masquerade as ladder progress.
 ### TRACK L (LADDER = rank; HIGHEST PRIORITY; only the SHIPPED agent counts)
 A unit may claim LADDER progress ONLY if it changes a SHIPPED path (agents/heuristics.py or the deck csv) AND
 beats the 569.6 king offline before it spends a slot. Actions in priority order:
-  L1. SHIP THE ABILITY A/B THIS ITERATION (highest-EV lever we own; it is already BUILT, validated, and
-      staged): submission_trolley_ability.tar.gz has PTCG_ABILITY=1 baked, offline gauntlet +4.0pp
-      (67.5% -> 71.5%, no regression, analysis/ability_ab.md), grader-verified, pre-registered vs the king
-      (up, M=60, N=30). The pilot otherwise never activates an ability (0/554 vs top players,
-      analysis/move_ranking_diverges_ability_gap.md). Ship it: board-check, reclaim slot 2 with a KING COPY
-      (this evicts the settled-loss trolley_thick per L2, so the king stays the floor), then submit the
-      ability build as the experiment so it is A/B'd against the king. Two submissions, board-check between,
-      respect the 5/day quota.
-  L2. trolley_thick has SETTLED as a LOSS. The live board on 2026-07-03 shows it at 446.2 vs the king's
-      558.5, a -112 gap far past the M=60 LOSS threshold, with >24h elapsed. The pre-registered LOSS rule is
-      MET: EVICT it NOW (do NOT wait for the 07-06 date). Reclaiming slot 2 to a king copy (L1's first
-      submission) is the eviction. Then stop tracking trolley_thick. General rule going forward: settle any
-      candidate the instant it is clearly outside the M=60 band, never idle days on a decided loser.
+  L1. DIAGNOSE AND FIX THE ABILITY ERROR (TOP PRIORITY). The flagship ability A/B (ref 54281824,
+      submission_trolley_ability.tar.gz, submitted 2026-07-03 01:01 UTC) is SubmissionStatus.ERROR on the
+      live board: it crashed the grader's validation despite passing tests/test_grader_submission.py. This
+      is the SECOND live-grader ERROR (first: 54207787, the no-__file__ bug). Do NOT resubmit blind:
+      (a) pull the failed episode's log/replay (kaggle competitions episodes 54281824, then the replay; the
+      error message is usually in the episode json), (b) reproduce locally in a grader-parity harness (exec
+      main.py with no __file__, fresh process, the EXACT tarball contents, simulate both seats including the
+      validation self-play match), (c) fix the root cause, and (d) GENERALIZE the reproduction into
+      tests/test_grader_submission.py so a third ERROR class is impossible. Only then rebuild, re-verify,
+      and resubmit at a free slot under the existing pre-registration. Note the offline +4.0pp had a
+      confound: PTCG_ABILITY is process-global, so the "on" arm's opponents also played abilities; when
+      re-validating offline, use a per-agent flag or subprocess arms so the candidate is compared against a
+      FIXED field.
+  L2. DONE 2026-07-03 01:00-01:01: trolley_thick settled LOSS and was evicted; slot 1 = king copy 54281812
+      (settled 600.0, new best-ever). Standing rule stays: settle any candidate the instant it reads clearly
+      outside the M=60 band; a mandatory per-iteration auto-settlement step (compute band position from the
+      board and EXECUTE the pre-registered action, no prose interpretation) should be added to
+      tools/loop_state.py as a small unit.
   L3. BUILD THE CALIBRATED CLONE RING (U70-U74, docs/plans/2026-07-03-002-feat-top-player-clone-ring-plan.md):
       opponent bots cloned from the top-20 teams' recorded play, each piloting that team's harvested deck,
       then a CALIBRATION gate (U73) that must retrodict our known ladder ordering (correlation >= 0.7) before
@@ -59,6 +64,21 @@ ladder slot unless first wired into a SHIPPED agent and PROVEN >569.6 offline. S
 docs/plans/2026-07-02-combined-learned-eval-plan-v2.md,
 docs/plans/2026-07-03-addendum-u9-archetype-detection-v1.md, and
 docs/plans/2026-07-02-003-feat-offline-match-scale-topplayer-mining-plan.md.
+
+### Standing calendar and writeup rules (from the 2026-07-03 report card)
+- PLAN FREEZE: this two-track brief is the regime until 16 Aug; no new plan documents or re-pointings
+  outside a weekly review. Track L is sized to the settlement budget (~1-2 ladder verdicts/day). Track S
+  may iterate freely (its experiments settle in hours).
+- WRITEUP IS FIRST-CLASS, STARTING NOW: roughly every 6th iteration advances docs/writeup/ (the Strategy
+  prize is 70% model approach). The differentiated story to assemble from existing analysis/: machine-
+  enforced pre-registration, the quantified same-build noise model, the HONEST 0-for-5 offline-to-ladder
+  transfer record with the mirror-pool diagnosis, the 173k-row top-player mining + win/loss study, and (once
+  U73 lands) the calibrated clone ring closing the loop. Every claim cites a committed analysis file.
+- ENDGAME CAMPAIGN (calendar: 2026-08-10 to 08-16): reinstate the latest-2 noise campaign (unified plan
+  U48): freeze the best build, then spend the full daily quota resubmitting it with an optimal-stopping rule
+  against latest-2 scoring semantics (same-build spread is ~90-130 points, wider than any lever we have, so
+  endgame draws are the cheapest rank points available). Refit the noise model on all accumulated same-build
+  reads well before then.
 
 ### Shared rules
 - ONE loop only. Do NOT run parallel sessions: the ladder is quota-bound (5/day), slot-bound (2 scored slots),
