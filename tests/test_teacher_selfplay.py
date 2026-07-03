@@ -7,6 +7,7 @@ Integration-flavored (plays real tiny matches), matching the pattern
 `tests/test_ring_calibrate.py` and `tests/test_gauntlet.py` already use.
 """
 import json
+from pathlib import Path
 
 import pytest
 
@@ -57,3 +58,82 @@ def test_default_teacher_delegates_to_ring_calibrate_search_trolley_build(monkey
         opponent_names=["random"], n_matches=1, out_path=tmp_path / "labels.jsonl",
     )
     assert stats["matches"] == 1
+
+
+def test_resolve_teacher_factory_search_trolley_is_default_teacher():
+    assert ts.resolve_teacher_factory("search_trolley") is ts._default_teacher
+
+
+def test_resolve_teacher_factory_other_name_delegates_to_opponents(monkeypatch):
+    from tools import opponents
+
+    sentinel = object()
+    monkeypatch.setattr(opponents, "get", lambda name: sentinel if name == "baseline" else None)
+    factory = ts.resolve_teacher_factory("baseline")
+    assert factory() is sentinel
+
+
+@pytest.mark.parametrize("n_matches,workers,expected", [
+    (10, 3, [4, 3, 3]),
+    (5, 5, [1, 1, 1, 1, 1]),
+    (3, 5, [1, 1, 1, 0, 0]),
+    (1, 1, [1]),
+])
+def test_split_counts(n_matches, workers, expected):
+    assert ts._split_counts(n_matches, workers) == expected
+
+
+def test_run_teacher_selfplay_parallel_raises_on_non_positive_matches():
+    with pytest.raises(ValueError):
+        ts.run_teacher_selfplay_parallel(0)
+
+
+def test_run_teacher_selfplay_parallel_caps_workers_at_n_matches(tmp_path):
+    pytest.importorskip("kaggle_environments")
+    stats = ts.run_teacher_selfplay_parallel(
+        n_matches=2, workers=10, opponent_names=["random"], teacher="baseline",
+        out_dir=tmp_path, run_tag="capworkers",
+    )
+    assert stats["workers"] == 2
+    assert stats["matches"] == 2
+    assert len(stats["shard_paths"]) == 2
+
+
+def test_run_teacher_selfplay_parallel_shards_are_readable_as_one_corpus(tmp_path):
+    """Shards are separate files with their own game_id counters starting at 0;
+    analysis.teacher_labels.load_records must still see every record exactly
+    once, distinguishing games across shards via the _source stamp (same
+    disambiguation the harvest-file split logic already relies on)."""
+    pytest.importorskip("kaggle_environments")
+    from analysis import teacher_labels
+
+    stats = ts.run_teacher_selfplay_parallel(
+        n_matches=4, workers=2, opponent_names=["random"], teacher="baseline",
+        out_dir=tmp_path, run_tag="shardcorpus",
+    )
+    assert stats["workers"] == 2
+    for shard in stats["shard_paths"]:
+        assert Path(shard).exists()
+
+    records = list(teacher_labels.load_records(tmp_path))
+    assert len(records) == stats["decisions_logged"]
+    assert records  # baseline vs random makes plenty of scorable MAIN decisions
+
+    sources = {r["_source"] for r in records}
+    assert sources == {Path(p).name for p in stats["shard_paths"]}
+
+    # game_id resets per shard, but match_key (source + game_id) must still be
+    # unique per real game, not collide across shards.
+    keys_by_game = {}
+    for r in records:
+        keys_by_game.setdefault((r["_source"], r["game_id"]), set()).add(r["seat"])
+    for seats in keys_by_game.values():
+        assert len(seats) == 1
+
+
+def test_run_teacher_selfplay_parallel_raises_on_worker_failure(tmp_path):
+    with pytest.raises(RuntimeError):
+        ts.run_teacher_selfplay_parallel(
+            n_matches=2, workers=2, opponent_names=["not-a-real-opponent"],
+            teacher="baseline", out_dir=tmp_path, run_tag="failcase",
+        )
