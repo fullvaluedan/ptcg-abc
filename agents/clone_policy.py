@@ -1,14 +1,22 @@
 """Pure-Python per-family clone-policy scorer (plan U71).
 
-Loads the standardized logistic-regression weights tools/train_clone.py
-exports to agents/clone_weights/<family>.json (one file per family that
-passed U71's qualification gate) and scores a list of per-option feature rows
-the same way search/move_prior.py scores the move-ordering model: no
-sklearn, no numpy, a plain standardized linear combination in pure Python.
-Mirrors that module's structure so the two scorers stay recognizably the
-same shape; this one is keyed by archetype family and only ever consumed by
-dev-side clone opponents (U72), never by a shipped agent, so it carries none
-of move_prior's flat-submission-layout concerns.
+Loads the weights tools/train_clone.py exports to
+agents/clone_weights/<family>.json (one file per family that passed U71's
+qualification gate) and scores a list of per-option feature rows in pure
+Python, no sklearn, no numpy at scoring time. Two payload shapes are
+supported, dispatched on the JSON's "model_type" key:
+  - absent or "linear": a standardized logistic-regression combination,
+    same shape and same scoring code as search/move_prior.py.
+  - "gbdt": a shallow gradient-boosted tree ensemble (tools/train_clone.py's
+    "tree" model kind, added when the 2026-07-03 gate retry found the linear
+    model exactly ties the first-legal baseline). Score = init_score +
+    learning_rate * sum(tree walk outputs); walking a tree means following
+    children_left/children_right by comparing the row's feature value to
+    each node's threshold until a leaf (children_left == -1) is reached.
+Mirrors search/move_prior.py's structure so the family of scorers stays
+recognizably the same shape; this one is keyed by archetype family and only
+ever consumed by dev-side clone opponents (U72), never by a shipped agent, so
+it carries none of move_prior's flat-submission-layout concerns.
 
 score_options(rows, family) takes the rows produced by
 agents.imitation_features.decision_features(obs) and returns one raw score
@@ -47,6 +55,34 @@ def available_families() -> list:
     return sorted(p.stem for p in d.glob("*.json"))
 
 
+def _load_linear_model(payload):
+    feature_names = tuple(payload["feature_names"])
+    mean = [float(v) for v in payload["mean"]]
+    std = [float(v) for v in payload["std"]]
+    coef = [float(v) for v in payload["coef"]]
+    intercept = float(payload["intercept"])
+    if len(feature_names) == len(mean) == len(std) == len(coef):
+        return ("linear", feature_names, mean, std, coef, intercept)
+    return None
+
+
+def _load_tree_model(payload):
+    feature_names = tuple(payload["feature_names"])
+    learning_rate = float(payload["learning_rate"])
+    init_score = float(payload["init_score"])
+    trees = []
+    for tree in payload["trees"]:
+        feature = [int(v) for v in tree["feature"]]
+        threshold = [float(v) for v in tree["threshold"]]
+        left = [int(v) for v in tree["left"]]
+        right = [int(v) for v in tree["right"]]
+        value = [float(v) for v in tree["value"]]
+        if not (len(feature) == len(threshold) == len(left) == len(right) == len(value)):
+            return None
+        trees.append((feature, threshold, left, right, value))
+    return ("gbdt", feature_names, learning_rate, init_score, trees)
+
+
 def _load_model(family):
     if family in _models:
         return _models[family]
@@ -59,24 +95,36 @@ def _load_model(family):
         # trained against a different featurizer layout outright, rather than
         # risk scoring silently against the wrong feature meanings.
         if tuple(payload.get("feature_version") or ()) == tuple(feature_version()):
-            feature_names = tuple(payload["feature_names"])
-            mean = [float(v) for v in payload["mean"]]
-            std = [float(v) for v in payload["std"]]
-            coef = [float(v) for v in payload["coef"]]
-            intercept = float(payload["intercept"])
-            if len(feature_names) == len(mean) == len(std) == len(coef):
-                model = (feature_names, mean, std, coef, intercept)
+            model_type = payload.get("model_type", "linear")
+            if model_type == "gbdt":
+                model = _load_tree_model(payload)
+            elif model_type == "linear":
+                model = _load_linear_model(payload)
     except Exception:
         model = None
     _models[family] = model
     return model
 
 
-def _score_row(row, mean, std, coef, intercept) -> float:
+def _score_row_linear(row, mean, std, coef, intercept) -> float:
     z = intercept
     for x, m, s, w in zip(row, mean, std, coef):
         denom = s if s else 1.0
         z += w * ((x - m) / denom)
+    return z
+
+
+def _walk_tree(row, feature, threshold, left, right, value) -> float:
+    node = 0
+    while left[node] != -1:
+        node = left[node] if row[feature[node]] <= threshold[node] else right[node]
+    return value[node]
+
+
+def _score_row_tree(row, learning_rate, init_score, trees) -> float:
+    z = init_score
+    for feature, threshold, left, right, value in trees:
+        z += learning_rate * _walk_tree(row, feature, threshold, left, right, value)
     return z
 
 
@@ -89,13 +137,19 @@ def score_options(rows, family):
     model = _load_model(family)
     if model is None:
         return None
-    feature_names, mean, std, coef, intercept = model
+    kind = model[0]
+    feature_names = model[1]
     try:
         scores = []
         for row in rows:
             if len(row) != len(feature_names):
                 return None
-            scores.append(_score_row(row, mean, std, coef, intercept))
+            if kind == "linear":
+                _, _, mean, std, coef, intercept = model
+                scores.append(_score_row_linear(row, mean, std, coef, intercept))
+            else:
+                _, _, learning_rate, init_score, trees = model
+                scores.append(_score_row_tree(row, learning_rate, init_score, trees))
         return scores
     except Exception:
         return None

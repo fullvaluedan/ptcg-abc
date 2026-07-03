@@ -9,6 +9,8 @@ every test points the module at a tmp_path weights dir via monkeypatch.
 """
 import json
 
+import pytest
+
 from agents import clone_policy
 
 
@@ -149,6 +151,85 @@ def test_choose_index_returns_zero_for_empty_rows(tmp_path, monkeypatch):
     monkeypatch.setattr(clone_policy, "_weights_dir", lambda: tmp_path / "clone_weights")
 
     assert clone_policy.choose_index([], "meta_alpha") == 0
+
+
+def _write_gbdt_model(path, n_features, feature_version, trees, learning_rate=1.0, init_score=0.0):
+    payload = {
+        "model_type": "gbdt",
+        "feature_names": [f"f{i}" for i in range(n_features)],
+        "feature_version": list(feature_version),
+        "learning_rate": learning_rate,
+        "init_score": init_score,
+        "trees": trees,
+    }
+    path.write_text(json.dumps(payload))
+    return path
+
+
+def _single_split_tree(feature_idx, threshold, left_value, right_value):
+    """A depth-1 tree: node 0 splits on feature_idx <= threshold, else right leaf."""
+    return {
+        "feature": [feature_idx, -2, -2],
+        "threshold": [threshold, -2.0, -2.0],
+        "left": [1, -1, -1],
+        "right": [2, -1, -1],
+        "value": [0.0, left_value, right_value],
+    }
+
+
+def test_score_options_scores_gbdt_model_by_walking_the_tree(tmp_path, monkeypatch):
+    from agents.imitation_features import feature_version
+    weights_dir = tmp_path / "clone_weights"
+    weights_dir.mkdir()
+    tree = _single_split_tree(feature_idx=0, threshold=0.5, left_value=-1.0, right_value=2.0)
+    _write_gbdt_model(weights_dir / "meta_alpha.json", 2, feature_version(), trees=[tree],
+                       learning_rate=1.0, init_score=0.0)
+    monkeypatch.setattr(clone_policy, "_weights_dir", lambda: weights_dir)
+
+    below = [0.0, 0.0]   # feature 0 <= 0.5 -> left leaf, -1.0
+    above = [1.0, 0.0]   # feature 0 > 0.5 -> right leaf, 2.0
+    scores = clone_policy.score_options([below, above], "meta_alpha")
+
+    assert scores == [-1.0, 2.0]
+
+
+def test_score_options_gbdt_applies_learning_rate_and_init_score(tmp_path, monkeypatch):
+    from agents.imitation_features import feature_version
+    weights_dir = tmp_path / "clone_weights"
+    weights_dir.mkdir()
+    tree = _single_split_tree(feature_idx=0, threshold=0.5, left_value=-1.0, right_value=2.0)
+    _write_gbdt_model(weights_dir / "meta_alpha.json", 2, feature_version(), trees=[tree, tree],
+                       learning_rate=0.5, init_score=1.0)
+    monkeypatch.setattr(clone_policy, "_weights_dir", lambda: weights_dir)
+
+    scores = clone_policy.score_options([[1.0, 0.0]], "meta_alpha")
+
+    # init_score 1.0 + 0.5 * (2.0 + 2.0) == 3.0
+    assert scores == pytest.approx([3.0])
+
+
+def test_score_options_gbdt_none_on_malformed_tree_arrays(tmp_path, monkeypatch):
+    from agents.imitation_features import feature_version
+    weights_dir = tmp_path / "clone_weights"
+    weights_dir.mkdir()
+    bad_tree = {"feature": [0, -2, -2], "threshold": [0.5, -2.0], "left": [1, -1, -1],
+                "right": [2, -1, -1], "value": [0.0, -1.0, 2.0]}  # threshold too short
+    _write_gbdt_model(weights_dir / "meta_alpha.json", 2, feature_version(), trees=[bad_tree])
+    monkeypatch.setattr(clone_policy, "_weights_dir", lambda: weights_dir)
+
+    assert clone_policy.score_options([[0.0, 0.0]], "meta_alpha") is None
+
+
+def test_choose_index_picks_the_highest_scoring_gbdt_option(tmp_path, monkeypatch):
+    from agents.imitation_features import feature_version
+    weights_dir = tmp_path / "clone_weights"
+    weights_dir.mkdir()
+    tree = _single_split_tree(feature_idx=0, threshold=0.5, left_value=-1.0, right_value=2.0)
+    _write_gbdt_model(weights_dir / "meta_alpha.json", 2, feature_version(), trees=[tree])
+    monkeypatch.setattr(clone_policy, "_weights_dir", lambda: weights_dir)
+
+    rows = [[0.0, 0.0], [1.0, 0.0], [0.0, 0.0]]
+    assert clone_policy.choose_index(rows, "meta_alpha") == 1
 
 
 def test_choose_index_picks_the_highest_scoring_option(tmp_path, monkeypatch):

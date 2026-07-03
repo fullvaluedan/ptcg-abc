@@ -10,6 +10,7 @@ tools/train_move_prior.py already proved search/move_prior.py can load.
 import json
 
 import numpy as np
+import pytest
 
 from agents.imitation_features import FEATURE_NAMES, feature_version
 from tools import train_clone as TC
@@ -157,6 +158,107 @@ def test_export_round_trip_writes_loadable_payload(tmp_path):
     assert len(payload["std"]) == len(FEATURE_NAMES)
     assert len(payload["coef"]) == len(FEATURE_NAMES)
     assert isinstance(payload["intercept"], float)
+
+
+def test_train_family_tree_recovers_planted_preference_and_beats_first_legal_baseline():
+    train_groups = _planted_groups("meta_alpha", n_groups=200, split="train", seed=0)
+    test_groups = _planted_groups("meta_alpha", n_groups=60, split="test", seed=1)
+
+    result = TC.train_family_tree(train_groups + test_groups, "meta_alpha")
+
+    assert result is not None
+    assert result["model_kind"] == "tree"
+    assert result["n_scored"] > 0
+    assert (result["accuracy"] - result["baseline"]) > 0.3  # the signal is perfectly separable
+
+
+def test_train_family_tree_returns_none_without_train_or_test_rows():
+    train_only = _planted_groups("meta_alpha", n_groups=10, split="train", seed=0)
+    test_only = _planted_groups("meta_alpha", n_groups=10, split="test", seed=0)
+
+    assert TC.train_family_tree(test_only, "meta_alpha") is None
+    assert TC.train_family_tree(train_only, "meta_alpha") is None
+
+
+def test_train_family_best_returns_none_when_neither_kind_trains():
+    groups = _planted_groups("meta_alpha", n_groups=10, split="test", seed=0)
+
+    assert TC.train_family_best(groups, "meta_alpha") is None
+
+
+def test_train_family_best_picks_the_larger_margin_and_keeps_the_loser_as_other(monkeypatch):
+    linear_result = {"model_kind": "linear", "accuracy": 0.5, "baseline": 0.5, "n_scored": 50,
+                      "n_train": 100, "n_test": 50}
+    tree_result = {"model_kind": "tree", "accuracy": 0.9, "baseline": 0.5, "n_scored": 50,
+                   "n_train": 100, "n_test": 50}
+    monkeypatch.setattr(TC, "train_family", lambda groups, family: dict(linear_result))
+    monkeypatch.setattr(TC, "train_family_tree", lambda groups, family: dict(tree_result))
+
+    best = TC.train_family_best([], "meta_alpha")
+
+    assert best["model_kind"] == "tree"
+    assert best["other"]["model_kind"] == "linear"
+
+
+def test_train_family_best_keeps_linear_on_a_tied_margin(monkeypatch):
+    linear_result = {"model_kind": "linear", "accuracy": 0.7, "baseline": 0.5, "n_scored": 50,
+                      "n_train": 100, "n_test": 50}
+    tree_result = {"model_kind": "tree", "accuracy": 0.7, "baseline": 0.5, "n_scored": 50,
+                   "n_train": 100, "n_test": 50}
+    monkeypatch.setattr(TC, "train_family", lambda groups, family: dict(linear_result))
+    monkeypatch.setattr(TC, "train_family_tree", lambda groups, family: dict(tree_result))
+
+    best = TC.train_family_best([], "meta_alpha")
+
+    assert best["model_kind"] == "linear"
+    assert best["other"]["model_kind"] == "tree"
+
+
+def test_train_family_best_falls_back_to_whichever_kind_trained(monkeypatch):
+    tree_result = {"model_kind": "tree", "accuracy": 0.9, "baseline": 0.5, "n_scored": 50,
+                   "n_train": 100, "n_test": 50}
+    monkeypatch.setattr(TC, "train_family", lambda groups, family: None)
+    monkeypatch.setattr(TC, "train_family_tree", lambda groups, family: dict(tree_result))
+
+    best = TC.train_family_best([], "meta_alpha")
+
+    assert best["model_kind"] == "tree"
+    assert best["other"] is None
+
+
+def test_export_tree_model_round_trip_matches_sklearn_decision_function(tmp_path):
+    train_groups = _planted_groups("meta_alpha", n_groups=200, split="train", seed=7)
+    test_groups = _planted_groups("meta_alpha", n_groups=40, split="test", seed=8)
+    result = TC.train_family_tree(train_groups + test_groups, "meta_alpha")
+    X_test, y_test, gid_test = TC.rows_for_family(test_groups, "meta_alpha", split="test")
+
+    model_path = tmp_path / "meta_alpha.json"
+    TC.export_tree_model(result["model"], FEATURE_NAMES, model_path)
+    payload = json.loads(model_path.read_text())
+
+    assert payload["model_type"] == "gbdt"
+    assert payload["feature_names"] == list(FEATURE_NAMES)
+    assert payload["feature_version"] == list(feature_version())
+    assert len(payload["trees"]) == result["model"].n_estimators_
+
+    from agents import clone_policy
+    clone_policy._models.clear()
+    weights_dir = tmp_path
+    import shutil
+    (weights_dir / "clone_weights").mkdir()
+    shutil.copy(model_path, weights_dir / "clone_weights" / "meta_alpha.json")
+    import agents.clone_policy as cp
+    orig = cp._weights_dir
+    cp._weights_dir = lambda: weights_dir / "clone_weights"
+    try:
+        expected = result["model"].decision_function(X_test)
+        scored = cp.score_options(X_test.tolist(), "meta_alpha")
+        assert scored is not None
+        for got, want in zip(scored, expected):
+            assert got == pytest.approx(want, abs=1e-9)
+    finally:
+        cp._weights_dir = orig
+        cp._models.clear()
 
 
 def test_main_exports_only_qualifying_families(tmp_path):
