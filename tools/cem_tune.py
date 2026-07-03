@@ -254,6 +254,23 @@ def _parse_evaluator_output(out):
     raise ValueError("evaluator produced no parseable JSON output")
 
 
+def evaluate_raw(vector, spec, python=None, runner=None):
+    """Score one real weight vector, returning the raw {win_rate, agreement} dict.
+
+    Same env-baked subprocess path `evaluate_vector` uses, without folding the
+    two signals into one fitness scalar first. A held-out gate
+    (`tools/cem_held_out_gate.py`) needs the agreement number itself, not an
+    average with win rate, since only agreement has a genuine train/test split
+    concept (KTD1/KTD4; `analysis/cem_run_prio_pooled.md`). `runner` defaults to
+    the real subprocess and is injectable for tests.
+    """
+    env = dict(os.environ)
+    env.update(ws.vector_to_env(vector))
+    runner = runner or _run_evaluator
+    out = runner(env, json.dumps(spec), python or sys.executable)
+    return _parse_evaluator_output(out)
+
+
 def evaluate_vector(vector, spec, python=None, runner=None):
     """Score one real weight vector by spawning a fresh, env-baked evaluator.
 
@@ -263,11 +280,7 @@ def evaluate_vector(vector, spec, python=None, runner=None):
     number via aggregate_fitness. `runner` defaults to the real subprocess and is
     injectable for tests.
     """
-    env = dict(os.environ)
-    env.update(ws.vector_to_env(vector))
-    runner = runner or _run_evaluator
-    out = runner(env, json.dumps(spec), python or sys.executable)
-    data = _parse_evaluator_output(out)
+    data = evaluate_raw(vector, spec, python=python, runner=runner)
     return aggregate_fitness(
         data.get("win_rate"),
         data.get("agreement"),
