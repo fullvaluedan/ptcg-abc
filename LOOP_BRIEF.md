@@ -34,61 +34,63 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
       outside the M=60 band; a mandatory per-iteration auto-settlement step (compute band position from the
       board and EXECUTE the pre-registered action, no prose interpretation) should be added to
       tools/loop_state.py as a small unit.
-  L3. DONE with an honest FAIL: the top-20 clone ring (U70-U74) failed calibration (tau 0.429 < 0.7; clones
-      could not beat first-legal). Verdict recorded; the ring has NO gate authority. Two diagnoses feed the
-      next units: (a) top-20 play is too subtle for shallow imitation, and (b) top-20 was the WRONG BRACKET
-      anyway: matchmaking pairs us with the ~450-750-rated field, so the sparring ring must model the
-      opponents we actually face, not the champions.
-  L4. U80 DAILY DATA REFRESH (new, cheap, do FIRST): Kaggle publishes an episode dump EVERY DAY (dataset
-      slugs kaggle/pokemon-tcg-ai-battle-episodes-YYYY-MM-DD; an -index dataset updates nightly). Build
-      tools/daily_refresh.py: find + download the newest dump (skip if already present), re-run the
-      top-player tracker on it, pull OUR own fresh ladder replays (tools/harvest_replays.py), and re-run
-      analysis/loss_classifier.py on the CURRENT king's real recent losses; write the ranked loss buckets to
-      state/current.md. The current top leak, measured on live games AFTER the ability change, is the single
-      most valuable number for choosing the next lever. Then wire the refresh into the loop as an
-      every-Nth-iteration step. Stay isolated: dumps live in gitignored data/episodes/.
-  L5. U81 BRACKET RING: rebuild the practice ring from the field we ACTUALLY face: from the fresh dumps,
-      select games whose teams sit in the ~450-750 leaderboard band (plus every opponent named in our own
-      143+ ladder replays), harvest their decks, and pilot them with simple models of THEIR play (these
-      weaker bots are far easier to imitate than the top 20). Recalibrate with the U73 tool against our
-      >=6 settled builds (569.6 > 554.5 > 514.7 > 510.1 > 452.2 > 387.0): tau >= 0.7 grants gate authority,
-      else record the FAIL and the ladder stays sole judge. A ring that predicts OUR bracket is the missing
-      instrument for every offline decision.
-  L6. U82 CATEGORY MINING v2 (the one method that already paid: it found the 0/554 ability gap): mine the
-      top-player corpora for CONDITIONAL category gaps vs our pilot: energy-attach target choice (active vs
-      which bench), retreat timing, deck-search picks (what they fetch with ball/search effects), supporter
-      choice by game state, promote choice after a knockout. Each confirmed gap becomes a flag-gated rule in
-      agents/heuristics.py (mirror PTCG_ABILITY), offline-checked, then pre-registered for a ladder A/B only
-      if the bracket ring (if calibrated) or a large offline effect supports it.
-  L7. U83 TEACHER-STUDENT DISTILL (the expedite engine; uses the 20-core parallel gauntlet): run the full
-      search stack (learned eval + move prior + confidence time allocation, all gates green) as an offline
-      TEACHER at generous per-move budgets over thousands of self-play + bracket-ring games on OUR deck;
-      log its chosen moves; distill them into the SHIPPED heuristic's tunable genome (PRIO weights + the U82
-      rule flags) via CEM fit to teacher agreement + ring win rate. The teacher never ships (too slow, no
-      grader risk); only the distilled weights do, through the normal gates. This converts raw simulation
-      volume into shipped-pilot improvement without depending on thin top-player labels.
+  L3. DONE with an honest FAIL, then SUPERSEDED: the top-20 clone ring (U70-U74) failed calibration
+      (tau 0.429 < 0.7; clones could not beat first-legal). Verdict recorded; that ring had NO gate
+      authority. Two diagnoses fed L5, below, which fixed diagnosis (b) directly: top-20 was the WRONG
+      BRACKET (matchmaking pairs us with the ~450-750-rated field, not the champions).
+  L4. DONE 2026-07-03: tools/daily_refresh.py built and wired into the loop as an every-Nth-iteration step
+      (find/download the newest daily dump, re-run the top-player tracker, pull fresh ladder replays,
+      recompute the loss distribution into state/current.md). Current read (224 usable replays,
+      post-ability-change): early_collapse still the #1 loss bucket, 60/125 losses (48%), well ahead of
+      bad_determinization (22), deck_matchup (20), deckout (17), endgame_misplay (6). Re-run this
+      periodically via the wired step; do not re-derive it by hand (see STOP re-deriving rule below).
+  L5. DONE 2026-07-03, PASS: the bracket ring (U81) rebuilt the practice ring from the ~450-750 rating
+      band we actually face (tools/bracket_select.py, tools/bracket_decks.py) instead of the top-20.
+      Recalibrated with the U73 tool against all 6 settled builds: tau = 0.857 (>= 0.7), 6/6 covered
+      (analysis/ring_calibration.md). This ring now HAS gate authority for future TRACK L candidates
+      (never retroactive). U74 already used it once: re-graded the staged ability build, ring agrees
+      with the offline gauntlet's direction (+20.0pp at n=20/arm vs the gauntlet's +4.0pp;
+      analysis/ability_ring_check.md). Use `tools/ring_calibrate.py` / `tools/ability_ring_check.py` as
+      the template for gating the next candidate this ring produces.
+  L6. DONE 2026-07-03, MINED OUT: U82 category mining v2 checked every named conditional-gap candidate
+      (energy-attach target, retreat timing/target, deck-search picks, promote choice) against the
+      top-player corpus. Result: no further single-field shippable gap found. Retreat-target and
+      promote-after-knockout matchup theories were each refuted twice, from two different angles
+      (analysis/retreat_gap_conditional.md, analysis/promote_gap_conditional.md); deck-search picks are
+      category-explained, not a pilot gap. All threads converge on the SAME missing capability: game-plan
+      / archetype awareness. TRACK S already tested exactly that (U9a/U9b, see below) and it failed its
+      gate at n=140 -- so this specific lever is closed for now, not just unexplored. Do not re-run U82's
+      single-field miners again without a genuinely new category to check (mirrors the early_collapse
+      STOP rule).
+  L7. NEXT TRACK L ACTION (not yet started): U83 TEACHER-STUDENT DISTILL (the expedite engine; uses the
+      20-core parallel gauntlet). Run the full search stack (learned eval + move prior + confidence time
+      allocation, all gates green) as an offline TEACHER at generous per-move budgets over thousands of
+      self-play + bracket-ring games on OUR deck; log its chosen moves; distill them into the SHIPPED
+      heuristic's tunable genome (PRIO weights + the U82 rule flags, none of which had a live gap to flip
+      right now, so this is a genome-tuning distillation rather than a new flag) via CEM fit to teacher
+      agreement + the now-calibrated L5 ring win rate. The teacher never ships (too slow, no grader risk);
+      only the distilled weights do, through the normal gates. This is the next real TRACK L prep unit
+      while both ladder slots are occupied (settle-by 2026-07-08).
   L8. Standing: each shipped-path candidate that survives its gate gets a pre-registered ladder A/B; slot
       discipline and the M=60 protocol unchanged; the Aug 10-16 endgame noise campaign stays booked.
 
 ### TRACK S (STRATEGY prize = the $30k model-approach award; offline; NEVER claims ladder progress)
 U60-U65, the Phase A DoD, and U8 (U8a/U8b/U8c) are all DONE as of 019dfa2 (move-prior default flipped on after
-its gauntlet A/B: 68.5% vs 63.5%, +5.00pp). NEXT IS U9a, per
-docs/plans/2026-07-03-addendum-u9-archetype-detection-v1.md (U9's own "matchup-specific heuristics already
-scaffolded in analysis/archetype.py" turned out not to exist: the only pre-reveal scaffolding is one hardcoded
-fallback decklist guess, `_field_default_decklist()`; and "early-game observable features" like bench
-composition/energy types are not captured anywhere yet, same gap shape U8 had. The addendum found the ground
-truth label already exists for free though: analysis/opponent_archetype.py's archetype_label() over a whole
-finished replay, so U9a is a distillation-style data unit, not a fresh labeling scheme. It also found the real
-ladder replay data (143 files) is long-tailed across 20+ archetypes at n=140 usable games, so U9a must collapse
-rare labels into an "other" bucket, mirroring tools/archetype_select.py's own MIN_GAMES/OTHER pattern). Order:
-U9a (early-turn feature capture + silver-label rows) then U9b (train + export analysis/archetype_prior.json)
-then U9c (pure-Python scorer wired into archetype.py's pre-reveal fallback behind PTCG_ARCHETYPE_PRIOR + 400-game
-gauntlet A/B gate), then U11, U12 (U10 already superseded by U62/U63). This work is real and on-target FOR THAT
-PRIZE. It does NOT move the ladder as shipped, so it may NEVER be logged as ladder progress and NEVER spends a
-ladder slot unless first wired into a SHIPPED agent and PROVEN >569.6 offline. Specs:
-docs/plans/2026-07-02-combined-learned-eval-plan-v2.md,
+its gauntlet A/B: 68.5% vs 63.5%, +5.00pp). U9a/U9b are ALSO DONE (2026-07-03, 4ec3de6/17a2a22): U9a captured
+early-turn features + silver labels (n=140 usable ladder games, long-tailed, collapsed to top-6-plus-other per
+plan); U9b trained the classifier and recorded an honest gate FAIL (mean held-out margin +0.043 vs the required
++0.050, analysis/archetype_prior_train.md). Per the addendum's own discipline, U9c does NOT wire an unproven
+model into search; no analysis/archetype_prior.json was exported. U11 (eval_blend_sweep) and U12
+(confidence-based time allocation, gate PASSED, default on, 0deba9d) are ALSO already done, predating this
+brief revision. So the entire U8-U12 roadmap from both plans is now COMPLETE, with two real negative results
+(U9b) documented rather than forced through.
+NEXT FOR TRACK S: no further coded units are defined without a weekly plan review (PLAN FREEZE below), so the
+standing WRITEUP cadence is the live TRACK S action -- fold in the L5 bracket-ring PASS (it directly reverses
+docs/writeup/offline_ladder_transfer.md's current "three failures, no working proxy" bottom line into a fourth,
+successful attempt) and the U82 mining-closure story. Do not restart U9a/U9b/U9c or U11/U12; they are settled.
+Specs: docs/plans/2026-07-02-combined-learned-eval-plan-v2.md,
 docs/plans/2026-07-03-addendum-u9-archetype-detection-v1.md, and
-docs/plans/2026-07-02-003-feat-offline-match-scale-topplayer-mining-plan.md.
+docs/plans/2026-07-02-003-feat-offline-match-scale-topplayer-mining-plan.md (all fully executed).
 
 ### Standing calendar and writeup rules (from the 2026-07-03 report card)
 - PLAN FREEZE: this two-track brief is the regime until 16 Aug; no new plan documents or re-pointings
@@ -96,9 +98,13 @@ docs/plans/2026-07-02-003-feat-offline-match-scale-topplayer-mining-plan.md.
   may iterate freely (its experiments settle in hours).
 - WRITEUP IS FIRST-CLASS, STARTING NOW: roughly every 6th iteration advances docs/writeup/ (the Strategy
   prize is 70% model approach). The differentiated story to assemble from existing analysis/: machine-
-  enforced pre-registration, the quantified same-build noise model, the HONEST 0-for-5 offline-to-ladder
-  transfer record with the mirror-pool diagnosis, the 173k-row top-player mining + win/loss study, and (once
-  U73 lands) the calibrated clone ring closing the loop. Every claim cites a committed analysis file.
+  enforced pre-registration, the quantified same-build noise model, the offline-to-ladder transfer record
+  (three named failures with diagnoses, THEN the L5 bracket ring PASS at tau 0.857 once the opponent pool
+  was fixed to match our actual bracket, analysis/ring_calibration.md), the 173k-row top-player mining +
+  win/loss study, and the U82 category-mining closure (every named conditional gap checked, converging on
+  archetype awareness, which U9b's own honest gate FAIL then closed). Every claim cites a committed analysis
+  file. docs/writeup/offline_ladder_transfer.md still ends on the stale "no working proxy" framing as of
+  2026-07-03 and needs its Attempt 4 + bottom-line sections updated to match.
 - ENDGAME CAMPAIGN (calendar: 2026-08-10 to 08-16): reinstate the latest-2 noise campaign (unified plan
   U48): freeze the best build, then spend the full daily quota resubmitting it with an optimal-stopping rule
   against latest-2 scoring semantics (same-build spread is ~90-130 points, wider than any lever we have, so
@@ -126,9 +132,10 @@ docs/plans/2026-07-02-003-feat-offline-match-scale-topplayer-mining-plan.md.
 
 ## EACH ITERATION (one increment, then stop)
 1. git log --oneline to find the last completed unit, then pick per the TWO-TRACK RESUME STATE above: if a
-   ladder slot is free and a TRACK L action (L1 ability A/B, L2 settle trolley_thick, L3 shipped tuning) is
-   ready, do TRACK L; otherwise prep the next TRACK L step offline and/or advance TRACK S (U9a, U9b, U9c, then
-   U11, U12 on feat/phase3-followon). TRACK L is the rank lever; TRACK S is the Strategy-prize deliverable.
+   ladder slot is free and a TRACK L action is ready, do TRACK L; otherwise prep the next TRACK L step offline
+   (L7 U83 teacher-student distill is next, undone) and/or advance TRACK S (U8-U12 are all done; the writeup
+   cadence is the live TRACK S action, see TRACK S section above). TRACK L is the rank lever; TRACK S is the
+   Strategy-prize deliverable.
 2. Implement the NEXT undone unit exactly as the plan specifies. Mirror existing patterns in src/, agents/, search/, tools/.
 3. Write or update that unit's tests. Run python -m pytest tests -q. Must pass before committing.
 4. Review your own diff; apply only safe, verified fixes.
