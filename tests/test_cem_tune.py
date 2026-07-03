@@ -245,6 +245,64 @@ def test_internal_evaluate_skips_unrequested_signals():
     assert ct._internal_evaluate({}) == {"win_rate": None, "agreement": None}
 
 
+def test_internal_evaluate_ring_matches_scores_via_the_bracket_ring(monkeypatch):
+    import tools.gauntlet as gauntlet
+    import tools.ring_calibrate as ring_calibrate
+
+    seen = {}
+
+    def fake_ring_names():
+        return ["clone:family_a", "clone:family_b"]
+
+    def fake_run_gauntlet(agent_name, opponent_names, n):
+        seen["agent_name"] = agent_name
+        seen["opponent_names"] = list(opponent_names)
+        seen["n"] = n
+        return {"win_rate": 0.75}
+
+    monkeypatch.setattr(ring_calibrate, "ring_names", fake_ring_names)
+    monkeypatch.setattr(gauntlet, "run_gauntlet", fake_run_gauntlet)
+
+    out = ct._internal_evaluate({"ring_matches": 12})
+    assert out == {"win_rate": 0.75, "agreement": None}
+    assert seen == {
+        "agent_name": "heuristic",
+        "opponent_names": ["clone:family_a", "clone:family_b"],
+        "n": 12,
+    }
+
+
+def test_internal_evaluate_ring_matches_takes_priority_over_pool_matches(monkeypatch):
+    # Both given: the ring (L5-calibrated) wins; the diverse pool is not touched.
+    import tools.gauntlet as gauntlet
+    import tools.opponents as opponents
+    import tools.ring_calibrate as ring_calibrate
+
+    monkeypatch.setattr(ring_calibrate, "ring_names", lambda: ["clone:family_a"])
+
+    def boom(*a, **k):
+        raise AssertionError("diverse pool should not run when ring_matches is set")
+
+    monkeypatch.setattr(opponents, "pool", boom)
+
+    def fake_run_gauntlet(agent_name, opponent_names, n):
+        return {"win_rate": 0.6}
+
+    monkeypatch.setattr(gauntlet, "run_gauntlet", fake_run_gauntlet)
+
+    out = ct._internal_evaluate({"ring_matches": 5, "pool_matches": 40})
+    assert out["win_rate"] == 0.6
+
+
+def test_internal_evaluate_ring_matches_none_when_ring_is_empty(monkeypatch):
+    import tools.ring_calibrate as ring_calibrate
+
+    monkeypatch.setattr(ring_calibrate, "ring_names", lambda: [])
+
+    out = ct._internal_evaluate({"ring_matches": 5})
+    assert out == {"win_rate": None, "agreement": None}
+
+
 def _stub_replay_channel(monkeypatch, split_map):
     """Canned load/score/split so the agreement branch runs without the engine.
 

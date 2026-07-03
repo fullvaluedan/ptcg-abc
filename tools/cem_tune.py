@@ -2,9 +2,11 @@
 
 OFFLINE ONLY. Never bundled into a submission. This is the engine's first real
 gear: it searches the weight vector named in tools/weight_space.py with the
-Cross-Entropy Method, scoring each candidate by how well it BEATS THE DIVERSE
-POOL (tools/opponents.pool, plan U4) and MATCHES THE TOP PLAYERS' MOVES
-(analysis/move_ranking_validator, plan U5), never by beating itself. Its output
+Cross-Entropy Method, scoring each candidate by how well it BEATS AN OPPONENT
+FIELD (tools/opponents.pool, plan U4, or --ring-matches for the calibrated L5
+bracket ring, tools/ring_calibrate.py, plan U73/U81) and MATCHES THE TOP
+PLAYERS' MOVES (analysis/move_ranking_validator, plan U5, or --teacher-labels
+for the U83 self-play teacher corpus), never by beating itself. Its output
 is a small env-override map (weight_space.vector_to_env) staged for the sole
 arbiter, the live ladder A/B via tools/build_submission.py --env (KTD1, KTD4).
 Offline win rate is a FILTER; the ladder decides.
@@ -294,27 +296,44 @@ def subprocess_fitness(spec, python=None):
 def _internal_evaluate(spec):
     """Run the requested offline filters in THIS (env-baked) process, return dict.
 
-    `pool_matches` > 0 runs the gauntlet as the heuristic pilot against the U4
-    diverse pool (falling back to the built-in heuristic if the pool is empty).
+    `ring_matches` > 0 runs the gauntlet as the heuristic pilot against the L5
+    top-player bracket ring (tools.ring_calibrate.ring_names, calibrated tau
+    0.857, analysis/ring_calibration.md) instead of the U4 diverse pool: this is
+    the "now-calibrated L5 ring win rate" signal U83's distill fitness fits
+    against. When `ring_matches` is not given, `pool_matches` > 0 falls back to
+    the older diverse-pool gauntlet (falling back to the built-in heuristic if
+    the pool is empty) for callers that have not moved to the ring yet.
     `replays` runs the U5 move-ranking validator over that dataset for the pilot;
     if `replays` is absent, `teacher_labels` (a U83 self-play JSONL file or dir)
     is scored instead via `analysis.teacher_labels.agreement`, the same {"n",
     "agree", "agreement"} shape, so a run can fit against the much larger
     teacher-self-play sample when the real-ladder replay sample is not given.
-    Both are optional; a caller can score on one signal alone. Defensive: a
+    Every signal is optional; a caller can score on one alone. Defensive: a
     component that raises reports None rather than aborting.
     """
     win_rate = None
-    n = int(spec.get("pool_matches", 0) or 0)
-    if n > 0:
+    ring_n = int(spec.get("ring_matches", 0) or 0)
+    if ring_n > 0:
         try:
             from tools.gauntlet import run_gauntlet
-            from tools import opponents
+            from tools import ring_calibrate
 
-            pool = opponents.pool() or ["heuristic"]
-            win_rate = run_gauntlet("heuristic", pool, n)["win_rate"]
+            ring = ring_calibrate.ring_names()
+            if ring:
+                win_rate = run_gauntlet("heuristic", ring, ring_n)["win_rate"]
         except Exception:
             win_rate = None
+    else:
+        n = int(spec.get("pool_matches", 0) or 0)
+        if n > 0:
+            try:
+                from tools.gauntlet import run_gauntlet
+                from tools import opponents
+
+                pool = opponents.pool() or ["heuristic"]
+                win_rate = run_gauntlet("heuristic", pool, n)["win_rate"]
+            except Exception:
+                win_rate = None
 
     agreement = None
     replays = spec.get("replays")
@@ -371,6 +390,7 @@ def _internal_evaluate(spec):
 def _run_cem(args) -> int:
     spec = {
         "pool_matches": args.pool_matches,
+        "ring_matches": args.ring_matches,
         "replays": args.replays,
         "teacher_labels": args.teacher_labels,
         "limit": args.limit,
@@ -437,7 +457,17 @@ def main(argv=None) -> int:
         dest="pool_matches",
         type=int,
         default=40,
-        help="gauntlet matches vs the U4 diverse pool per candidate (0 to skip)",
+        help="gauntlet matches vs the U4 diverse pool per candidate (0 to skip); "
+        "ignored when --ring-matches is set",
+    )
+    ap.add_argument(
+        "--ring-matches",
+        dest="ring_matches",
+        type=int,
+        default=0,
+        help="gauntlet matches vs the calibrated L5 bracket ring (tools.ring_"
+        "calibrate) per candidate; takes priority over --pool-matches when > 0 "
+        "(U83 distill fitness)",
     )
     ap.add_argument(
         "--replays",
