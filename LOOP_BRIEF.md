@@ -34,17 +34,41 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
       outside the M=60 band; a mandatory per-iteration auto-settlement step (compute band position from the
       board and EXECUTE the pre-registered action, no prose interpretation) should be added to
       tools/loop_state.py as a small unit.
-  L3. BUILD THE CALIBRATED CLONE RING (U70-U74, docs/plans/2026-07-03-002-feat-top-player-clone-ring-plan.md):
-      opponent bots cloned from the top-20 teams' recorded play, each piloting that team's harvested deck,
-      then a CALIBRATION gate (U73) that must retrodict our known ladder ordering (correlation >= 0.7) before
-      the ring replaces the mirror pool as the offline gate. This is the fix for the audited 0-for-4
-      offline-to-ladder transfer failure; it outranks all other offline work after L1/L2 because every future
-      slot decision depends on a gate that actually predicts the ladder. One unit per iteration:
-      U70 dataset -> U71 train+qualify -> U72 clone:<family> opponents -> U73 calibrate -> U74 re-gate the
-      live levers. Clone bots never ship, so no grader constraints apply to them.
-  L4. After the ring passes (or honestly fails) U73: tune the SHIPPED heuristic + deck only, each candidate
-      gated on beating the king against the RING (if calibrated) before a slot; if the ring fails
-      calibration, record it and fall back to ladder-only judgment with strict slot discipline.
+  L3. DONE with an honest FAIL: the top-20 clone ring (U70-U74) failed calibration (tau 0.429 < 0.7; clones
+      could not beat first-legal). Verdict recorded; the ring has NO gate authority. Two diagnoses feed the
+      next units: (a) top-20 play is too subtle for shallow imitation, and (b) top-20 was the WRONG BRACKET
+      anyway: matchmaking pairs us with the ~450-750-rated field, so the sparring ring must model the
+      opponents we actually face, not the champions.
+  L4. U80 DAILY DATA REFRESH (new, cheap, do FIRST): Kaggle publishes an episode dump EVERY DAY (dataset
+      slugs kaggle/pokemon-tcg-ai-battle-episodes-YYYY-MM-DD; an -index dataset updates nightly). Build
+      tools/daily_refresh.py: find + download the newest dump (skip if already present), re-run the
+      top-player tracker on it, pull OUR own fresh ladder replays (tools/harvest_replays.py), and re-run
+      analysis/loss_classifier.py on the CURRENT king's real recent losses; write the ranked loss buckets to
+      state/current.md. The current top leak, measured on live games AFTER the ability change, is the single
+      most valuable number for choosing the next lever. Then wire the refresh into the loop as an
+      every-Nth-iteration step. Stay isolated: dumps live in gitignored data/episodes/.
+  L5. U81 BRACKET RING: rebuild the practice ring from the field we ACTUALLY face: from the fresh dumps,
+      select games whose teams sit in the ~450-750 leaderboard band (plus every opponent named in our own
+      143+ ladder replays), harvest their decks, and pilot them with simple models of THEIR play (these
+      weaker bots are far easier to imitate than the top 20). Recalibrate with the U73 tool against our
+      >=6 settled builds (569.6 > 554.5 > 514.7 > 510.1 > 452.2 > 387.0): tau >= 0.7 grants gate authority,
+      else record the FAIL and the ladder stays sole judge. A ring that predicts OUR bracket is the missing
+      instrument for every offline decision.
+  L6. U82 CATEGORY MINING v2 (the one method that already paid: it found the 0/554 ability gap): mine the
+      top-player corpora for CONDITIONAL category gaps vs our pilot: energy-attach target choice (active vs
+      which bench), retreat timing, deck-search picks (what they fetch with ball/search effects), supporter
+      choice by game state, promote choice after a knockout. Each confirmed gap becomes a flag-gated rule in
+      agents/heuristics.py (mirror PTCG_ABILITY), offline-checked, then pre-registered for a ladder A/B only
+      if the bracket ring (if calibrated) or a large offline effect supports it.
+  L7. U83 TEACHER-STUDENT DISTILL (the expedite engine; uses the 20-core parallel gauntlet): run the full
+      search stack (learned eval + move prior + confidence time allocation, all gates green) as an offline
+      TEACHER at generous per-move budgets over thousands of self-play + bracket-ring games on OUR deck;
+      log its chosen moves; distill them into the SHIPPED heuristic's tunable genome (PRIO weights + the U82
+      rule flags) via CEM fit to teacher agreement + ring win rate. The teacher never ships (too slow, no
+      grader risk); only the distilled weights do, through the normal gates. This converts raw simulation
+      volume into shipped-pilot improvement without depending on thin top-player labels.
+  L8. Standing: each shipped-path candidate that survives its gate gets a pre-registered ladder A/B; slot
+      discipline and the M=60 protocol unchanged; the Aug 10-16 endgame noise campaign stays booked.
 
 ### TRACK S (STRATEGY prize = the $30k model-approach award; offline; NEVER claims ladder progress)
 U60-U65, the Phase A DoD, and U8 (U8a/U8b/U8c) are all DONE as of 019dfa2 (move-prior default flipped on after
