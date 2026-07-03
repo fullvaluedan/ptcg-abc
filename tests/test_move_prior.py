@@ -50,7 +50,29 @@ def teardown_function(_fn):
     _reset_cache()
 
 
-def test_score_options_loads_committed_model_and_returns_one_score_per_row():
+def _write_current_model(path):
+    # A model at the CURRENT feature_version, standing in for a freshly retrained
+    # search/move_prior.json. The real committed file goes stale on any featurizer
+    # change (U71's opt_index_norm/opt_is_first addition bumped FEATURE_VERSION to
+    # "2") until tools/train_move_prior.py is rerun on freshly regenerated move-rows
+    # data; tests exercise the loader/scorer contract against a synthetic model
+    # instead of depending on that retrain having already happened.
+    path.write_text(json.dumps({
+        "feature_names": list(IF.FEATURE_NAMES),
+        "feature_version": list(IF.feature_version()),
+        "mean": [0.0] * N_FEATURES,
+        "std": [1.0] * N_FEATURES,
+        "coef": [1.0] * N_FEATURES,
+        "intercept": 0.0,
+    }))
+
+
+def test_score_options_loads_current_model_and_returns_one_score_per_row(tmp_path, monkeypatch):
+    model_path = tmp_path / "move_prior.json"
+    _write_current_model(model_path)
+    monkeypatch.setattr(move_prior, "_model_path", lambda: model_path)
+    _reset_cache()
+
     options = [_opt(H.OPT_END), _opt(H.OPT_RETREAT), _opt(H.OPT_ATTACK, attackId=1)]
     rows = IF.decision_features(_obs(options))
 
@@ -61,15 +83,40 @@ def test_score_options_loads_committed_model_and_returns_one_score_per_row():
     assert all(isinstance(s, float) for s in scores)
 
 
-def test_score_options_is_deterministic():
+def test_score_options_is_deterministic(tmp_path, monkeypatch):
+    model_path = tmp_path / "move_prior.json"
+    _write_current_model(model_path)
+    monkeypatch.setattr(move_prior, "_model_path", lambda: model_path)
+    _reset_cache()
+
     options = [_opt(H.OPT_END), _opt(H.OPT_PLAY)]
     rows = IF.decision_features(_obs(options))
 
     assert move_prior.score_options(rows) == move_prior.score_options(rows)
 
 
-def test_score_options_none_for_empty_rows():
+def test_score_options_none_for_empty_rows(tmp_path, monkeypatch):
+    model_path = tmp_path / "move_prior.json"
+    _write_current_model(model_path)
+    monkeypatch.setattr(move_prior, "_model_path", lambda: model_path)
+    _reset_cache()
+
     assert move_prior.score_options([]) == []
+
+
+def test_committed_model_is_stale_after_featurizer_bump():
+    # Documents the known, safe consequence of U71's featurizer fix: the real
+    # committed search/move_prior.json was trained under feature_version ("1", ...)
+    # and now mismatches feature_version() ("2", ...), so it falls back to None
+    # (never raises, never scores against the wrong feature layout) until
+    # tools/train_move_prior.py is rerun on regenerated move-rows data. If this
+    # assertion ever fails, the model has been retrained -- delete this test and
+    # restore real scoring coverage in the tests above by pointing them at the
+    # committed file instead of a synthetic one.
+    _reset_cache()
+    options = [_opt(H.OPT_END), _opt(H.OPT_RETREAT)]
+    rows = IF.decision_features(_obs(options))
+    assert move_prior.score_options(rows) is None
 
 
 def test_score_options_none_on_row_length_mismatch():

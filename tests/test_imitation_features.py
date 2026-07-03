@@ -36,7 +36,7 @@ def _obs(options, turn=1, your_index=0):
 
 def test_feature_names_pinned():
     assert IF.N_FEATURES == len(IF.FEATURE_NAMES)
-    assert IF.N_FEATURES == 31
+    assert IF.N_FEATURES == 33
     assert IF.FEATURE_NAMES[:7] == (
         "is_play", "is_attach", "is_evolve", "is_ability", "is_retreat", "is_attack", "is_end",
     )
@@ -94,3 +94,27 @@ def test_option_features_marks_the_matching_option_type():
     feats = IF.option_features(obs, obs["select"], 0)
     assert feats[IF._INDEX["is_end"]] == 1.0
     assert feats[IF._INDEX["is_play"]] == 0.0
+
+
+def test_opt_index_features_encode_list_position():
+    options = [_opt(H.OPT_END), _opt(H.OPT_RETREAT), _opt(H.OPT_ATTACK, attackId=1)]
+    obs = _obs(options)
+    first = IF.option_features(obs, obs["select"], 0)
+    middle = IF.option_features(obs, obs["select"], 1)
+    last = IF.option_features(obs, obs["select"], 2)
+
+    assert first[IF._INDEX["opt_is_first"]] == 1.0
+    assert middle[IF._INDEX["opt_is_first"]] == 0.0
+    assert last[IF._INDEX["opt_is_first"]] == 0.0
+
+    assert first[IF._INDEX["opt_index_norm"]] == 0.0
+    assert middle[IF._INDEX["opt_index_norm"]] == 0.5
+    assert last[IF._INDEX["opt_index_norm"]] == 1.0
+
+
+def test_opt_index_norm_zero_for_single_option_group():
+    # option_features works standalone even outside decision_features' >1-option gate.
+    sel = {"option": [_opt(H.OPT_END)]}
+    feats = IF.option_features({"select": sel, "current": {}}, sel, 0)
+    assert feats[IF._INDEX["opt_index_norm"]] == 0.0
+    assert feats[IF._INDEX["opt_is_first"]] == 1.0

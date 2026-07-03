@@ -24,6 +24,12 @@ to main.py in a submission and imports the same way locally):
   category-x-knowledge / timing crosses that address the two categories the spike
   regressed or the heuristic ignores (bench-a-Basic-from-deck for the early_collapse
   bucket, loop-safe once-per-turn ability for the 0-of-649 ABILITY gap, evolve timing).
+- Added by U71's featurizer-gap fix: two option-list-position features
+  (opt_index_norm, opt_is_first). U71 found first-legal (always option 0) beats a
+  content-only ranker on real top-team data because the game engine's option order
+  itself correlates with what strong players pick, and this featurizer had no
+  feature that could see an option's raw position. Without a position feature, no
+  content-based ranker trained on this layout can ever recover that signal.
 
 Only features that VARY within a decision group carry signal in a pairwise ranker
 (a scalar constant across every option cancels in the chosen-minus-other difference
@@ -46,7 +52,7 @@ except ImportError:  # inside a submission, main.py and these sit together
 
 # Bump on ANY change to FEATURE_NAMES or an extractor below. A drift test
 # (tests/test_imitation_features.py) pins this so a featurizer edit is never silent.
-FEATURE_VERSION = "1"
+FEATURE_VERSION = "2"
 
 # The TAG_VOCAB multi-hot needs a deterministic order (TAG_VOCAB is a frozenset).
 # This explicit tuple is that order; a test asserts set(TAG_ORDER) == TAG_VOCAB so a
@@ -92,6 +98,9 @@ FEATURE_NAMES = (
     "play_bench_basic_from_deck",  # develop a Basic out of the deck: early_collapse lever
     "ability_once_per_turn",       # loop-safe ability (the 0-of-649 ABILITY gap)
     "evolve_x_turn",               # evolve timing (spike regressed EVOLVE)
+    # --- U71 featurizer-gap fix: the option's own position in the legal-option list ---
+    "opt_index_norm",              # 0.0 (first) .. 1.0 (last), 0.0 when only one option
+    "opt_is_first",                # 1.0 iff this option is index 0 (the first-legal pick)
 ) + _TAG_FEATURE_NAMES
 N_FEATURES = len(FEATURE_NAMES)
 
@@ -195,6 +204,10 @@ def option_features(obs, sel, opt_index) -> list:
     if not isinstance(opt, dict):
         return feats
     otype = opt.get("type")
+
+    n_opts = len(options)
+    put("opt_index_norm", (opt_index / (n_opts - 1)) if n_opts > 1 else 0.0)
+    put("opt_is_first", opt_index == 0)
 
     is_play = otype == H.OPT_PLAY
     is_attach = otype == H.OPT_ATTACH
