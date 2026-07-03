@@ -136,3 +136,72 @@ large share of the baseline's 43% without yet explaining the full 100%
 top-1 agreement -- the WITHIN-category sub-ordering (e.g. which specific
 card a PLAY-type option's slot 0 refers to) still needs its own look before
 (a) can be called closed.
+
+## Diagnosis (2026-07-03, within-category sub-order): a real seam, not yet
+## exposed to either model -- local rank inside the category block beats
+## global position by a wide margin
+
+Closed the open thread from the prior diagnosis: does the WITHIN-category
+sub-order also collapse to "always first," or does it carry independent
+signal our current features cannot see? Read the same committed dataset
+(clone_groups_1783045002.npz) directly rather than re-deriving from
+replays: each option row's category is recoverable from its own
+is_play/is_attach/.../is_end one-hot (feature indices 0-6), and a group's
+option order is already preserved row-by-row, so no engine or replay
+access was needed for this check.
+
+First confirmed the option list really is laid out as contiguous
+category blocks (PLAY, then ATTACH, EVOLVE, ABILITY, ATTACK, RETREAT,
+END, in that fixed order whenever a category is present at all --
+verified by checking that the sequence of first-occurrences per group
+never revisits a category already closed out; e.g. `('PLAY', 'ATTACK',
+'RETREAT', 'END')` and `('PLAY', 'ABILITY', 'ATTACK', 'RETREAT', 'END')`
+are the two most common full-group patterns on meta_grimmsnarl). Given
+that, computed each decision's PLAYED option's rank WITHIN its own
+category block (0 = first option of that category, 1 = second, ...) and
+asked how often that local rank is 0.
+
+Result, held-out test split, all four families:
+
+| family | local-rank-0 (played option is first-of-its-category) | global first-legal baseline |
+|---|---|---|
+| other | 53.1% (718/1353) | 32.96% |
+| meta_archaludon | 72.1% (1059/1469) | 45.34% |
+| meta_grimmsnarl | 66.9% (8708/13019) | 43.07% |
+| meta_grimmsnarl_tonakaiiii | 70.8% (920/1299) | 39.03% |
+
+This is the seam candidate (b) asked for. "First option within whichever
+category the player picked" is a dramatically stronger predictor (53-72%)
+than "first option overall" (33-45%) on every family, roughly +20 to +27
+points. That gap cannot be explained by category-grouping alone (which is
+already baked into the global-first number via PLAY being both the most
+common opt-0 category and the most common played category) -- it says
+that ONCE you know (or predict) which category a top player is about to
+act in, which specific option within that category they pick is itself
+highly first-biased, and this is a completely different signal than the
+global opt_index_norm / opt_is_first pair currently in FEATURE_NAMES.
+Those two features only see an option's position across the WHOLE list,
+so a PLAY option sitting at global index 3 (because it is the 4th card
+in a 5-card PLAY block that starts at index 0) looks nowhere near "first"
+to the model even though, within its own category, it is exactly the
+kind of option a top player is very likely to pick.
+
+This resolves the open question from the prior diagnosis: the within-
+category sub-order is NOT another collapse to "first is right by
+definition" (it is well below 100%, so it is not a labeling artifact the
+same way category-grouping is), and it is NOT flat/uninformative either
+(53-72% is far above chance for blocks that are often 2-8 options wide).
+It is a real, exploitable, previously-invisible seam. Candidate (a) from
+the prior diagnosis (treat first-legal as the ceiling and drop trained
+imitation entirely) is not the right call yet -- there is more signal on
+the table than either model family got to see.
+
+Implication for the next U71 attempt: add an explicit within-category
+position feature (e.g. `opt_local_rank_norm` and `opt_is_local_first`,
+mirroring the existing `opt_index_norm` / `opt_is_first` pair but computed
+over just the options sharing this option's category) to
+agents/imitation_features.py, bump FEATURE_VERSION, regenerate the
+dataset, and rerun the U71 gate. This is a real, separately-scoped
+featurizer change (new feature computation, a FEATURE_VERSION bump, a
+drift-test update, a dataset regen, a retrain) and should be sized and
+started fresh next iteration rather than squeezed in here.
