@@ -229,6 +229,29 @@ def _run_evaluator(env, payload, python):
     return proc.stdout
 
 
+def _parse_evaluator_output(out):
+    """Extract the {win_rate, agreement} JSON payload from evaluator stdout.
+
+    Some transitively-imported modules (kaggle_environments' OpenSpiel loader,
+    among others) log INFO/WARNING lines to stdout on import, ahead of
+    `_internal_evaluate`'s own print, so stdout is not guaranteed to be pure
+    JSON. That print is always the last line written, so scan from the end and
+    parse the first line that decodes rather than assuming line 1 is the
+    payload (a real pooled CEM run silently scored every candidate -inf this
+    way: every subprocess raised JSONDecodeError, which subprocess_fitness maps
+    to the worst score).
+    """
+    for line in reversed(out.splitlines()):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            return json.loads(line)
+        except json.JSONDecodeError:
+            continue
+    raise ValueError("evaluator produced no parseable JSON output")
+
+
 def evaluate_vector(vector, spec, python=None, runner=None):
     """Score one real weight vector by spawning a fresh, env-baked evaluator.
 
@@ -242,7 +265,7 @@ def evaluate_vector(vector, spec, python=None, runner=None):
     env.update(ws.vector_to_env(vector))
     runner = runner or _run_evaluator
     out = runner(env, json.dumps(spec), python or sys.executable)
-    data = json.loads(out)
+    data = _parse_evaluator_output(out)
     return aggregate_fitness(
         data.get("win_rate"),
         data.get("agreement"),

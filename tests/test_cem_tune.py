@@ -16,6 +16,7 @@ fast and deterministic:
 import json
 
 import numpy as np
+import pytest
 
 from tools import cem_tune as ct
 from tools import weight_space as ws
@@ -196,6 +197,31 @@ def test_default_vector_bakes_no_overrides():
     ct.evaluate_vector(list(ws.defaults()), {}, runner=fake_runner)
     # An un-tuned candidate adds nothing, so the child stays byte-identical.
     assert all(not k.startswith("PTCG_W_") for k in captured["env"])
+
+
+def test_evaluate_vector_ignores_stdout_pollution_before_the_json():
+    # A transitively-imported module (kaggle_environments' OpenSpiel loader) can
+    # log INFO/WARNING lines to stdout ahead of _internal_evaluate's own print;
+    # the real payload is always the LAST line.
+    polluted = (
+        "[kaggle_environments.envs.open_spiel_env.open_spiel_env] INFO: loaded\n"
+        "Loading environment werewolf failed: No module named 'litellm'\n"
+        + json.dumps({"win_rate": 0.6, "agreement": None})
+    )
+
+    def fake_runner(env, payload, python):
+        return polluted
+
+    fitness = ct.evaluate_vector(list(ws.defaults()), {}, runner=fake_runner)
+    assert fitness == 0.3
+
+
+def test_evaluate_vector_raises_when_no_line_parses():
+    def fake_runner(env, payload, python):
+        return "not json\nstill not json\n"
+
+    with pytest.raises(ValueError):
+        ct.evaluate_vector(list(ws.defaults()), {}, runner=fake_runner)
 
 
 def test_subprocess_fitness_maps_errors_to_worst_score():
