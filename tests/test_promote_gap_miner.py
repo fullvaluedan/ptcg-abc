@@ -11,6 +11,8 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+from agents.heuristics import card_index  # noqa: E402
+from analysis.matchup_delta import matchup_score  # noqa: E402
 from analysis.replay_trace import AREA_BENCH, CTX_TO_ACTIVE, SEL_CARD  # noqa: E402
 from analysis.promote_gap_miner import (  # noqa: E402
     _bench_energy_count,
@@ -20,19 +22,19 @@ from analysis.promote_gap_miner import (  # noqa: E402
 )
 
 
-def _mon(hp, max_hp, energy=0):
-    return {"hp": hp, "maxHp": max_hp, "energy": [1] * energy}
+def _mon(hp, max_hp, energy=0, card_id=None):
+    return {"id": card_id, "hp": hp, "maxHp": max_hp, "energy": [1] * energy}
 
 
 def _bench_opt(idx):
     return {"type": 3, "area": AREA_BENCH, "index": idx}
 
 
-def _obs(*, bench_hps, your_index=0):
+def _obs(*, bench_hps, your_index=0, opp_id=None):
     options = [_bench_opt(i) for i in range(len(bench_hps))]
     players = [
         {"active": [], "bench": [_mon(*hp) for hp in bench_hps]},
-        {"active": [_mon(100, 100)], "bench": []},
+        {"active": [_mon(100, 100, card_id=opp_id)], "bench": []},
     ]
     return {
         "select": {
@@ -44,6 +46,19 @@ def _obs(*, bench_hps, your_index=0):
         },
         "current": {"yourIndex": your_index, "players": players},
     }
+
+
+def _weak_pair():
+    """(attacker_id, defender_id) where defender.weakness == attacker.energyType,
+    derived from the real bundled catalog (mirrors tests/test_matchup_delta.py)."""
+    cards = card_index()
+    for defender_id, dfn in cards.items():
+        if dfn.weakness is None:
+            continue
+        for attacker_id, atk in cards.items():
+            if atk.energyType == dfn.weakness and attacker_id != defender_id:
+                return attacker_id, defender_id
+    raise AssertionError("no weakness pair found in the bundled catalog")
 
 
 def _entry(*, action, obs, status="ACTIVE"):
@@ -97,6 +112,33 @@ def test_max_energy_flag_identifies_the_most_invested_bench_mon():
     assert rows[0]["played_is_max_hp_ratio"] is False
 
 
+def test_best_matchup_flag_identifies_expert_pick_by_type():
+    # index 0 is a neutral matchup, index 1 hits the opponent's weakness; the
+    # expert promotes index 1 even though it has less energy and a lower hp
+    # ratio, so matchup (not hp or energy) is what actually explains the pick.
+    attacker_id, defender_id = _weak_pair()
+    obs = _obs(
+        bench_hps=[(90, 100, 2, None), (10, 100, 0, attacker_id)],
+        opp_id=defender_id,
+    )
+    rep = _replay([_step(_entry(action=[1], obs=obs), 0)])
+    rows = promote_gap_rows([(rep, "r.json")], {"kazuki0123"}, pilot_choose=lambda o: [0])
+    row = rows[0]
+    assert row["played_is_best_matchup"] is True
+    assert row["played_matchup_score"] == matchup_score(attacker_id, defender_id)
+    assert row["played_matchup_score"] > 0
+    assert row["played_is_max_hp_ratio"] is False
+    assert row["played_is_max_energy"] is False
+
+
+def test_matchup_fields_none_when_opponent_active_unknown():
+    obs = _obs(bench_hps=[(50, 100), (90, 90)], opp_id=None)
+    rep = _replay([_step(_entry(action=[1], obs=obs), 0)])
+    rows = promote_gap_rows([(rep, "r.json")], {"kazuki0123"}, pilot_choose=lambda o: [1])
+    assert rows[0]["played_matchup_score"] is None
+    assert rows[0]["played_is_best_matchup"] is False
+
+
 def test_skips_episodes_with_no_expert_seat():
     obs = _obs(bench_hps=[(50, 100), (90, 90)])
     rep = _replay([_step(_entry(action=[1], obs=obs), 0)], team_names=("aidy", "someone"))
@@ -145,19 +187,20 @@ def test_bench_energy_count_none_on_out_of_range_zero_when_missing():
 def test_summarize_rates():
     rows = [
         {"agree": True, "played_is_max_hp_ratio": True, "played_is_max_energy": False,
-         "played_is_index_zero": True},
+         "played_is_best_matchup": True, "played_is_index_zero": True},
         {"agree": False, "played_is_max_hp_ratio": True, "played_is_max_energy": True,
-         "played_is_index_zero": False},
+         "played_is_best_matchup": False, "played_is_index_zero": False},
         {"agree": False, "played_is_max_hp_ratio": False, "played_is_max_energy": False,
-         "played_is_index_zero": False},
+         "played_is_best_matchup": False, "played_is_index_zero": False},
         {"agree": False, "played_is_max_hp_ratio": False, "played_is_max_energy": False,
-         "played_is_index_zero": False},
+         "played_is_best_matchup": False, "played_is_index_zero": False},
     ]
     summary = summarize(rows)
     assert summary["n"] == 4
     assert summary["agree_rate"] == 0.25
     assert summary["max_hp_ratio_rate"] == 0.5
     assert summary["max_energy_rate"] == 0.25
+    assert summary["best_matchup_rate"] == 0.25
     assert summary["index_zero_rate"] == 0.25
 
 

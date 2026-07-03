@@ -32,6 +32,7 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+from analysis.matchup_delta import matchup_score  # noqa: E402
 from analysis.move_ranking_validator import (  # noqa: E402
     DEFAULT_EXPERT_TEAMS,
     load_replays,
@@ -81,6 +82,33 @@ def _bench_energy_count(bench, idx):
     return len(energy) if isinstance(energy, list) else 0
 
 
+def _bench_card_id(bench, idx):
+    """Card id of bench entry option `idx`, or None if unresolvable."""
+    if not (0 <= idx < len(bench)):
+        return None
+    mon = bench[idx]
+    return mon.get("id") if isinstance(mon, dict) else None
+
+
+def _opponent_active_id(obs, seat):
+    """Card id of the opponent's active Pokemon at decision time, or None.
+
+    Mirrors `agents.heuristics._active`'s own extraction (2-player, opponent is
+    the other seat) so the matchup feature reads exactly what a live rule would.
+    """
+    state = obs.get("current") or {}
+    players = state.get("players") or []
+    opp_i = 1 - seat
+    if not (0 <= opp_i < len(players)):
+        return None
+    opp = players[opp_i]
+    if not isinstance(opp, dict):
+        return None
+    active = opp.get("active") or []
+    mon = active[0] if active and active[0] is not None else None
+    return mon.get("id") if isinstance(mon, dict) else None
+
+
 def promote_gap_rows(replays, expert_teams, pilot_choose=None):
     """One row per real expert promote (post-knockout TO_ACTIVE) decision.
 
@@ -127,6 +155,15 @@ def promote_gap_rows(replays, expert_teams, pilot_choose=None):
             max_ratio_idx = max(known_ratios, key=known_ratios.get, default=None)
             max_energy_idx = max(known_energies, key=known_energies.get, default=None)
 
+            opp_id = _opponent_active_id(obs, seat)
+            ids = {i: _bench_card_id(bench, idx) for i, idx in bench_opts.items()}
+            matchups = (
+                {i: matchup_score(cid, opp_id) for i, cid in ids.items() if cid is not None}
+                if opp_id is not None
+                else {}
+            )
+            max_matchup_idx = max(matchups, key=matchups.get, default=None)
+
             rows.append(
                 {
                     "episode": label,
@@ -140,6 +177,10 @@ def promote_gap_rows(replays, expert_teams, pilot_choose=None):
                         max_energy_idx is not None and played == max_energy_idx
                     ),
                     "played_is_index_zero": played == 0,
+                    "played_matchup_score": matchups.get(played),
+                    "played_is_best_matchup": (
+                        max_matchup_idx is not None and played == max_matchup_idx
+                    ),
                 }
             )
     return rows
@@ -149,10 +190,11 @@ def summarize(rows) -> dict:
     """Agreement rate plus how often the expert's pick matches simple profiles.
 
     Reports, over every scored promote decision, the pilot agreement rate (how
-    often `_first_legal`'s index-0 guess happens to match) alongside three
+    often `_first_legal`'s index-0 guess happens to match) alongside four
     candidate signals for a real rule: how often the expert picked the highest hp
-    ratio bench option, the most-energy bench option, or index 0 itself (the
-    baseline `_first_legal` already produces for free). Pure.
+    ratio bench option, the most-energy bench option, the best type-matchup
+    option (`analysis.matchup_delta.matchup_score` vs the opponent's active), or
+    index 0 itself (the baseline `_first_legal` already produces for free). Pure.
     """
     n = len(rows)
     if n == 0:
@@ -161,6 +203,7 @@ def summarize(rows) -> dict:
             "agree_rate": 0.0,
             "max_hp_ratio_rate": 0.0,
             "max_energy_rate": 0.0,
+            "best_matchup_rate": 0.0,
             "index_zero_rate": 0.0,
         }
     return {
@@ -168,6 +211,7 @@ def summarize(rows) -> dict:
         "agree_rate": sum(1 for r in rows if r["agree"]) / n,
         "max_hp_ratio_rate": sum(1 for r in rows if r["played_is_max_hp_ratio"]) / n,
         "max_energy_rate": sum(1 for r in rows if r["played_is_max_energy"]) / n,
+        "best_matchup_rate": sum(1 for r in rows if r["played_is_best_matchup"]) / n,
         "index_zero_rate": sum(1 for r in rows if r["played_is_index_zero"]) / n,
     }
 
@@ -195,6 +239,7 @@ def main(argv=None) -> int:
     print(f"  pilot (_first_legal) agreement rate: {summary['agree_rate'] * 100:.1f}%")
     print(f"  expert picked the max hp-ratio bench option: {summary['max_hp_ratio_rate'] * 100:.1f}%")
     print(f"  expert picked the max-energy bench option:  {summary['max_energy_rate'] * 100:.1f}%")
+    print(f"  expert picked the best type-matchup option: {summary['best_matchup_rate'] * 100:.1f}%")
     print(f"  expert picked bench index 0:                {summary['index_zero_rate'] * 100:.1f}%")
     return 0
 

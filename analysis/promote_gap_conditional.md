@@ -38,6 +38,7 @@ real expert promote (post-knockout TO_ACTIVE) decisions scored: 91
   pilot (_first_legal) agreement rate: 36.3%
   expert picked the max hp-ratio bench option: 35.2%
   expert picked the max-energy bench option:  36.3%
+  expert picked the best type-matchup option: 39.6%
   expert picked bench index 0:                36.3%
 ```
 
@@ -48,43 +49,58 @@ ATTACH/RETREAT/ABILITY.)
 
 ## Interpretation
 
-Three candidate signals were checked against the real expert pick, each
+Four candidate signals were checked against the real expert pick, each
 independently: bench index 0 (what `_first_legal` already produces for free),
-the bench option with the highest current HP ratio, and the bench option with
-the most energy attached. **None of the three clears even 37%.** Note
-`agree` and `played_is_index_zero` are identical by construction (the
-injected/default pilot's answer literally is index 0 every time), confirming
-the pilot is not doing anything beyond first-legal today.
+the bench option with the highest current HP ratio, the bench option with the
+most energy attached, and (added this unit) the bench option with the best
+type matchup against the opponent's active, via the new shared
+`analysis/matchup_delta.py` primitive (`matchup_score`, lifting
+`agents/heuristics.py`'s `effective_damage` weakness/resistance rule to a
+symmetric, attack-independent per-Pokemon comparison, exactly the follow-on
+this doc named below). **None of the four clears even 40%.** Type matchup is
+the best of the four (39.6%, edging out the 36.3% agree/energy/index-zero
+tie), but that margin is small enough (3.3pp on n=91) to not be a real signal
+on its own, and it is nowhere near a majority. Note `agree` and
+`played_is_index_zero` are identical by construction (the injected/default
+pilot's answer literally is index 0 every time), confirming the pilot is not
+doing anything beyond first-legal today.
 
 Unlike the RETREAT gap, where a clear majority (75.6% of misses) shared one
 property (near-full HP, pointing at a matchup-swap story), no single simple
-per-candidate feature here explains anywhere near a majority of real picks.
-This does not mean the decision is random: it means HP ratio and raw energy
-count, checked one at a time, are not the (or not the only) governing signal.
-Plausible remaining candidates not yet checked: type match-up against the
-opponent's active (weakness/resistance, the same missing signal the RETREAT
-gap named), whether a bench mon can score an immediate knockout on promotion,
-retained Prize-card implications, or some combination of these rather than any
-single field.
+per-candidate feature here explains anywhere near a majority of real picks,
+and that now includes type matchup: checked directly (not just theorized),
+it still tops out at 39.6%. This does not mean the decision is random: it
+means HP ratio, raw energy count, and type matchup, each checked one at a
+time, are not the (or not the only) governing signal. Plausible remaining
+candidates not yet checked: whether a bench mon can score an immediate
+knockout on promotion, retained Prize-card implications, or some combination
+of the fields already checked (e.g. matchup AND energy together) rather than
+any single field alone.
 
 ## Why this is not a shippable lever yet
 
-At n=91 with no candidate signal clearing 37%, there is not yet a concrete,
-well-supported rule to write (unlike ABILITY, a clean capability flip). Coding
-"promote highest HP" or "promote most energy" against this evidence would be
-guessing at the same strength as the current arbitrary `_first_legal`, and
-risks the same shape of refutation the ATTACH energy-sequencing lever already
-hit when it was shipped on intuition instead of measurement. The concrete next
-step (not yet built) is to add a matchup-delta feature per bench candidate
-(type effectiveness against the opponent's active, mirroring the RETREAT gap's
-named follow-on) and re-run this same miner before any promote rule is coded.
+At n=91 with no candidate signal (including the newly-added type matchup)
+clearing 40%, there is not yet a concrete, well-supported rule to write
+(unlike ABILITY, a clean capability flip). Coding "promote highest HP",
+"promote most energy", or "promote the best matchup" against this evidence
+would be guessing at the same strength as the current arbitrary
+`_first_legal`, and risks the same shape of refutation the ATTACH
+energy-sequencing lever already hit when it was shipped on intuition instead
+of measurement. The concrete next step (not yet built) is to check whether a
+combined signal (e.g. best matchup among only the max-energy candidates, or
+an immediate-knockout-on-promotion check) explains a majority, since no
+single field examined so far does.
 
 ## Conclusion
 
 PROMOTE is a confirmed, previously-unmeasured, currently-unruled category (the
 pilot's answer here is pure `_first_legal`, not even the thin-bench Basic-fetch
-logic other CARD contexts get). It joins RETREAT as a gap whose fix plausibly
-needs type-matchup awareness the heuristic does not have today, rather than a
-cheap threshold tune. Recorded here, with the new general-purpose
-`iter_expert_card_decisions` spine primitive, so a future matchup-feature unit
-can extend both gaps together instead of building two separate one-off tools.
+logic other CARD contexts get). Type-matchup awareness, once actually measured
+(not just theorized), turned out NOT to be the missing piece here either: it
+is the strongest of four candidate signals but still explains under 40% of
+real picks alone. Recorded here, with the new general-purpose
+`iter_expert_card_decisions` spine primitive and the new general-purpose
+`analysis/matchup_delta.py` (`matchup_score`), so a future unit can (a) re-run
+the RETREAT gap's own matchup-swap theory through the same tested primitive
+(not yet done, see `analysis/retreat_gap_conditional.md`) and (b) try combined
+signals here instead of guessing at a single-field promote rule.
