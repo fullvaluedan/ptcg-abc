@@ -99,6 +99,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley-ability (ERRORed, superseded) | n/a | n/a | ERROR | 0 | SETTLED (non-scoring): ref 54281824 ERRORed at grader load, missing agents/card_effects.py in the tarball (build command omitted --extra agents/card_effects.py). Never played an episode. Superseded by ref 54282097 (fix: card_effects.py bundled, COMPLETE 536.7 first reading), which carries forward the same pre-registration under a fresh settle-by. |
 | heuristic+trolley-ability | n/a | n/a | 561.1 | 0 | SETTLED WIN 2026-07-04: 561.1 vs reclaim king 494.8 (ref 54282104), +66.3pp, clears the M=60 WIN threshold. Promoted to shadow-king. Evicted from the tracked latest-2 in the same iteration by the attack_first submission (54304483); 561.1 is its final frozen reading. |
 | heuristic+trolley-attack_first | n/a | n/a | PENDING | 0 | U93 step 3 SUBMITTED into the slot the ability WIN settlement freed. See pre_registrations and in_flight for the settle protocol. |
+| heuristic+trolley-attack_first (repeat) | n/a | n/a | PENDING |  | BAND repeat resubmission (ref 54304681), byte-identical to ref 54304483 (526.8). First reading landed BAND (diff +32.0 vs king 494.8, inside M=60). Per protocol rule 5, exactly one repeat resubmission before a U23 scoreboard tiebreak; settle WIN only if both readings positive AND scoreboard favors candidate at ~90% confidence on shared brackets, else NEUTRAL. |
 
 ```json STATE
 {
@@ -138,8 +139,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
   "in_flight": {
     "board_reading": "PENDING",
     "build": "heuristic+trolley-attack_first",
-    "note": "U93 step 3 / L9: submitted this iteration into the slot the ability build's WIN settlement freed (settling first, then submitting, per latest-2 eviction-by-submission-order: the older of the two live submissions, 54282097, dropped out of the tracked pair when this landed, leaving [54304483 attack_first, 54282104 reclaim-king]). Pre-registered: direction up, M=60, N=30, settle-by 2026-07-11. WIN>=king+60 promote to shadow-king; LOSS<=king-60 evict, revert slot to a king copy; BAND one repeat then U23 scoreboard. Quota used today: 1/5.",
-    "ref": "54304483"
+    "note": "U93/L9 BAND repeat resubmission (protocol rule 5): first reading (ref 54304483) came back COMPLETE 526.8 vs king 494.8 (diff +32.0), inside the M=60 band. Byte-identical repeat submitted this iteration per the pre-registered BAND rule: exactly one repeat, settle WIN only if both readings are positive AND the U23 scoreboard favors the candidate at ~90% binomial confidence on shared opponent brackets; otherwise NEUTRAL, revert to king. Quota used today: 2/5. First reading (54304483, 526.8) stays live on the board alongside this repeat; the reclaim-king copy (54282104, 494.8) dropped out of the tracked latest-2 window by submission order but its 494.8 reading is the frozen king comparison point.",
+    "ref": "54304681"
   },
   "ledger": [
     {
@@ -267,6 +268,14 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "oracle": "n/a",
       "ref": "54304483",
       "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-attack_first (repeat)",
+      "ladder": "PENDING",
+      "move_agreement_delta": "n/a",
+      "note": "BAND repeat resubmission (ref 54304681), byte-identical to ref 54304483 (526.8). First reading landed BAND (diff +32.0 vs king 494.8, inside M=60). Per protocol rule 5, exactly one repeat resubmission before a U23 scoreboard tiebreak; settle WIN only if both readings positive AND scoreboard favors candidate at ~90% confidence on shared brackets, else NEUTRAL.",
+      "oracle": "n/a",
+      "sample": 0
     }
   ],
   "loss_distribution": {

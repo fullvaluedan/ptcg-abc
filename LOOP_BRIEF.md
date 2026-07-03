@@ -187,13 +187,21 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
   L9. Standing: each shipped-path candidate that survives its gate gets a pre-registered ladder A/B; slot
       discipline and the M=60 protocol unchanged; the Aug 10-16 endgame noise campaign stays booked and must
       not be displaced. U92 closed 2026-07-04 (FAIL); comprehension track (U90+U91+U93+U94) fully shipped and
-      written up as of U94. Board state as of 2026-07-04: tracked latest-2 = [heuristic+trolley-attack_first
-      (ref 54304483, PENDING, U93 step 3, settle-by 2026-07-11), heuristic+trolley reclaim-king (ref
-      54282104, 494.8)]. heuristic+trolley-ability settled WIN this iteration (561.1 vs 494.8, +66.3pp) and
-      is now shadow-king (state/current.md); it is no longer on the board (evicted by the attack_first
-      submission), so its 561.1 reading is final. NEXT TRACK L action: board-check attack_first until it
-      resolves outside the M=60 band, then settle per its pre-registration (state/current.md
-      pre_registrations).
+      written up as of U94. heuristic+trolley-ability settled WIN 2026-07-04 (561.1 vs 494.8, +66.3pp) and is
+      now shadow-king (state/current.md); it is off the board (evicted by the attack_first submission), so
+      its 561.1 reading is final. DONE 2026-07-04: board-checked attack_first's first reading (ref 54304483,
+      COMPLETE 526.8). Ran the mandatory auto-settle check against the frozen king comparison point (494.8):
+      diff +32.0, inside the M=60 band, verdict BAND. Per the build's own pre-registered BAND action (one
+      repeat resubmission, then a U23 scoreboard tiebreak at ~90% binomial confidence on shared brackets,
+      else NEUTRAL/revert), submitted a byte-identical repeat (ref 54304681, PENDING). Quota used today: 2/5.
+      Board state now: tracked latest-2 = [ref 54304681 (repeat, PENDING), ref 54304483 (first reading,
+      526.8)]; the reclaim-king copy (ref 54282104, 494.8) dropped off the tracked window by submission order
+      but its 494.8 reading is the retained comparison point for the scoreboard tiebreak. NEXT TRACK L
+      action: board-check ref 54304681 until it resolves past PENDING. If both readings come back positive
+      (i.e. clearly above 494.8), run the U23 scoreboard (analysis/episode_scoreboard.py) over shared
+      opponent brackets between attack_first's episodes and the king's to settle WIN/NEUTRAL per protocol
+      rule 5 (docs/plans/2026-07-02-001-feat-unified-number-one-plan.md); this will likely need a replay
+      download step for the attack_first build's episodes if none are saved locally yet.
 
 ### TRACK S (STRATEGY prize = the $30k model-approach award; offline; NEVER claims ladder progress)
 U60-U65, the Phase A DoD, and U8 (U8a/U8b/U8c) are all DONE as of 019dfa2 (move-prior default flipped on after
