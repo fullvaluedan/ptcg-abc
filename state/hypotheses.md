@@ -18,6 +18,7 @@ block at the bottom.
 | missed_lethal | falsified | all lost-game MAIN decisions | n/a | n/a (artifact, not a real lever) | analysis/missed_lethal_falsified.md |
 | cem_flat_gradient | resolved | 40 held-out expert episodes / 1427 MAIN decisions | n/a | resolved; a real cem_tune.py run is now the pending action | analysis/cem_signal_flat.md -> analysis/cem_gradient_restored.md |
 | cem_prio_agreement_generalizes | refuted | 116/30 (attempt 1); 116/30 pooled (attempt 2); 32003/10689 teacher corpus (attempt 3, seed 0) | n/a (move-ranking) | conditions (a) and (b) now BOTH exhausted (larger sample tried at 92x scale, still negative held-out; pool-matches>0 tried, still flat/negative). Re-test only with (c) a genome region with a measured non-flat held-out gradient. | analysis/cem_run_prio.md, analysis/cem_run_prio_pooled.md, analysis/cem_run_prio_teacher.md |
+| clone_imitation_beats_first_legal | refuted (4 converging attempts) | clone_groups_1783047584.npz, 1299-11092 held-out decisions per family across 4 families | meta_archaludon/meta_grimmsnarl/meta_grimmsnarl_tonakaiiii/other | model family (linear, then tree) and feature set (local-rank add, then position-excluded ablation) already exhausted per analysis/clone_quality.md; U92 step 0 closed the last live hypothesis, training objective (pointwise log-loss vs pairwise RankNet). Re-test only with a genuinely new label scheme or feature source outside imitation_features, not another model/objective swap over this dataset. | analysis/clone_quality.md, analysis/rank_clone_killtest.md |
 
 ## Detail
 
@@ -63,6 +64,10 @@ block at the bottom.
 ### cem_prio_agreement_generalizes (refuted)
 - claim: A CEM PRIO genome tuned to maximize expert-move agreement on the train bucket keeps that agreement gain on held-out expert moves, earning a ladder A/B.
 - evidence: The real U35 seed-0 run (agreement-only, --split train) found a genome that gains +0.060 on train (25->32 of 116 MAIN decisions) but LOSES -0.067 on the held-out test bucket (7->5 of 30). best_fitness was flat across all 12 iterations (weak gradient), and the held-out agreement delta is negative, so the pre-registered offline filter BLOCKS the candidate: no A/B, ship byte-identical. 1 of the 2 failing/neutral CEM candidates that trip the plan's CEM-plateau contingency. RE-TEST (2026-07-03, retest condition b): a reduced-scale pooled run (population 6-8, iterations 3-4, --pool-matches 10, --w-pool 0.5 --w-val 0.5, seed 0) found a best genome with train agreement 0.25 (29/116, up from default 0.2155/25) but held-out test agreement EXACTLY UNCHANGED at 7/30 (0 of 30 held-out decisions flipped) and a WORSE train-bucket pool win rate (0.567 vs default 0.700, n=30 each, noisy). Zero held-out transfer: BLOCKED again, ship byte-identical. This is CEM candidate 2 of 2 that trips the plan's CEM-plateau contingency (two consecutive non-WIN candidates), met ahead of the ~Jul 15 calendar checkpoint; recorded for the next weekly plan review per the plan-freeze rule, not acted on unilaterally this iteration.
+
+### clone_imitation_beats_first_legal (refuted, 4 converging attempts)
+- claim: A model trained on top-team real MAIN decisions (tools/train_clone.py / tools/rank_clone_killtest.py) can beat always-pick-the-first-legal-option at predicting what a top player actually did, qualifying it as a clone opponent for the bracket ring (plan U71/U92).
+- evidence: Three tools/train_clone.py attempts (standardized logistic regression; a shallow gradient-boosted tree; both again after adding a within-category local-rank feature) all collapsed to the IDENTICAL result: the model's top-1 pick equals the first-legal option in 100% of held-out decisions, exactly tying (never beating) the baseline, on all four archetype families. An ablation that excluded the global-position features entirely made every family's model WORSE than first-legal (analysis/clone_quality.md), closing "wrong model family" and "position features are hiding the real signal" as hypotheses. 2026-07-04 (U92 step 0 kill test): the last live hypothesis, training OBJECTIVE (per-row pointwise log-loss vs a genuinely different pairwise-logistic RankNet, analysis.unit_zero_spike.PairwiseLinearRanker, plan U26), was tested on the exact same dataset and split (clone_groups_1783047584.npz) with the full feature set restored. Every family still ties first-legal to within +/-0.0015 (n_scored 1299-11092 per family): tools/rank_clone_killtest.py, analysis/rank_clone_killtest.md. Four independent angles (2 model families, 2 feature-set variants, 1 different objective family) now agree: engine list order already carries almost all of the discriminating signal over top-player MAIN decisions on this label scheme, and no trained per-decision model has beaten it. U92's planned tools/train_clone2.py rebuild is closed without being built.
 
 ```json STATE
 {
@@ -174,6 +179,17 @@ block at the bottom.
       "sample_size": "116 train / 30 held-out test MAIN decisions (seed 0, attempts 1-2); 32003 train / 10689 held-out test MAIN decisions (seed 0, attempt 3, teacher corpus)",
       "source": "analysis/cem_run_prio.md, analysis/cem_run_prio_pooled.md, analysis/cem_run_prio_teacher.md",
       "verdict": "refuted"
+    },
+    {
+      "claim": "A model trained on top-team real MAIN decisions (tools/train_clone.py / tools/rank_clone_killtest.py) can beat always-pick-the-first-legal-option at predicting what a top player actually did, qualifying it as a clone opponent for the bracket ring (plan U71/U92).",
+      "deck": "meta_archaludon/meta_grimmsnarl/meta_grimmsnarl_tonakaiiii/other",
+      "evidence": "Three tools/train_clone.py attempts (linear, tree, both again after a local-rank feature fix) all collapsed to top-1 == first-legal on 100% of held-out decisions, exactly tying the baseline on every family; a position-excluded ablation made every family's model WORSE than first-legal (analysis/clone_quality.md). 2026-07-04 (U92 step 0 kill test): the last live hypothesis, training objective (pointwise log-loss vs pairwise-logistic RankNet, analysis.unit_zero_spike.PairwiseLinearRanker), was tested on the same dataset/split (clone_groups_1783047584.npz) with the full feature set restored. Every family still ties first-legal within +/-0.0015 (n_scored 1299-11092 per family): tools/rank_clone_killtest.py, analysis/rank_clone_killtest.md.",
+      "name": "clone_imitation_beats_first_legal",
+      "retest_condition": "model family and feature set already exhausted; a genuinely new label scheme or feature source outside imitation_features is required, not another model/objective swap over this dataset.",
+      "retest_sample": null,
+      "sample_size": "clone_groups_1783047584.npz, 1299-11092 held-out decisions per family across 4 families",
+      "source": "analysis/clone_quality.md, analysis/rank_clone_killtest.md",
+      "verdict": "refuted (4 converging attempts)"
     }
   ]
 }

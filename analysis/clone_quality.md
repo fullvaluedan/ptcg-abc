@@ -347,3 +347,23 @@ test (a signal planted ONLY in opt_is_first collapses to exactly the
 first-legal baseline once that column is excluded, proving the ablation
 mechanism itself works before trusting it on real data), and main()'s
 ablation-mode report/export behavior.
+
+## 2026-07-04 (U92 step 0 kill test): a fourth attempt, a different training
+## objective entirely, converges on the same collapse -- objective closed too
+
+One more hypothesis remained open after the ablation above: every attempt so
+far (linear, tree, richer features, position-excluded) shared the same
+per-row pointwise log-loss objective, whose zero-risk optimum is provably
+"always agree with first-legal" once first-legal already clears non-trivial
+accuracy on its own. `tools/rank_clone_killtest.py` reran the exact same
+dataset and split through a genuinely different objective (a pairwise-logistic
+RankNet, `analysis.unit_zero_spike.PairwiseLinearRanker`, plan U26) with the
+full feature set restored (position features included, unlike the ablation
+above). Result: every family still ties first-legal to within +/-0.0015 (full
+table and diagnosis in analysis/rank_clone_killtest.md). The objective was
+never the bottleneck either. All four independent angles (model family x2,
+feature set x2, objective x1) now agree: first-legal is the practical ceiling
+for a per-decision imitation model on this dataset and label scheme, full
+stop. U92 (a planned from-scratch retrain, tools/train_clone2.py) is closed
+without being built; do not reopen with another model/objective swap over the
+same data.

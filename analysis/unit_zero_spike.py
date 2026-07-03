@@ -224,8 +224,14 @@ class PairwiseLinearRanker:
         return (X - self.mean) / self.std
 
     def fit(self, groups):
-        """groups: list of (X [n_opt, d], chosen_idx). Returns self."""
+        """groups: list of (X [n_opt, d], chosen_idx). Returns self.
+
+        `d` (the feature width) is read from the data, not hard-coded to this
+        module's own N_FEATURES, so the class works unchanged over any other
+        caller's feature vectors (e.g. agents.imitation_features's rows).
+        """
         rows = np.vstack([X for X, _ in groups]) if groups else np.zeros((1, N_FEATURES))
+        n_features = rows.shape[1]
         self.mean = rows.mean(axis=0)
         std = rows.std(axis=0)
         std[std == 0] = 1.0
@@ -241,8 +247,8 @@ class PairwiseLinearRanker:
                 if j == chosen:
                     continue
                 diffs.append(xc - Xs[j])
-        d = np.array(diffs, dtype=float) if diffs else np.zeros((1, N_FEATURES))
-        w = np.zeros(N_FEATURES)
+        d = np.array(diffs, dtype=float) if diffs else np.zeros((1, n_features))
+        w = np.zeros(n_features)
         n = len(d)
         for _ in range(self.iters):
             # loss = sum log(1+exp(-w.d)); grad = sum -sigmoid(-w.d) * d + l2*w

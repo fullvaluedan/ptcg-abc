@@ -126,13 +126,20 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
           attack_first_flip_check.md). STILL TODO (U93 step 2): the bracket-ring A/B (>=+5pp with
           gauntlet-direction agreement) before any ladder slot; the archetype-registry shadowing fix is
           still open for whoever wants the two named meta families back.
-      U92 CLONE REBUILT: step 0 is the half-day KILL TEST: rerun the U26 pairwise RankNet (already written,
-          analysis/unit_zero_spike.py) against FIRST-LEGAL on the clone data. Then tools/train_clone2.py:
-          groupwise/pairwise ranking objective (NEVER per-row binary log-loss), position features
-          QUARANTINED to tiebreak only, U90 semantic features, per-category eval. Gate: beat first-legal by
-          >=5pp held-out, beat first-of-category by >=3pp on contested decisions, END_TURN recall >=0.3.
-          Joins the ring as an aspiration tier WITHOUT gate authority; re-check ring tau stays >=0.7 with it
-          excluded from calibration.
+      U92 CLONE REBUILT: step 0 (DONE 2026-07-04, FAIL, CLOSED): the half-day KILL TEST -- rerun the U26
+          pairwise RankNet (analysis/unit_zero_spike.py's PairwiseLinearRanker, generalized to any feature
+          width so it could be pointed at agents.imitation_features rows) against FIRST-LEGAL on the exact
+          clone dataset and train/test split tools/train_clone.py already gated (clone_groups_1783047584.npz,
+          feature_version 3). Held the feature set and split fixed and changed ONLY the training objective
+          (pairwise ranking loss instead of per-row log-loss). Result: every family still ties first-legal to
+          within noise (meta_archaludon -0.0015, meta_grimmsnarl -0.0001, meta_grimmsnarl_tonakaiiii +0.0000,
+          other -0.0015; tools/rank_clone_killtest.py, analysis/rank_clone_killtest.md), the same collapse all
+          three prior tools/train_clone.py attempts hit. This is a FOURTH converging negative result and it
+          specifically answers this unit's own re-open condition (a different training objective) with FAIL:
+          the objective was never the bottleneck, so tools/train_clone2.py is NOT worth building. U92 is
+          CLOSED; do not restart it without a genuinely new lever (a different label scheme or feature source,
+          not another model/objective swap over the same option-order-dominated data). NEXT comprehension-track
+          unit is U94 (writeup chapter), interleaved with TRACK L per the standing rule.
       U93 TRANSFER TO THE SHIPPED PILOT (the only ladder-moving piece): each playbook lever that applies to
           OUR deck (on-evolve usage if the probe finds a miss; energy front-load ordering; attach-recipient
           policy) ships as a flag-gated rule, pre-registered, bracket-ring A/B >=+5pp with gauntlet direction
@@ -151,7 +158,7 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
           file).
   L9. Standing: each shipped-path candidate that survives its gate gets a pre-registered ladder A/B; slot
       discipline and the M=60 protocol unchanged; the Aug 10-16 endgame noise campaign stays booked and must
-      not be displaced (if U92 slips past ~2 weeks, cut it and ship U90+U91+U93+U94).
+      not be displaced. U92 closed 2026-07-04 (FAIL); comprehension track ships as U90+U91+U93+U94.
 
 ### TRACK S (STRATEGY prize = the $30k model-approach award; offline; NEVER claims ladder progress)
 U60-U65, the Phase A DoD, and U8 (U8a/U8b/U8c) are all DONE as of 019dfa2 (move-prior default flipped on after

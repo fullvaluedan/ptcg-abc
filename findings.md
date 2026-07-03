@@ -121,6 +121,14 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   was dominated by a noisy 6-game ring-win-rate read, not a real agreement gradient, the same
   proxy-metric-moves-backwards failure the second attempt found. `analysis/cem_run_prio.md`,
   `analysis/cem_run_prio_pooled.md`, `analysis/cem_run_prio_teacher.md`.
+- clone_imitation_beats_first_legal (U92 step 0, 2026-07-04): the known-good pairwise RankNet (U26 spike) WAS
+  finally rerun on the clone dataset, changing only the training objective (pairwise ranking loss instead of
+  the pointwise per-row log-loss all three prior clone attempts used) while holding the feature set and split
+  fixed. Same collapse: every family ties first-legal within +/-0.0015 (n_scored 1299-11092/family). This is
+  the fourth converging negative result (2 model families, 2 feature-set variants, now a different objective
+  family), closing the "wrong training objective" hypothesis alongside the earlier "wrong model" and "position
+  features hide the signal" ones. `tools/train_clone2.py` is closed without being built.
+  `analysis/rank_clone_killtest.md`, `analysis/clone_quality.md`.
 - missed_lethal: a detector artifact, not a real bug (safety-1 lethal already fires).
   `analysis/missed_lethal_falsified.md`.
 - Category-mining v2 follow-ons mostly refuted: the retreat gap is matchup-shaped not threshold-shaped, the
@@ -197,7 +205,8 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   tags, no card identity, no energy costs, no evolution lines, Boss's Orders invisible). Learnable structure
   sits unexploited: first-of-played-category beats first-legal by 20-27pp on every family, and END_TURN is
   never option 0 yet was the real choice 4.3% of the time. The known-good pairwise ranking objective (U26
-  spike) was never rerun on the clone data. `analysis/clone_quality.md`, `analysis/unit_zero_spike.md`,
+  spike) was rerun on the clone data (2026-07-04, U92 step 0): same collapse, see 4B's
+  clone_imitation_beats_first_legal entry. `analysis/clone_quality.md`, `analysis/unit_zero_spike.md`,
   and the comprehension track directive in `LOOP_BRIEF.md`.
 - Target selection failure: the loop spent ~2 days (roughly 37 consecutive commits) improving `agent_search`,
   which does not ship, after the disqualifying fact was already written into the brief. Corrected by the
