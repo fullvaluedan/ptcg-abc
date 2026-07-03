@@ -120,14 +120,34 @@ high) is a much smaller error than U73's badly-inverted middle of the ordering.
 
 This is now the first offline proxy in the project's history to earn gate
 authority: per the pre-registered rule, it can BLOCK (never promote) future
-TRACK L candidates. It was used exactly once as of this writing: U74 re-scored
-the already-staged `PTCG_ABILITY` lever through the ring (20 games/arm) and got
-the same directional answer as the original weak-bot gauntlet, off 65.0% vs on
-85.0% (+20.0pp), agreeing in direction with the gauntlet's own +4.0pp reading
-and with the pending pre-registered ladder A/B (analysis/ability_ring_check.md).
-The ring's margin is not claimed to predict the ladder's exact point spread,
-only the direction, and that live check will only be fully scored once the
-ladder A/B itself settles (no later than 2026-07-08, per the pre-registration).
+TRACK L candidates. It has since been used twice, with two different ladder
+outcomes, both instructive.
+
+U74 re-scored the already-staged `PTCG_ABILITY` lever through the ring
+(20 games/arm) and got the same directional answer as the original weak-bot
+gauntlet, off 65.0% vs on 85.0% (+20.0pp), agreeing in direction with the
+gauntlet's own +4.0pp reading and with the pending pre-registered ladder A/B
+(analysis/ability_ring_check.md). That ladder A/B has since settled: **WIN**,
+561.1 vs the 494.8 king, +66.3pp, clearing the M=60 margin cleanly
+(state/current.md). Here the ring, the gauntlet, and the ladder all agreed.
+
+U93's `PTCG_ATTACK_FIRST` lever was checked the same way before it spent a
+slot: gauntlet +5.5pp, ring +10.0pp, same direction
+(analysis/attack_first_ring_check.md). Its ladder A/B did not confirm that
+agreement, but it did not contradict it either: the first board reading fell
+inside the M=60 noise band, the pre-registered repeat resubmission then
+drifted to the opposite sign under ordinary same-build noise (one reading
+below the king, one well above), and the fallback tiebreak (a shared-
+opponent-bracket scoreboard, analysis/episode_scoreboard.py) came back
+NEUTRAL on only 3 decisive candidate episodes, far short of the N=30 the
+pre-registration budgeted for (analysis/attack_first_settlement.md). The
+honest reading is that this is a sample-size NEUTRAL, not a case where a
+proxy that agreed offline was then refuted on the ladder: the ladder never
+accumulated enough decisive games to outvote its own noise floor before the
+settle-by date. The ring's job was only ever to predict direction, not to
+substitute for the N=30 the ladder verdict itself still requires, and this is
+the project's first concrete example of that gap: a passing offline gate does
+not guarantee the ladder produces a confirming sample in time.
 
 ## What four attempts, three failures and one pass, actually mean
 
