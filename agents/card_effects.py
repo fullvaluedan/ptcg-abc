@@ -36,7 +36,7 @@ import re
 
 # Bump on ANY change to TAG_VOCAB or a tag definition below. A drift test
 # (tests/test_card_effects.py) pins this so a vocabulary edit is never silent.
-TAGS_VERSION = "1"
+TAGS_VERSION = "2"
 
 # Effect tags. Each names one atomic signal read from a card's lowercased effect
 # text. The four consumed by the frozen heuristic predicates (DRAW, SEARCH_TO_HAND,
@@ -53,6 +53,21 @@ RARE_CANDY_EVOLVE = "RARE_CANDY_EVOLVE"
 ONCE_PER_TURN = "ONCE_PER_TURN"
 ENERGY_ACCEL = "ENERGY_ACCEL"
 
+# v2 (U90): added to close the meta-deck coverage gap (Archaludon/Grimmsnarl decks
+# had 5 and 4 UNTAGGED_EFFECT cards respectively) and to name the on-evolve ability
+# trigger the comprehension-track autopsy flagged as a distinct, currently unnamed
+# class. All nine are knowledge-only: no frozen predicate reads them, so adding them
+# cannot drift test_pool_wide_equivalence_all_four_predicates.
+ON_EVOLVE_TRIGGER = "ON_EVOLVE_TRIGGER"
+ATTACK_INHERITANCE = "ATTACK_INHERITANCE"
+SETUP_FACEDOWN = "SETUP_FACEDOWN"
+HP_BOOST = "HP_BOOST"
+OPPONENT_BENCH_SWITCH = "OPPONENT_BENCH_SWITCH"
+DAMAGE_REDUCTION = "DAMAGE_REDUCTION"
+ENERGY_RECYCLE_TO_DECK = "ENERGY_RECYCLE_TO_DECK"
+OPPONENT_HAND_DISRUPTION = "OPPONENT_HAND_DISRUPTION"
+STADIUM_SEARCH_TO_HAND = "STADIUM_SEARCH_TO_HAND"
+
 TAG_VOCAB = frozenset({
     DRAW,
     SEARCH_TO_HAND,
@@ -62,6 +77,15 @@ TAG_VOCAB = frozenset({
     RARE_CANDY_EVOLVE,
     ENERGY_ACCEL,
     ONCE_PER_TURN,
+    ON_EVOLVE_TRIGGER,
+    ATTACK_INHERITANCE,
+    SETUP_FACEDOWN,
+    HP_BOOST,
+    OPPONENT_BENCH_SWITCH,
+    DAMAGE_REDUCTION,
+    ENERGY_RECYCLE_TO_DECK,
+    OPPONENT_HAND_DISRUPTION,
+    STADIUM_SEARCH_TO_HAND,
 })
 
 # Degradation states returned by resolve().
@@ -73,6 +97,8 @@ TAGGED = "TAGGED"
 # \bdraw matches "draw"/"draws"/"drawn" but not "withdraw" (a switch effect that
 # never drills the deck); reused so the DRAW tag and the legacy inline check agree.
 _DRAW_RE = re.compile(r"\bdraw")
+# Matches "+100 hp", "+30 hp", etc (a tool or effect that boosts a Pokemon's HP).
+_HP_BOOST_RE = re.compile(r"\+\d+\s*hp")
 
 
 def tag_text(text) -> frozenset:
@@ -119,6 +145,28 @@ def tag_text(text) -> frozenset:
         tags.add(ENERGY_ACCEL)
     if "once during your turn" in t:
         tags.add(ONCE_PER_TURN)
+    # An on-evolve ability (Assemble Alloy, Punk Up): triggers once, at the moment
+    # the card is played from hand to evolve, distinct from a repeatable or
+    # once-per-turn active ability. Found blind (ENERGY_ACCEL only) on both meta
+    # decks' engine Pokemon; see analysis/on_evolve_probe.md.
+    if "when you play this pok" in t and "to evolve" in t:
+        tags.add(ON_EVOLVE_TRIGGER)
+    if "can use any attack from its previous" in t:
+        tags.add(ATTACK_INHERITANCE)
+    if "setting up to play" in t and "face down" in t:
+        tags.add(SETUP_FACEDOWN)
+    if _HP_BOOST_RE.search(t):
+        tags.add(HP_BOOST)
+    if "switch in 1 of your opponent" in t and "active spot" in t:
+        tags.add(OPPONENT_BENCH_SWITCH)
+    if "less damage from attacks" in t:
+        tags.add(DAMAGE_REDUCTION)
+    if "energy cards from your discard pile into your deck" in t:
+        tags.add(ENERGY_RECYCLE_TO_DECK)
+    if "opponent discards cards from their hand" in t:
+        tags.add(OPPONENT_HAND_DISRUPTION)
+    if "search their deck for" in t and "into their hand" in t:
+        tags.add(STADIUM_SEARCH_TO_HAND)
     return frozenset(tags)
 
 

@@ -135,6 +135,13 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   search time allocation (U12) passed its gate. `analysis/move_prior_search_ab.md`, `analysis/confidence_budget_ab.md`.
 - The bracket-band clone ring PASSED calibration (tau 0.857 >= 0.7) and now has gate authority for
   submissions; the top-20 clone ring FAILED (tau 0.429). `analysis/ring_calibration.md`.
+- U90 card-semantics v2 (2026-07-03): the two meta decks' effect-bearing cards were 5/15 and 4/19 blind to the
+  knowledge layer, Boss's Orders among them (the exact card named invisible in 4D). Nine additive tags closed
+  both decks to 100% coverage and fell the pool untagged fraction 0.4917 to 0.4204. Named a previously-unnamed
+  ability class (ON_EVOLVE_TRIGGER: Assemble Alloy / Punk Up, one-shot on evolving, distinct from a repeatable
+  or once-per-turn active ability); probed and confirmed our own pilot deck contains no on-evolve-ability
+  Pokemon, so the gap does not apply to the shipped deck as-is (a deck-design question, not a heuristic-logic
+  one). `agents/card_effects.py` TAG_VOCAB v2, `analysis/on_evolve_probe.md`.
 
 ### 4D. Methodological findings (the meta-record, the strongest Strategy material)
 

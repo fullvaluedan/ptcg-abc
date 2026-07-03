@@ -74,6 +74,18 @@ TAG_ORDER = (
     card_effects.RARE_CANDY_EVOLVE,
     card_effects.ENERGY_ACCEL,
     card_effects.ONCE_PER_TURN,
+    # v2 (U90): appended, never inserted, so a stale weight block keyed to
+    # TAGS_VERSION "1" is caught by the (FEATURE_VERSION, TAGS_VERSION) pair check
+    # in feature_version() rather than silently reading the wrong tail slice.
+    card_effects.ON_EVOLVE_TRIGGER,
+    card_effects.ATTACK_INHERITANCE,
+    card_effects.SETUP_FACEDOWN,
+    card_effects.HP_BOOST,
+    card_effects.OPPONENT_BENCH_SWITCH,
+    card_effects.DAMAGE_REDUCTION,
+    card_effects.ENERGY_RECYCLE_TO_DECK,
+    card_effects.OPPONENT_HAND_DISRUPTION,
+    card_effects.STADIUM_SEARCH_TO_HAND,
 )
 _TAG_FEATURE_NAMES = tuple("tag_" + t.lower() for t in TAG_ORDER)
 

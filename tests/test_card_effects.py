@@ -185,7 +185,7 @@ def test_pool_wide_equivalence_all_four_predicates():
 def test_tags_version_and_vocab_locked():
     # A change to the vocabulary or the version must break this lock, forcing a
     # deliberate re-triage (mirrors the engine-drift STATE LOCK).
-    assert card_effects.TAGS_VERSION == "1"
+    assert card_effects.TAGS_VERSION == "2"
     assert card_effects.TAG_VOCAB == frozenset({
         "DRAW",
         "SEARCH_TO_HAND",
@@ -195,7 +195,66 @@ def test_tags_version_and_vocab_locked():
         "RARE_CANDY_EVOLVE",
         "ENERGY_ACCEL",
         "ONCE_PER_TURN",
+        "ON_EVOLVE_TRIGGER",
+        "ATTACK_INHERITANCE",
+        "SETUP_FACEDOWN",
+        "HP_BOOST",
+        "OPPONENT_BENCH_SWITCH",
+        "DAMAGE_REDUCTION",
+        "ENERGY_RECYCLE_TO_DECK",
+        "OPPONENT_HAND_DISRUPTION",
+        "STADIUM_SEARCH_TO_HAND",
     })
+
+
+# ---- v2 tags (U90): meta-deck coverage gap + on-evolve trigger --------------
+
+ARCHALUDON_EX = 190          # on-evolve: Assemble Alloy
+GRIMMSNARL_EX = 648          # on-evolve: Punk Up
+RELICANTH = 57               # attack inheritance
+CINDERACE = 666              # setup face-down
+HEROS_CAPE = 1159            # +100 HP tool
+BOSSES_ORDERS = 1182         # gust the opponent's bench
+FULL_METAL_LAB = 1244        # stadium damage reduction
+ENERGY_RECYCLER = 1139       # energy discard pile -> deck
+XEROSICS_MACHINATIONS = 1197  # opponent hand disruption
+SPIKEMUTH_GYM = 1259         # stadium search -> either player's hand
+
+
+def test_tag_text_on_evolve_trigger():
+    for cid in (ARCHALUDON_EX, GRIMMSNARL_EX):
+        tags = card_effects.tag_text(heuristics._card_text(cid))
+        assert card_effects.ON_EVOLVE_TRIGGER in tags
+        # Both were already TAGGED via ENERGY_ACCEL; the new tag adds the
+        # on-evolve semantic without displacing the existing one.
+        assert card_effects.ENERGY_ACCEL in tags
+
+
+def test_tag_text_v2_meta_deck_gap_cards():
+    checks = (
+        (RELICANTH, card_effects.ATTACK_INHERITANCE),
+        (CINDERACE, card_effects.SETUP_FACEDOWN),
+        (HEROS_CAPE, card_effects.HP_BOOST),
+        (BOSSES_ORDERS, card_effects.OPPONENT_BENCH_SWITCH),
+        (FULL_METAL_LAB, card_effects.DAMAGE_REDUCTION),
+        (ENERGY_RECYCLER, card_effects.ENERGY_RECYCLE_TO_DECK),
+        (XEROSICS_MACHINATIONS, card_effects.OPPONENT_HAND_DISRUPTION),
+        (SPIKEMUTH_GYM, card_effects.STADIUM_SEARCH_TO_HAND),
+    )
+    for cid, tag in checks:
+        tags = card_effects.tag_text(heuristics._card_text(cid))
+        assert tag in tags, (cid, tags)
+
+
+def test_meta_decks_fully_covered():
+    from tools.deck_validate import read_deck
+    from pathlib import Path
+
+    root = Path(tag_coverage.__file__).resolve().parents[1]
+    for name in ("meta_archaludon", "meta_grimmsnarl"):
+        deck = read_deck(root / "decks" / f"{name}.csv")
+        cov = tag_coverage.deck_coverage(deck)
+        assert cov["coverage"] == 1.0, (name, cov["uncovered"])
 
 
 # ---- coverage meter + ratchet -----------------------------------------------

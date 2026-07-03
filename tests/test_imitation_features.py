@@ -36,7 +36,7 @@ def _obs(options, turn=1, your_index=0):
 
 def test_feature_names_pinned():
     assert IF.N_FEATURES == len(IF.FEATURE_NAMES)
-    assert IF.N_FEATURES == 35
+    assert IF.N_FEATURES == 44
     assert IF.FEATURE_NAMES[:7] == (
         "is_play", "is_attach", "is_evolve", "is_ability", "is_retreat", "is_attack", "is_end",
     )
