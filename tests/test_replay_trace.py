@@ -14,18 +14,22 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
         sys.path.insert(0, _p)
 
 from analysis.replay_trace import (  # noqa: E402
+    AREA_ACTIVE,
+    AREA_BENCH,
     AREA_DECK,
     AREA_HAND,
     CTX_TO_ACTIVE,
     OPT_CATEGORY,
     SEL_CARD,
     SEL_MAIN,
+    attach_receiver_id,
     episode_bucket,
     episode_id_of,
     iter_expert_card_decisions,
     iter_expert_decisions,
     iter_resolved_decisions,
     option_card_id,
+    play_hand_card_id,
     resolve_option,
     split_of,
     team_seat,
@@ -209,19 +213,66 @@ def test_option_card_id_out_of_range_and_missing_are_none():
 
 
 def test_iter_resolved_decisions_record_shape():
+    players = [{"active": [{"id": "raichu"}], "bench": [], "hand": []}]
     options = [
-        {"type": 8, "cardId": 5},            # ATTACH card 5
+        {"type": 8, "area": AREA_HAND, "index": 0, "inPlayArea": AREA_ACTIVE},  # ATTACH -> raichu
         {"type": 13, "attackId": 900},       # ATTACK 900  (played)
         {"type": 14},                        # END
     ]
-    entry = _main_entry(seat=0, action=[1], options=options)
+    entry = _main_entry(seat=0, action=[1], options=options, players=players)
     rec = list(iter_resolved_decisions(_replay([_step(entry, 0)]), 0))
     assert len(rec) == 1
     r = rec[0]
     assert r["played_index"] == 1
     assert r["played"]["category"] == "ATTACK" and r["played"]["attack_id"] == 900
     assert [o["category"] for o in r["options"]] == ["ATTACH", "ATTACK", "END"]
-    assert r["options"][0]["card_id"] == 5
+    assert r["options"][0]["card_id"] == "raichu"
+
+
+# attach_receiver_id / play_hand_card_id (U91 fix) ---------------------------
+
+def test_attach_receiver_id_active_ignores_in_play_index():
+    obs = {"current": {"yourIndex": 0, "players": [
+        {"active": [{"id": "raichu"}], "bench": [{"id": "pika"}]},
+    ]}}
+    opt = {"type": 8, "area": AREA_HAND, "index": 0, "inPlayArea": AREA_ACTIVE, "inPlayIndex": 3}
+    assert attach_receiver_id(opt, obs) == "raichu"
+
+
+def test_attach_receiver_id_bench_uses_in_play_index():
+    obs = {"current": {"yourIndex": 0, "players": [
+        {"active": [{"id": "raichu"}], "bench": [{"id": "pika"}, {"id": "eevee"}]},
+    ]}}
+    opt = {"type": 8, "area": AREA_HAND, "index": 0, "inPlayArea": AREA_BENCH, "inPlayIndex": 1}
+    assert attach_receiver_id(opt, obs) == "eevee"
+
+
+def test_attach_receiver_id_missing_slot_is_none():
+    obs = {"current": {"yourIndex": 0, "players": [{"active": [None], "bench": []}]}}
+    assert attach_receiver_id({"type": 8, "inPlayArea": AREA_ACTIVE}, obs) is None
+    assert attach_receiver_id({"type": 8, "inPlayArea": AREA_BENCH, "inPlayIndex": 0}, obs) is None
+    assert attach_receiver_id("nope", obs) is None
+
+
+def test_play_hand_card_id_reads_index_with_no_area_key():
+    obs = {"current": {"yourIndex": 1, "players": [
+        {"hand": [{"id": 111}]},
+        {"hand": [{"id": 222}, {"id": 333}]},
+    ]}}
+    opt = {"type": 7, "index": 1}  # no "area" key, matching the real engine schema
+    assert play_hand_card_id(opt, obs) == 333
+
+
+def test_play_hand_card_id_direct_card_id_and_missing():
+    assert play_hand_card_id({"type": 7, "cardId": 42}, {}) == 42
+    assert play_hand_card_id({"type": 7}, {}) is None
+    assert play_hand_card_id("nope", {}) is None
+
+
+def test_resolve_option_play_uses_hand_index_not_area():
+    obs = {"current": {"yourIndex": 0, "players": [{"hand": [{"id": "supporter-1"}]}]}}
+    r = resolve_option({"type": 7, "index": 0}, {}, obs)
+    assert r["category"] == "PLAY" and r["card_id"] == "supporter-1"
 
 
 # md5 episode split ---------------------------------------------------------

@@ -87,7 +87,12 @@ def _opening_category(decisions):
 
 
 def _attach_targets(decisions):
-    """The card each ATTACH decision put energy on (None where unresolved)."""
+    """The Pokemon card each ATTACH decision put energy on (None where unresolved).
+
+    resolve_option's card_id for ATTACH is the RECEIVING Pokemon
+    (replay_trace.attach_receiver_id), not the energy spent, so this reads as
+    "which attacker did the expert power up," the game-plan question.
+    """
     return [p["card_id"] for p in _played_of_category(decisions, "ATTACH")]
 
 

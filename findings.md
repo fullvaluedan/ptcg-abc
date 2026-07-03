@@ -100,7 +100,16 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   ordering, not target. `analysis/energy_seq_refuted_by_expert_moves.md`.
 - gameplan_seeds_diffuse: mining the top decks for concentrated "always do X" seeds came back nearly empty at
   full scale (Grimmsnarl 0 seeds); the one Archaludon seed was a deck-identity fact, not a win edge.
-  `analysis/gameplans/seeds_real_run.md`.
+  `analysis/gameplans/seeds_real_run.md`. 2026-07-03 (U91): the named play_target re-test condition (fix the
+  PLAY resolver) is now MET. Root cause was a real bug in `analysis/replay_trace.py`, not deck-derived
+  diffuseness: ATTACH options were mined for the wrong half of the option (the energy card spent, not the
+  receiving Pokemon named by separate `inPlayArea`/`inPlayIndex` keys), and PLAY options carry no `area` key
+  at all so the generic resolver returned `None` for every one. Fixed both (mirroring the shipped pilot's own
+  already-correct `_attach_slot_card_id` / `play_card_id`); validated on real data (bracket_4, n=1500
+  episodes): both blocks went from 0.470/0.285 and 0.000-barred to 1.000/1.000 resolution.
+  `analysis/gameplan_target_resolution_fixed.md`. Still open: concentrating the now-resolvable distributions
+  past the 0.70 emission bar, and a real side-finding that meta_archaludon/meta_grimmsnarl no longer classify
+  any deck in this dataset (the newer bracket_1..6 archetypes shadow them in the classifier's tie-break).
 - cem_prio_agreement_generalizes: three CEM runs, three different fitness formulations, tuned expert-move
   agreement on train but got zero or negative held-out transfer every time, all blocked by the pre-registered
   filter. The third (2026-07-03, U83) targeted the second attempt's own named re-open condition, a materially

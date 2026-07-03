@@ -27,7 +27,7 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
 
 from analysis import expert_cohort as ec  # noqa: E402
 from analysis import gameplan_mine as gm  # noqa: E402
-from analysis.replay_trace import SEL_MAIN  # noqa: E402
+from analysis.replay_trace import AREA_ACTIVE, AREA_HAND, SEL_MAIN  # noqa: E402
 
 # OptionType values the spine maps to categories (analysis/replay_trace.OPT_CATEGORY).
 PLAY, ATTACH, EVOLVE, ATTACK, END = 7, 8, 9, 13, 14
@@ -172,12 +172,15 @@ def _deck(distinct_ids, filler=8):
     return tuple(deck + [filler] * (ec.DECK_SIZE - len(deck)))
 
 
-def _main_entry(seat, action, options):
+def _main_entry(seat, action, options, players=None):
     sel = {"type": SEL_MAIN, "minCount": 1, "maxCount": 1, "option": options}
+    current = {"yourIndex": seat}
+    if players is not None:
+        current["players"] = players
     return {
         "action": action,
         "status": "ACTIVE",
-        "observation": {"select": sel, "current": {"yourIndex": seat}},
+        "observation": {"select": sel, "current": current},
     }
 
 
@@ -212,10 +215,15 @@ def test_episode_family_streams_filters_target_and_marks_winner():
 
 
 def test_episode_family_streams_reads_target_seat_decisions():
-    # Seat 0 (alpha) makes one scorable ATTACH among two options.
-    attach_opt = {"type": ATTACH, "cardId": "basic-water"}
+    # Seat 0 (alpha) makes one scorable ATTACH among two options, powering its
+    # active (attach_target reads the RECEIVING Pokemon, not the energy spent).
+    players = [{"active": [{"id": "basic-water"}], "bench": [], "hand": [{"id": "energy"}]}]
+    attach_opt = {"type": ATTACH, "area": AREA_HAND, "index": 0, "inPlayArea": AREA_ACTIVE}
     end_opt = {"type": END}
-    step1 = [_main_entry(0, action=[0], options=[attach_opt, end_opt]), _inactive()]
+    step1 = [
+        _main_entry(0, action=[0], options=[attach_opt, end_opt], players=players),
+        _inactive(),
+    ]
     rep = _replay([1, -1], _deck(SIG_ALPHA), _deck(SIG_BETA), extra_steps=[step1])
     got = list(gm.episode_family_streams(rep, SIGNATURES, "alpha"))
     won, decisions = got[0]
@@ -235,9 +243,13 @@ def test_episode_family_streams_drops_draw_and_unreadable_opener():
 def test_run_mine_over_a_directory(tmp_path):
     import json
 
-    attach_opt = {"type": ATTACH, "cardId": "basic-water"}
+    players = [{"active": [{"id": "basic-water"}], "bench": [], "hand": [{"id": "energy"}]}]
+    attach_opt = {"type": ATTACH, "area": AREA_HAND, "index": 0, "inPlayArea": AREA_ACTIVE}
     end_opt = {"type": END}
-    step1 = [_main_entry(0, action=[0], options=[attach_opt, end_opt]), _inactive()]
+    step1 = [
+        _main_entry(0, action=[0], options=[attach_opt, end_opt], players=players),
+        _inactive(),
+    ]
     rep = _replay([1, -1], _deck(SIG_ALPHA), _deck(SIG_BETA), extra_steps=[step1])
     (tmp_path / "1.json").write_text(json.dumps(rep), encoding="utf-8")
 

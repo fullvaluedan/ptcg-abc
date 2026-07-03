@@ -97,10 +97,20 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
           pilot ever triggers that class (same shape as the 0/554 ability find that paid +4pp); extend
           agents/card_effects.py TAG_VOCAB (v2, additive, golden tests keep passing) until ZERO untagged
           effect cards remain on the two meta decklists (today 4 and 5 blind, including Boss's Orders).
-      U91 PLAYBOOK MINER V2: fix attach_target to resolve the RECEIVING Pokemon (not the energy card id) and
-          root-cause play_target's 0.000 resolution; then mine within-turn sequencing, energy banking,
-          win-condition timing per family. CLAIM GATE: n>=200 and bootstrap 90% CI excluding zero, dropped
-          claims published. PREDICTION GATE: the playbook must predict held-out top-player moves or be cut.
+      U91 PLAYBOOK MINER V2 (step 1 DONE 2026-07-03, rest not started): fixed attach_target to resolve the
+          RECEIVING Pokemon (analysis/replay_trace.attach_receiver_id, mirrors heuristics._attach_slot_card_id)
+          and root-caused + fixed play_target's 0.000 resolution (analysis/replay_trace.play_hand_card_id,
+          mirrors heuristics.play_card_id; the bug was a PLAY option carrying no "area" key at all, only a bare
+          hand index). Validated on real data (bracket_4, n=1500 episodes): both blocks jumped from
+          0.470/0.285 and 0.000-barred to 1.000/1.000 resolution (analysis/gameplan_target_resolution_fixed.md).
+          Discovered a real side-blocker: meta_archaludon/meta_grimmsnarl no longer classify ANY deck in the
+          mined dataset because the L5 bracket_1..6 archetype csvs (added after this dataset was mined) now
+          shadow them in classify_family's alphabetical tie-break; fix that or swap the mining target to a
+          bracket family before re-mining the two named families end to end. STILL TODO: re-mine a real target
+          family end-to-end with the fixed resolvers and concentrate past the 0.70 share bar (a narrower
+          cohort or a new block shape), then mine within-turn sequencing, energy banking, win-condition timing
+          per family. CLAIM GATE: n>=200 and bootstrap 90% CI excluding zero, dropped claims published.
+          PREDICTION GATE: the playbook must predict held-out top-player moves or be cut.
       U92 CLONE REBUILT: step 0 is the half-day KILL TEST: rerun the U26 pairwise RankNet (already written,
           analysis/unit_zero_spike.py) against FIRST-LEGAL on the clone data. Then tools/train_clone2.py:
           groupwise/pairwise ranking objective (NEVER per-row binary log-loss), position features

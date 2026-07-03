@@ -161,23 +161,106 @@ def option_card_id(opt, sel, obs):
     return None
 
 
+def attach_receiver_id(opt, obs):
+    """Card id of the in-play Pokemon an ATTACH option would power, or None.
+
+    An ATTACH option names TWO cards: `area`/`index` pick the energy in hand
+    (what option_card_id resolves), and `inPlayArea`/`inPlayIndex` separately name
+    the active or bench Pokemon receiving it. Mirrors
+    agents.heuristics._attach_slot_card_id (active ignores inPlayIndex, there is
+    only one active slot; bench indexes inPlayIndex) but over the observation only
+    (no card engine), so the spine and the pilot resolve the receiving Pokemon the
+    same way. Pure and defensive: any missing piece yields None.
+    """
+    if not isinstance(opt, dict):
+        return None
+    try:
+        area = opt.get("inPlayArea")
+        state = obs.get("current") or {}
+        players = state.get("players") or []
+        pi = opt.get("playerIndex")
+        if pi is None:
+            pi = state.get("yourIndex", 0)
+        if not (0 <= pi < len(players)):
+            return None
+        player = players[pi]
+        if not isinstance(player, dict):
+            return None
+        if area == AREA_ACTIVE:
+            active = player.get("active") or []
+            slot = active[0] if active and active[0] is not None else None
+            return slot.get("id") if isinstance(slot, dict) else None
+        if area == AREA_BENCH:
+            idx = opt.get("inPlayIndex")
+            bench = player.get("bench") or []
+            if idx is not None and 0 <= idx < len(bench) and bench[idx]:
+                return bench[idx].get("id")
+    except (AttributeError, TypeError, KeyError, IndexError):
+        return None
+    return None
+
+
+def play_hand_card_id(opt, obs):
+    """Card id a PLAY option refers to, read from the deciding player's hand.
+
+    A PLAY option carries a hand `index` and no `area` at all, so the generic
+    option_card_id (which routes strictly off `area`) never resolves it. Mirrors
+    agents.heuristics.play_card_id but over the observation only (no card
+    engine). Pure and defensive: any missing piece yields None.
+    """
+    if not isinstance(opt, dict):
+        return None
+    try:
+        cid = opt.get("cardId")
+        if cid:
+            return cid
+        idx = opt.get("index")
+        if idx is None:
+            return None
+        state = obs.get("current") or {}
+        players = state.get("players") or []
+        pi = opt.get("playerIndex")
+        if pi is None:
+            pi = state.get("yourIndex", 0)
+        if not (0 <= pi < len(players)):
+            return None
+        hand = (players[pi] or {}).get("hand") or []
+        if 0 <= idx < len(hand) and hand[idx]:
+            return hand[idx].get("id")
+    except (AttributeError, TypeError, KeyError, IndexError):
+        return None
+    return None
+
+
 def resolve_option(opt, sel, obs) -> dict:
     """A MAIN option resolved to its category, card id, and attack id.
 
     Turns one raw option dict into {type, category, card_id, attack_id}: the
-    OptionType, its action-category name, the card id it plays / attaches / evolves
-    (via option_card_id), and the attackId an ATTACK option carries directly. A
-    non-dict option or an unresolvable card yields None fields rather than raising,
-    so a consumer can read WHICH card or attack every option refers to without its
-    own decoder. Pure over the observation, cg-free.
+    OptionType, its action-category name, and the attackId an ATTACK option
+    carries directly. card_id names the card a block extractor calls the
+    "target" of the decision: for ATTACH this is the RECEIVING Pokemon
+    (attach_receiver_id), not the energy spent, since that is what a game-plan
+    reader means by "attach target"; for PLAY it is the hand card played
+    (play_hand_card_id, since a PLAY option carries no `area` for the generic
+    resolver to key off); everything else (EVOLVE, RETREAT, ABILITY, CARD
+    decisions) still resolves via option_card_id. A non-dict option or an
+    unresolvable card yields None fields rather than raising. Pure over the
+    observation, cg-free.
     """
     if not isinstance(opt, dict):
         return {"type": None, "category": "OTHER", "card_id": None, "attack_id": None}
     otype = opt.get("type")
+    category = OPT_CATEGORY.get(otype, "OTHER")
+    if category == "ATTACH":
+        card_id = attach_receiver_id(opt, obs)
+    elif category == "PLAY":
+        card_id = play_hand_card_id(opt, obs)
+    else:
+        card_id = option_card_id(opt, sel, obs)
     return {
         "type": otype,
-        "category": OPT_CATEGORY.get(otype, "OTHER"),
-        "card_id": option_card_id(opt, sel, obs),
+        "category": category,
+        "card_id": card_id,
         "attack_id": opt.get("attackId"),
     }
 
