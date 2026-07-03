@@ -28,8 +28,17 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
       MET: EVICT it NOW (do NOT wait for the 07-06 date). Reclaiming slot 2 to a king copy (L1's first
       submission) is the eviction. Then stop tracking trolley_thick. General rule going forward: settle any
       candidate the instant it is clearly outside the M=60 band, never idle days on a decided loser.
-  L3. After L1/L2 settle: tune the SHIPPED heuristic + deck only, each candidate gated on beating 569.6
-      offline before a slot.
+  L3. BUILD THE CALIBRATED CLONE RING (U70-U74, docs/plans/2026-07-03-002-feat-top-player-clone-ring-plan.md):
+      opponent bots cloned from the top-20 teams' recorded play, each piloting that team's harvested deck,
+      then a CALIBRATION gate (U73) that must retrodict our known ladder ordering (correlation >= 0.7) before
+      the ring replaces the mirror pool as the offline gate. This is the fix for the audited 0-for-4
+      offline-to-ladder transfer failure; it outranks all other offline work after L1/L2 because every future
+      slot decision depends on a gate that actually predicts the ladder. One unit per iteration:
+      U70 dataset -> U71 train+qualify -> U72 clone:<family> opponents -> U73 calibrate -> U74 re-gate the
+      live levers. Clone bots never ship, so no grader constraints apply to them.
+  L4. After the ring passes (or honestly fails) U73: tune the SHIPPED heuristic + deck only, each candidate
+      gated on beating the king against the RING (if calibrated) before a slot; if the ring fails
+      calibration, record it and fall back to ladder-only judgment with strict slot discipline.
 
 ### TRACK S (STRATEGY prize = the $30k model-approach award; offline; NEVER claims ladder progress)
 U60-U65, the Phase A DoD, and U8 (U8a/U8b/U8c) are all DONE as of 019dfa2 (move-prior default flipped on after
