@@ -194,6 +194,17 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   then submitted heuristic+trolley-attack_first (ref 54304483) into the slot this settlement freed, via the
   latest-2 eviction-by-submission-order mechanic (the older live submission drops automatically, no manual
   revert needed). `state/current.md`, `LOOP_BRIEF.md` L1/L9.
+- U93 step 3's attack_first ladder A/B SETTLED NEUTRAL (2026-07-03), not WIN or LOSS: the first board reading
+  fell inside the M=60 band (526.8 vs king 494.8), the pre-registered repeat resubmission then drifted to the
+  opposite sign under ordinary same-build noise (442.9 vs 600.0), and the U23 scoreboard tiebreak on shared
+  opponent brackets came back neutral on only 3 decisive candidate episodes (candidate 1/3, king 4/6,
+  confidence 0.171), far short of the pre-registered N=30. This is the project's first case of a passing
+  offline gate (gauntlet +5.5pp, ring +10.0pp, both agreeing in direction) that the ladder never accumulated
+  enough decisive games to confirm or refute before its settle-by date, distinct from the earlier proxy
+  failures where the ladder verdict was clear and simply disagreed. Per the BAND action the slot reverts to a
+  byte-identical king copy, built and grader-verified but blocked from submitting by Kaggle's daily quota as
+  of this writing. The lever stays re-eligible for a future slot without new offline work.
+  `analysis/attack_first_settlement.md`, `docs/writeup/offline_ladder_transfer.md`, `state/current.md`.
 
 ### 4D. Methodological findings (the meta-record, the strongest Strategy material)
 
