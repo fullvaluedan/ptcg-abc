@@ -69,6 +69,14 @@ CLONE_FAMILIES = (
     "meta_grimmsnarl_tonakaiiii",
 )
 
+# Bracket-band clone opponents (plan U81) are auto-discovered by filename
+# prefix rather than a fixed tuple like CLONE_FAMILIES: they are harvested
+# directly from real games played by the ~450-750 rating band we actually
+# face (tools/bracket_decks.py), not attributed via classify_family's
+# archetype-signature matching, so there is no fixed family name to enumerate
+# ahead of time.
+BRACKET_DECK_PREFIX = "bracket_"
+
 
 def deck_names() -> list:
     """Sorted stems of the deck csvs available as `deck:<name>` opponents.
@@ -81,15 +89,25 @@ def deck_names() -> list:
     return sorted(p.stem for p in _DECKS_DIR.glob("*.csv"))
 
 
+def bracket_clone_names() -> list:
+    """Sorted deck-csv stems starting with BRACKET_DECK_PREFIX (plan U81).
+
+    Auto-discovered like deck_names(), not a fixed tuple: any decks/bracket_*.csv
+    tools/bracket_decks.py writes becomes a clone: opponent with no code change.
+    """
+    return sorted(n for n in deck_names() if n.startswith(BRACKET_DECK_PREFIX))
+
+
 def clone_family_names() -> list:
-    """Sorted CLONE_FAMILIES entries with a matching decklist present on disk.
+    """Sorted CLONE_FAMILIES entries plus bracket_clone_names(), each with a
+    matching decklist present on disk.
 
     Empty when the decks directory is absent, mirroring deck_names() so a
     missing pool degrades to the built-ins plus deck: opponents rather than
     raising.
     """
     have = set(deck_names())
-    return sorted(f for f in CLONE_FAMILIES if f in have)
+    return sorted([f for f in CLONE_FAMILIES if f in have] + bracket_clone_names())
 
 
 def names() -> list:
@@ -251,7 +269,7 @@ def get(name):
         return _deck_opponent(_read_deck_csv(path))
     if isinstance(name, str) and name.startswith("clone:"):
         family = name[len("clone:"):]
-        if family not in CLONE_FAMILIES:
+        if family not in CLONE_FAMILIES and not family.startswith(BRACKET_DECK_PREFIX):
             raise KeyError(
                 f"Unknown clone family '{name}'. Known: {clone_family_names()}"
             )

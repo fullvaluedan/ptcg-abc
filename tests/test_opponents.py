@@ -23,8 +23,17 @@ def test_names_include_builtins_and_deck_opponents():
 def test_clone_family_names_subset_of_clone_families_and_on_disk():
     fams = opponents.clone_family_names()
     assert fams, "clone families should be non-empty when their decks exist on disk"
-    assert all(f in opponents.CLONE_FAMILIES for f in fams)
+    assert all(
+        f in opponents.CLONE_FAMILIES or f.startswith(opponents.BRACKET_DECK_PREFIX)
+        for f in fams
+    )
     assert fams == sorted(fams)
+
+
+def test_bracket_clone_names_subset_of_clone_family_names():
+    brackets = opponents.bracket_clone_names()
+    assert all(b.startswith(opponents.BRACKET_DECK_PREFIX) for b in brackets)
+    assert set(brackets) <= set(opponents.clone_family_names())
 
 
 def test_names_include_one_clone_per_clone_family():
@@ -63,6 +72,16 @@ def test_get_known_clone_family_resolves():
     fam = opponents.clone_family_names()[0]
     agent = opponents.get(f"clone:{fam}")
     assert callable(agent)
+
+
+def test_get_bracket_clone_resolves_without_being_in_clone_families(tmp_path, monkeypatch):
+    (tmp_path / "bracket_1.csv").write_text("\n".join(str(i) for i in range(1, 61)))
+    monkeypatch.setattr(opponents, "_DECKS_DIR", tmp_path)
+    assert "bracket_1" not in opponents.CLONE_FAMILIES
+    assert "bracket_1" in opponents.bracket_clone_names()
+    agent = opponents.get("clone:bracket_1")
+    assert callable(agent)
+    assert agent({"select": None}) == list(range(1, 61))
 
 
 def test_read_deck_csv_reads_sixty(tmp_path):
