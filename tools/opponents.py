@@ -16,6 +16,19 @@ heuristic pilot returning a fixed 60-card list when asked to pick a deck.
 Frozen agent-version snapshots are the planned second axis of diversity (past
 selves as opponents); they are added here once a snapshot-save step exists, so
 this module stays useful now without a half-built loader.
+
+`clone:<family>` (plan U72) is a second, DIFFERENT kind of opponent: instead of
+piloting a foil deck with OUR OWN heuristic strategy (a mirror in disguise, the
+audited cause of the offline-to-ladder non-transfer), it pilots a top-team
+archetype's harvested deck and picks the FIRST LEGAL option at every decision,
+the practical ceiling U71's three independent attempts (richer features, a
+tree model, an ablation) found no trained per-option scorer could beat on real
+top-player decisions (analysis/clone_quality.md). Only the guard-rail safety
+checks already proven in agents/heuristics.py sit on top of first-legal: take
+a guaranteed lethal, never activate a repeatable (stateless-loop-risk)
+ability, and never voluntarily over-draw into a deck-out. This makes clone:
+opponents a real, non-mirror foil for the calibration ring (U73), not another
+copy of our own strategic logic wearing a different deck.
 """
 import sys
 from pathlib import Path
@@ -45,6 +58,17 @@ POOL_DECKS = (
     "trolley_thick",
 )
 
+# Archetype families the U70/U71 pipeline can actually attribute to a real,
+# single harvested decklist (analysis/expert_cohort.classify_family's non-
+# "other" outcomes; the exact three decklists embedded as
+# analysis/archetype._BUILTIN_DECKLISTS). "other" is a mixed catch-all bucket
+# with no one deck to pilot, so it is never offered as a clone: opponent.
+CLONE_FAMILIES = (
+    "meta_archaludon",
+    "meta_grimmsnarl",
+    "meta_grimmsnarl_tonakaiiii",
+)
+
 
 def deck_names() -> list:
     """Sorted stems of the deck csvs available as `deck:<name>` opponents.
@@ -57,9 +81,24 @@ def deck_names() -> list:
     return sorted(p.stem for p in _DECKS_DIR.glob("*.csv"))
 
 
+def clone_family_names() -> list:
+    """Sorted CLONE_FAMILIES entries with a matching decklist present on disk.
+
+    Empty when the decks directory is absent, mirroring deck_names() so a
+    missing pool degrades to the built-ins plus deck: opponents rather than
+    raising.
+    """
+    have = set(deck_names())
+    return sorted(f for f in CLONE_FAMILIES if f in have)
+
+
 def names() -> list:
-    """Every resolvable opponent name: the built-ins plus one `deck:<name>` per deck."""
-    return list(BUILTINS) + [f"deck:{stem}" for stem in deck_names()]
+    """Every resolvable name: built-ins, one `deck:<name>` per deck, one `clone:<family>` per clone family."""
+    return (
+        list(BUILTINS)
+        + [f"deck:{stem}" for stem in deck_names()]
+        + [f"clone:{fam}" for fam in clone_family_names()]
+    )
 
 
 def pool() -> list:
@@ -112,11 +151,79 @@ def _deck_opponent(deck):
     return agent
 
 
+def _safe_first_legal_index(sel, obs):
+    """The lowest-index legal MAIN option, minus any repeatable-ability risk.
+
+    Reuses agents.heuristics' own L2 ability-loop VETO primitives
+    (options_by_type, option_card_id, _is_once_per_turn_ability): an
+    ABILITY-type option whose card is not limited to "once during your turn"
+    is excluded before picking, since a stateless first-legal picker offered
+    the same repeatable option every decision could loop instead of ending
+    its turn. Falls back to plain _first_legal(sel) if every option is
+    excluded (so this never returns an empty pick). Never raises.
+    """
+    from agents import heuristics
+
+    options = sel.get("option", [])
+    unsafe = set()
+    for oi, opt in heuristics.options_by_type(options).get(heuristics.OPT_ABILITY, []):
+        try:
+            cid = heuristics.option_card_id(opt, sel, obs)
+        except Exception:
+            cid = None
+        if cid is None or not heuristics._is_once_per_turn_ability(cid):
+            unsafe.add(oi)
+    mn = sel.get("minCount", 1)
+    mx = sel.get("maxCount", 1)
+    k = mn if mn > 0 else (1 if mx >= 1 else 0)
+    safe = [i for i in range(len(options)) if i not in unsafe]
+    if len(safe) >= k:
+        return safe[:k]
+    return heuristics._first_legal(sel)
+
+
+def _clone_opponent(deck):
+    """A first-legal-plus-safety pilot that brings a fixed deck at selection.
+
+    The clone design U71 settled on (analysis/clone_quality.md): no trained
+    per-option scorer, since first-legal alone already beat every model family
+    tried on real top-team decisions. Only the guard-rail safety checks stack
+    on top, in the same priority order agents.heuristics.choose uses for its
+    own scorer-independent safety guards: a guaranteed lethal is taken first,
+    then a repeatable-ability veto, then a deck-out-safe first-legal pick.
+    Never raises; degrades to option 0 on any unexpected obs shape.
+    """
+    from agents import heuristics
+
+    def agent(obs):
+        sel = obs.get("select")
+        if sel is None:
+            return deck
+        try:
+            if sel.get("type") == heuristics.SEL_MAIN:
+                lethal = heuristics.lethal_move(obs, sel)
+                if lethal is not None:
+                    return lethal
+            move = _safe_first_legal_index(sel, obs)
+            return heuristics.cap_count_for_deckout(move, sel, obs)
+        except Exception:
+            pass
+        try:
+            return heuristics._first_legal(sel)
+        except Exception:
+            return [0]
+
+    return agent
+
+
 def get(name):
     """Return the agent callable for a registered opponent name.
 
     Beyond the built-ins, `deck:<stem>` resolves to the heuristic piloting
     decks/<stem>.csv, so the gauntlet can score against real-field deck diversity.
+    `clone:<family>` resolves to the first-legal-plus-safety pilot (see
+    _clone_opponent) piloting that family's harvested decklist, for any family
+    in CLONE_FAMILIES with a decklist on disk.
     """
     if name in ("random", "first"):
         from kaggle_environments.envs.cabt.cabt import random_agent, first_agent
@@ -142,4 +249,16 @@ def get(name):
                 f"Unknown deck opponent '{name}'. Known decks: {deck_names()}"
             )
         return _deck_opponent(_read_deck_csv(path))
+    if isinstance(name, str) and name.startswith("clone:"):
+        family = name[len("clone:"):]
+        if family not in CLONE_FAMILIES:
+            raise KeyError(
+                f"Unknown clone family '{name}'. Known: {clone_family_names()}"
+            )
+        path = _DECKS_DIR / f"{family}.csv"
+        if not path.exists():
+            raise KeyError(
+                f"Unknown clone family '{name}'. Known: {clone_family_names()}"
+            )
+        return _clone_opponent(_read_deck_csv(path))
     raise KeyError(f"Unknown agent '{name}'. Known: {names()}")
