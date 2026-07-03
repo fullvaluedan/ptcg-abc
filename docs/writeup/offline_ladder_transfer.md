@@ -92,20 +92,60 @@ is itself the point: a plausible-looking proxy can fail for a specific, discover
 reason, and finding that reason after the fact is not the same as trusting the
 proxy in advance.
 
-## What three failures in a row actually means
+## Attempt 4: the bracket-band clone ring (U81), the first proxy to pass
 
 Three different offline designs, of increasing sophistication and cost to build,
-have now been checked against the same ladder-truth bar and none has cleared it:
-a banned weak-bot pool, a real-move-agreement validator that surfaced a genuine
+had been checked against the same ladder-truth bar and none had cleared it: a
+banned weak-bot pool, a real-move-agreement validator that surfaced a genuine
 capability gap but was never itself calibrated as a gate, and a top-player clone
 ring built for exactly this purpose that still landed at tau 0.429, little better
 than a coin flip at ordering builds correctly. `analysis/ring_calibration.md`
-names this directly: "every offline proxy tried so far... has failed to retrodict
-the real ladder ordering well enough to be trusted as a gate." The loop's
-response was not to lower the bar (drop the threshold, accept a partial pass, or
-quietly start trusting a proxy anyway) but to fall back explicitly to ladder-only
-judgment for future shipped-agent candidates, with strict slot discipline (at most
-2 scored slots, 5 submissions/day) taking the place of an offline pre-filter.
+named this directly at the time: "every offline proxy tried so far... has failed
+to retrodict the real ladder ordering well enough to be trusted as a gate."
+
+The U73 postmortem had already named a specific, fixable cause for that failure:
+the ring's opponents were clones of the top-20 leaderboard, not the ~450-750
+rating band the ladder's matchmaking actually pairs us against, and one of the
+three opponents happened to mirror a build-under-test's own decklist, dragging
+that build's win rate toward 50% regardless of true quality. U81 tested that
+diagnosis directly rather than assuming it: `tools/bracket_decks.py` harvested
+decklists from real opponents in our own rating band, `tools/bracket_select.py`
+built a nine-clone ring from them (six bracket clones plus the original three
+meta clones), and the same U73 gate math (`tools/ring_calibrate.py`, unchanged)
+was re-run at N=20 games/build against the same six known ladder scores. Result:
+**tau = 0.857** (13 concordant pairs, 1 discordant, all 6 builds covered), clearing
+the 0.7 bar with the single opponent-pool variable changed and nothing else
+(analysis/ring_calibration.md). The one miss (trolley_thick ranked one spot too
+high) is a much smaller error than U73's badly-inverted middle of the ordering.
+
+This is now the first offline proxy in the project's history to earn gate
+authority: per the pre-registered rule, it can BLOCK (never promote) future
+TRACK L candidates. It was used exactly once as of this writing: U74 re-scored
+the already-staged `PTCG_ABILITY` lever through the ring (20 games/arm) and got
+the same directional answer as the original weak-bot gauntlet, off 65.0% vs on
+85.0% (+20.0pp), agreeing in direction with the gauntlet's own +4.0pp reading
+and with the pending pre-registered ladder A/B (analysis/ability_ring_check.md).
+The ring's margin is not claimed to predict the ladder's exact point spread,
+only the direction, and that live check will only be fully scored once the
+ladder A/B itself settles (no later than 2026-07-08, per the pre-registration).
+
+## What four attempts, three failures and one pass, actually mean
+
+The loop's response to the first three failures was not to lower the bar (drop
+the threshold, accept a partial pass, or quietly start trusting a proxy anyway)
+but to fall back explicitly to ladder-only judgment for future shipped-agent
+candidates, with strict slot discipline (at most 2 scored slots, 5 submissions/
+day) taking the place of an offline pre-filter, while diagnosing exactly what
+each failed proxy got wrong. That diagnostic discipline is what made the fourth
+attempt possible: U81 did not build a fundamentally new or more sophisticated
+ring, it changed exactly the one variable the U73 postmortem had already named
+as the likely cause of failure (which opponents the ring uses) and re-ran the
+identical gate math. The lesson this project can now report with real evidence
+behind it is that matching the offline proxy's opponent distribution to the
+actual distribution the ladder score was earned against mattered more than any
+amount of added model sophistication; the three earlier, cheaper designs never
+had a chance regardless of how the gate math itself was computed, because they
+were all measuring performance against the wrong field.
 
 This pattern only has teeth because of a second piece of measurement discipline
 built earlier: the same-build noise model. Two byte-identical resubmissions of
@@ -121,19 +161,70 @@ retrodiction bar for proxies, a hard noise margin for ladder verdicts) work
 together to keep a convenient-but-wrong signal from being promoted to a decision
 rule.
 
+## A parallel thread: category mining converges on archetype awareness, and a gate closes it
+
+Attempt 2's move-ranking validator did not just surface the ABILITY blind spot;
+it also named RETREAT and the post-knockout PROMOTE decision as low-agreement
+categories worth root-causing. U82's category mining chased both, along with a
+deck-search-pick check, to see whether any of them hid a cheap, shippable rule
+the way ABILITY did. None did, and each was closed for a specific, measured
+reason rather than abandoned on a hunch:
+
+- **RETREAT** (analysis/retreat_gap_conditional.md): 89.1% of real expert
+  retreat decisions are a genuine threshold_miss, not an ordering artifact, and
+  75.6% of those happen when the active is at 90-100% HP, i.e. barely hurt. A
+  plausible follow-on theory, that top players are swapping to a better bench
+  matchup regardless of HP, was then measured directly against which bench mon
+  they actually bring in and refuted: only 22.9% of those high-HP retreat
+  targets have a better type matchup than the outgoing active.
+- **PROMOTE** (analysis/promote_gap_conditional.md): the pilot has no rule at
+  all for post-knockout promotion (pure `_first_legal`). Six candidate signals
+  were checked against 91 real expert picks, including type matchup via the new
+  `analysis/matchup_delta.py` primitive and an immediate-knockout check; the
+  best of them (a combined energy-then-matchup signal) explains only 40.7% of
+  real picks, not a majority, and the knockout check never even applies in this
+  population (0/91).
+- **Deck-search picks**: found to be category-explained by existing logic
+  rather than a distinct pilot gap, so no further mining was needed there.
+
+Every one of these threads independently pointed at the same missing
+capability: knowing the current game plan or archetype the hand is building
+toward, not any single HP/energy/matchup field in isolation. That is exactly
+what U9a/U9b (docs/plans/2026-07-03-addendum-u9-archetype-detection-v1.md)
+tested head-on: an early-turn archetype classifier trained on 140 real ladder
+games' silver labels. Its own pre-registered gate required the held-out
+accuracy margin over a majority-class baseline to clear +5.0 percentage points,
+averaged across five held-out splits to avoid a single lucky split deciding the
+verdict; it landed at **+4.3 points** (analysis/archetype_prior_train.md), a
+narrow, unambiguous miss. Per the addendum's own rule, a failed U9b gate blocks
+U9c: no archetype-prior model was exported, and nothing was wired into search
+on the strength of it. This closes the specific, most-obvious version of the
+"teach the pilot the game plan" idea that three independent mining threads
+converged on; it is not evidence the general idea is wrong, only that this
+implementation, trained on this much data, did not clear the bar that was set
+for it before a genuinely different angle is worth trying.
+
 ## Bottom line for the Strategy prize
 
-The differentiated claim here is not "we found a working offline predictor of
-ladder rank." We did not, after three attempts of increasing cost and
-sophistication. The differentiated claim is that the project built a
-machine-enforced rule for admitting that in advance (proxies are refused by
-default and earn only the right to block, never promote, and only after clearing
-a pre-registered tau bar), applied it consistently across three structurally
-different designs, and reported every failure with a named, specific diagnosis
-(non-predictive by construction; real but uncalibrated; a same-deck mirror
-confound) rather than quietly lowering the bar until something passed. Combined
-with the pre-registration protocol and the fitted same-build noise band, this is
-the project's account of what does, and mostly does not, transfer from offline
-testing to a real competitive ladder, and it is deliberately reported as
-evidence in its own right rather than smoothed over on the way to a cleaner
-narrative.
+The differentiated claim here is no longer "we tried three times and none of
+them worked," though that remains an honest and reportable part of the record.
+It is now: the project built a machine-enforced rule for admitting proxy
+failure in advance (proxies are refused by default and earn only the right to
+block, never promote, and only after clearing a pre-registered tau bar),
+applied it consistently across four structurally distinct designs, reported
+three real failures with named, specific diagnoses (non-predictive by
+construction; real but uncalibrated; a same-deck mirror confound compounded by
+the wrong opponent pool), and then, on the fourth attempt, fixed exactly the
+diagnosed flaw and passed (tau 0.857), earning the project's first working
+offline gate. In parallel, a second, independent line of investigation (the
+move-ranking validator's category gaps, chased down through U82's mining and
+tested directly via U9a/U9b's archetype classifier) applied the same
+no-lowering-the-bar discipline to a promising capability idea and recorded an
+honest, narrow gate FAIL (+4.3pp vs a required +5.0pp) rather than shipping it
+regardless. Combined with the pre-registration protocol and the fitted
+same-build noise band, this is the project's account of what does, and does
+not, transfer from offline testing to a real competitive ladder: most offline
+proxies fail, the ones that fail can often be diagnosed and sometimes fixed,
+and even a well-motivated, carefully-measured capability idea can still miss
+its own bar, and each of those outcomes is reported as evidence in its own
+right rather than smoothed over on the way to a cleaner narrative.
