@@ -33,6 +33,12 @@ SEL_MAIN = 0
 # local for the same cg-free reason as SEL_MAIN.
 SEL_CARD = 1
 
+# SelectContext.SWITCH (api.py SelectContext enum): select the Pokemon to swap
+# with the one in your Active Spot. Fires as the follow-up CARD decision right
+# after a MAIN RETREAT pick (which bench mon actually comes in), and never for
+# a post-knockout promote (that is CTX_TO_ACTIVE, a different context entirely).
+CTX_SWITCH = 3
+
 # SelectContext.TO_ACTIVE (api.py SelectContext enum): select the Pokemon to put
 # into your Active Spot. Fires only as a forced promote after a knockout leaves
 # the active spot empty; the ordinary retreat swap uses SWITCH (context 3), a

@@ -89,3 +89,12 @@ gap, but it is a matchup-awareness gap, not a threshold-tuning gap. Recorded
 here so a future unit does not waste a lever on `RETREAT_HP_RATIO` (it would
 touch at most ~24% of the miss) and instead scopes a matchup-based retreat
 rule against this same miner before any ladder-facing change.
+
+**Update (analysis/retreat_target_conditional.md):** the matchup-swap theory
+above was a plausible read of the HP-band shape but had not actually been
+measured against WHICH bench mon top players bring in. Once measured
+directly (the `SelectContext.SWITCH` target decision, via the new
+`analysis/retreat_target_miner.py`), it is refuted: only 22.9% of high-HP
+retreat targets actually have a better type matchup than the outgoing
+active. The 89.1% MAIN-decision gap this doc characterizes is still real and
+still open; its cause is not yet identified.
