@@ -153,12 +153,18 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
           heuristic+trolley-attack_first (state/current.md, up, M=60, N=30, settle-by 2026-07-11). NOT yet
           submitted: both ladder slots occupied (trolley king copy + the in-flight L1 ability A/B, settle-by
           2026-07-08). NEXT: submit the instant a slot frees, per TRACK L priority.
-      U94 WRITEUP CHAPTER: docs/writeup/comprehension.md, the full arc (autopsy, WHY layer, playbooks, honest
-          gates incl FAILs) with a machine-audited claims ledger (every number links to a committed analysis
-          file).
+      U94 WRITEUP CHAPTER: DONE 2026-07-04. docs/writeup/comprehension.md written: the full arc (autopsy, WHY
+          layer, playbooks, U93 transfer, honest FAILs) with an 18-row claims ledger, every row citing a
+          committed analysis/state file. Added tests/test_comprehension_writeup.py (4 tests) that parses the
+          ledger table and asserts every cited path actually exists on disk, so a future rename/removal of a
+          source file fails a test instead of leaving a dangling claim; this is the "machine-audited" part,
+          not just a table. Comprehension track (U90+U91+U93+U94, U92 closed FAIL) is now fully written up.
+          NEXT: no further comprehension-track units are defined; fold future TRACK L levers this track
+          produces in as addenda rather than opening U95+ without a plan review.
   L9. Standing: each shipped-path candidate that survives its gate gets a pre-registered ladder A/B; slot
       discipline and the M=60 protocol unchanged; the Aug 10-16 endgame noise campaign stays booked and must
-      not be displaced. U92 closed 2026-07-04 (FAIL); comprehension track ships as U90+U91+U93+U94.
+      not be displaced. U92 closed 2026-07-04 (FAIL); comprehension track (U90+U91+U93+U94) fully shipped and
+      written up as of U94.
 
 ### TRACK S (STRATEGY prize = the $30k model-approach award; offline; NEVER claims ladder progress)
 U60-U65, the Phase A DoD, and U8 (U8a/U8b/U8c) are all DONE as of 019dfa2 (move-prior default flipped on after

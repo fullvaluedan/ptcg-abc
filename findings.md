@@ -219,6 +219,13 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
 - Planning economy: 9 plan docs in 4 days, some abandoned within 2-6 hours; the unified plan's ladder-
   execution units got 0/11 execution before being superseded. Fix: a plan freeze until the next weekly review.
   Narrow, offline plans by contrast executed at or near 100%.
+- U94 (2026-07-04): the comprehension track's writeup chapter (`docs/writeup/comprehension.md`) closes the
+  loop the autopsy opened: a wrong recorded verdict, the two real mining bugs that caused it, the two-gated
+  playbook claims it enabled, the one shipped lever those claims produced, and the final pairwise-RankNet
+  kill test that closed the original clone question for good. Its 18-row claims ledger is machine-audited,
+  not just written: `tests/test_comprehension_writeup.py` parses the table and asserts every cited source
+  path exists on disk, so a future rename or deletion of an analysis file fails a test instead of leaving a
+  dangling claim in the writeup.
 
 ---
 
