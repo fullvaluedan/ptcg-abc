@@ -53,6 +53,7 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
   - WIN: promote heuristic+trolley-attack_first to shadow-king; reclaim-king stays heuristic+trolley
   - LOSS: evict the attack_first build, revert slot to a king copy
   - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king
+  - SETTLED NEUTRAL 2026-07-03 (board-check iteration): first reading (54304483) and its repeat (54304681) drifted to a mixed sign (442.9 vs 600.0 against king 494.8), so the pre-registered scoreboard tiebreak ran. Real replays pulled for both refs plus the king (analysis/attack_first_settlement.md): U23 scoreboard on 3 shared brackets gives candidate 1/3 (0.333) vs king 4/6 (0.667), confidence 0.171, favors_candidate=false, verdict neutral. Per the BAND action: revert slot to a king copy. Build+grader-verified this iteration but the Kaggle daily quota was already exhausted (6 submissions landed on 2026-07-03 UTC, not the 2 previously tracked); the king-copy revert submission is queued for the next iteration once the quota window resets (~00:00 UTC 2026-07-04). This NEUTRAL is a small-sample ladder read (3 decisive shared-bracket episodes, far under N=30), not a refutation of the offline gates (+5.5pp gauntlet, +10.0pp ring), so the lever stays re-eligible for a future slot without new offline work.
 
 ## Calibrated proxies (U24 retrodiction gate)
 
@@ -99,7 +100,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley-ability (ERRORed, superseded) | n/a | n/a | ERROR | 0 | SETTLED (non-scoring): ref 54281824 ERRORed at grader load, missing agents/card_effects.py in the tarball (build command omitted --extra agents/card_effects.py). Never played an episode. Superseded by ref 54282097 (fix: card_effects.py bundled, COMPLETE 536.7 first reading), which carries forward the same pre-registration under a fresh settle-by. |
 | heuristic+trolley-ability | n/a | n/a | 561.1 | 0 | SETTLED WIN 2026-07-04: 561.1 vs reclaim king 494.8 (ref 54282104), +66.3pp, clears the M=60 WIN threshold. Promoted to shadow-king. Evicted from the tracked latest-2 in the same iteration by the attack_first submission (54304483); 561.1 is its final frozen reading. |
 | heuristic+trolley-attack_first | n/a | n/a | PENDING | 0 | U93 step 3 SUBMITTED into the slot the ability WIN settlement freed. See pre_registrations and in_flight for the settle protocol. |
-| heuristic+trolley-attack_first (repeat) | n/a | n/a | PENDING |  | BAND repeat resubmission (ref 54304681), byte-identical to ref 54304483 (526.8). First reading landed BAND (diff +32.0 vs king 494.8, inside M=60). Per protocol rule 5, exactly one repeat resubmission before a U23 scoreboard tiebreak; settle WIN only if both readings positive AND scoreboard favors candidate at ~90% confidence on shared brackets, else NEUTRAL. |
+| heuristic+trolley-attack_first (repeat) | n/a | n/a | SETTLED NEUTRAL | 3 | BAND repeat resubmission (ref 54304681), byte-identical to ref 54304483. Board readings drifted to mixed sign (442.9 vs 600.0 vs king 494.8). U23 scoreboard settlement (analysis/attack_first_settlement.md): 3 shared brackets, candidate 1/3 (0.333) vs king 4/6 (0.667), confidence 0.171, verdict neutral. Reverting slot to a king copy next iteration (quota exhausted this UTC day). |
 
 ```json STATE
 {
@@ -137,10 +138,10 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "source": "analysis/final_scoring_semantics.md"
   },
   "in_flight": {
-    "board_reading": "PENDING",
-    "build": "heuristic+trolley-attack_first",
-    "note": "U93/L9 BAND repeat resubmission (protocol rule 5): first reading (ref 54304483) came back COMPLETE 526.8 vs king 494.8 (diff +32.0), inside the M=60 band. Byte-identical repeat submitted this iteration per the pre-registered BAND rule: exactly one repeat, settle WIN only if both readings are positive AND the U23 scoreboard favors the candidate at ~90% binomial confidence on shared opponent brackets; otherwise NEUTRAL, revert to king. Quota used today: 2/5. First reading (54304483, 526.8) stays live on the board alongside this repeat; the reclaim-king copy (54282104, 494.8) dropped out of the tracked latest-2 window by submission order but its 494.8 reading is the frozen king comparison point.",
-    "ref": "54304681"
+    "board_reading": "n/a",
+    "build": "heuristic+trolley (king-copy revert, queued)",
+    "note": "heuristic+trolley-attack_first SETTLED NEUTRAL this iteration via the U23 scoreboard tiebreak (analysis/attack_first_settlement.md): 3 shared-bracket decisive episodes, candidate 0.333 vs king 0.667, confidence 0.171, favors_candidate=false. Per the pre-registered BAND action, the slot reverts to a byte-identical heuristic+trolley king copy; that tarball is built and grader-verified (test_grader_submission.py[heuristic-trolley]) but NOT YET SUBMITTED: the Kaggle daily quota was already exhausted for 2026-07-03 UTC (6 real submissions that day, not the 2 the prior note tracked; the API returned 'used its daily Submission allowance (5) today'). Submit the queued king copy as the first action next iteration once the quota window resets (~00:00 UTC 2026-07-04), then update kings/ledger.",
+    "ref": "queued, not yet submitted"
   },
   "ledger": [
     {
@@ -271,11 +272,12 @@ _none calibrated; every proxy gate is refused (default-deny)_
     },
     {
       "build": "heuristic+trolley-attack_first (repeat)",
-      "ladder": "PENDING",
+      "ladder": "SETTLED NEUTRAL",
       "move_agreement_delta": "n/a",
-      "note": "BAND repeat resubmission (ref 54304681), byte-identical to ref 54304483 (526.8). First reading landed BAND (diff +32.0 vs king 494.8, inside M=60). Per protocol rule 5, exactly one repeat resubmission before a U23 scoreboard tiebreak; settle WIN only if both readings positive AND scoreboard favors candidate at ~90% confidence on shared brackets, else NEUTRAL.",
+      "note": "BAND repeat resubmission (ref 54304681), byte-identical to ref 54304483. Board readings drifted to mixed sign (442.9 vs 600.0 vs king 494.8). U23 scoreboard settlement (analysis/attack_first_settlement.md): 3 shared brackets, candidate 1/3 (0.333) vs king 4/6 (0.667), confidence 0.171, favors_candidate=false, verdict neutral. Slot reverts to a king copy, queued for submission next iteration (quota exhausted for 2026-07-03 UTC).",
       "oracle": "n/a",
-      "sample": 0
+      "ref": "54304681",
+      "sample_size": 3
     }
   ],
   "loss_distribution": {

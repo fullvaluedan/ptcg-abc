@@ -189,19 +189,24 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
       not be displaced. U92 closed 2026-07-04 (FAIL); comprehension track (U90+U91+U93+U94) fully shipped and
       written up as of U94. heuristic+trolley-ability settled WIN 2026-07-04 (561.1 vs 494.8, +66.3pp) and is
       now shadow-king (state/current.md); it is off the board (evicted by the attack_first submission), so
-      its 561.1 reading is final. DONE 2026-07-04: board-checked attack_first's first reading (ref 54304483,
-      COMPLETE 526.8). Ran the mandatory auto-settle check against the frozen king comparison point (494.8):
-      diff +32.0, inside the M=60 band, verdict BAND. Per the build's own pre-registered BAND action (one
-      repeat resubmission, then a U23 scoreboard tiebreak at ~90% binomial confidence on shared brackets,
-      else NEUTRAL/revert), submitted a byte-identical repeat (ref 54304681, PENDING). Quota used today: 2/5.
-      Board state now: tracked latest-2 = [ref 54304681 (repeat, PENDING), ref 54304483 (first reading,
-      526.8)]; the reclaim-king copy (ref 54282104, 494.8) dropped off the tracked window by submission order
-      but its 494.8 reading is the retained comparison point for the scoreboard tiebreak. NEXT TRACK L
-      action: board-check ref 54304681 until it resolves past PENDING. If both readings come back positive
-      (i.e. clearly above 494.8), run the U23 scoreboard (analysis/episode_scoreboard.py) over shared
-      opponent brackets between attack_first's episodes and the king's to settle WIN/NEUTRAL per protocol
-      rule 5 (docs/plans/2026-07-02-001-feat-unified-number-one-plan.md); this will likely need a replay
-      download step for the attack_first build's episodes if none are saved locally yet.
+      its 561.1 reading is final. DONE 2026-07-03 (board-check iteration): attack_first's first reading (ref
+      54304483, COMPLETE 526.8 at the time) settled BAND (diff +32.0 vs the frozen king 494.8), so per the
+      pre-registered BAND action submitted a byte-identical repeat (ref 54304681, PENDING). SETTLED NEUTRAL
+      2026-07-03 (this iteration): both readings drifted under same-build noise to a MIXED sign (54304483 ->
+      442.9, 54304681 -> 600.0, king 494.8), so ran the pre-registered U23 scoreboard tiebreak
+      (analysis/episode_scoreboard.py) on real downloaded replays (tools/scout.py pull for all three refs):
+      3 shared brackets, candidate 1/3 decisive (0.333) vs king 4/6 decisive (0.667), confidence 0.171,
+      favors_candidate=false, verdict neutral (analysis/attack_first_settlement.md). Per the BAND action this
+      reverts the slot to a byte-identical heuristic+trolley king copy; built and grader-verified
+      (test_grader_submission.py[heuristic-trolley]) but NOT YET SUBMITTED -- Kaggle's daily quota was already
+      exhausted for 2026-07-03 UTC (6 real submissions landed that UTC day, not the 2 a prior note tracked;
+      confirmed via the raw API error body: "used its daily Submission allowance (5) today"). This is a
+      small-sample ladder NEUTRAL (3 decisive shared-bracket episodes, far under N=30), not a refutation of the
+      attack_first lever's offline gates (+5.5pp gauntlet, +10.0pp ring), so it stays re-eligible for a future
+      slot without new offline work. NEXT TRACK L action: submit the already-built, already grader-verified
+      king-copy revert tarball as the FIRST action next iteration once the quota window resets (~00:00 UTC
+      2026-07-04), then update kings/ledger to reflect it landing. After that, no TRACK L build is awaiting a
+      slot; fall back to TRACK S (writeup cadence, see below) or prep the next TRACK L candidate.
 
 ### TRACK S (STRATEGY prize = the $30k model-approach award; offline; NEVER claims ladder progress)
 U60-U65, the Phase A DoD, and U8 (U8a/U8b/U8c) are all DONE as of 019dfa2 (move-prior default flipped on after
