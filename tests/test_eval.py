@@ -273,6 +273,71 @@ def test_learned_eval_on_still_yields_to_a_terminal_result(monkeypatch):
     assert ev.shaped_value(won, 0) == ev.WIN
 
 
+# --- eval blend (PTCG_EVAL_BLEND, plan U11) ---------------------------------
+
+def test_parse_blend_none_returns_fallback():
+    assert ev._parse_blend(None, 0.3) == 0.3
+
+
+def test_parse_blend_clamps_above_one():
+    assert ev._parse_blend("2.0", None) == 1.0
+
+
+def test_parse_blend_clamps_below_zero():
+    assert ev._parse_blend("-1", None) == 0.0
+
+
+def test_parse_blend_malformed_returns_fallback():
+    assert ev._parse_blend("not-a-number", 0.7) == 0.7
+
+
+def test_effective_blend_defers_to_learned_eval_flag_when_unset(monkeypatch):
+    monkeypatch.setattr(ev, "_EVAL_BLEND", None)
+    monkeypatch.setattr(ev, "_LEARNED_EVAL", False)
+    assert ev._effective_blend() == 0.0
+    monkeypatch.setattr(ev, "_LEARNED_EVAL", True)
+    assert ev._effective_blend() == 1.0
+
+
+def test_eval_blend_zero_uses_board_value_only(monkeypatch):
+    def _boom(*_args):
+        raise AssertionError("learned_eval consulted at blend weight 0.0")
+
+    monkeypatch.setattr(ev.learned_eval, "predict_value", _boom)
+    monkeypatch.setattr(ev, "_EVAL_BLEND", 0.0)
+    state = _state(_player(3, active=_pokemon(120, 120)),
+                   _player(3, active=_pokemon(20, 120)))
+    assert ev.shaped_value(state, 0) == ev.board_value(state, 0)
+
+
+def test_eval_blend_one_uses_learned_value_only(monkeypatch):
+    monkeypatch.setattr(ev.learned_eval, "predict_value", lambda state, idx: 0.42)
+    monkeypatch.setattr(ev, "_EVAL_BLEND", 1.0)
+    state = _state(_player(3, active=_pokemon(120, 120)),
+                   _player(3, active=_pokemon(20, 120)))
+    assert ev.shaped_value(state, 0) == 0.42
+
+
+def test_eval_blend_midpoint_averages_board_and_learned(monkeypatch):
+    monkeypatch.setattr(ev, "board_value", lambda state, idx: 0.2)
+    monkeypatch.setattr(ev.learned_eval, "predict_value", lambda state, idx: 0.8)
+    monkeypatch.setattr(ev, "_EVAL_BLEND", 0.5)
+    state = _state(_player(3, active=_pokemon(120, 120)),
+                   _player(3, active=_pokemon(20, 120)))
+    assert ev.shaped_value(state, 0) == 0.5
+
+
+def test_eval_blend_still_yields_to_a_terminal_result(monkeypatch):
+    def _boom(*_args):
+        raise AssertionError("learned_eval consulted on a terminal state")
+
+    monkeypatch.setattr(ev.learned_eval, "predict_value", _boom)
+    monkeypatch.setattr(ev, "_EVAL_BLEND", 0.5)
+    won = _state(_player(1, active=_pokemon(120, 120)),
+                 _player(6, active=_pokemon(120, 120)), result=0)
+    assert ev.shaped_value(won, 0) == ev.WIN
+
+
 # --- rollout depth cut-off ---------------------------------------------------
 
 @dataclass

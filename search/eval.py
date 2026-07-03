@@ -103,6 +103,38 @@ _BENCH_FLOOR = os.environ.get("PTCG_BENCH_FLOOR", "0") != "0"
 _LEARNED_EVAL = os.environ.get("PTCG_LEARNED_EVAL", "0") != "0"
 
 
+def _parse_blend(raw, fallback):
+    """Parse PTCG_EVAL_BLEND's raw string to a weight in [0, 1], clamped.
+
+    None (unset) or a malformed value returns fallback unchanged, mirroring
+    _env_num's fallback-on-malformed-input contract, so a bad env value never
+    crashes eval scoring or silently picks an unintended blend.
+    """
+    if raw is None:
+        return fallback
+    try:
+        return max(0.0, min(1.0, float(raw)))
+    except (TypeError, ValueError):
+        return fallback
+
+
+# Weighted blend between the hand-tuned board_value and the learned evaluator
+# (plan U11), generalizing the on/off PTCG_LEARNED_EVAL switch into a sweepable
+# weight: 0.0 is hand-tuned only, 1.0 is learned only. None (the default, when
+# PTCG_EVAL_BLEND is unset or malformed) means "defer to PTCG_LEARNED_EVAL",
+# read fresh each call in _effective_blend so existing PTCG_LEARNED_EVAL
+# behavior and tests are unchanged when no explicit blend weight is set. Set
+# PTCG_EVAL_BLEND to sweep an in-between weight (tools/eval_blend_sweep.py,
+# analysis/eval_blend_sweep.md).
+_EVAL_BLEND = _parse_blend(os.environ.get("PTCG_EVAL_BLEND"), None)
+
+
+def _effective_blend() -> float:
+    if _EVAL_BLEND is not None:
+        return _EVAL_BLEND
+    return 1.0 if _LEARNED_EVAL else 0.0
+
+
 def terminal_value(result, your_index):
     """Map an engine result to our value, or None if the battle is ongoing.
 
@@ -237,14 +269,21 @@ def board_value(state, your_index) -> float:
 
 
 def shaped_value(state, your_index) -> float:
-    """Terminal win/loss/draw if the battle is over, else the board estimate.
+    """Terminal win/loss/draw if the battle is over, else a blended board estimate.
 
-    The estimate rises as we take prizes and keep a healthier, wider board than
-    the opponent.
+    The blend weight (_effective_blend) picks between the hand-tuned board_value
+    and the learned evaluator: 0.0 is hand-tuned only, 1.0 is learned only, and
+    anything in between is a weighted average of both (plan U11). The estimate
+    rises as we take prizes and keep a healthier, wider board than the opponent.
     """
     tv = terminal_value(state.get("result", RESULT_ONGOING), your_index)
     if tv is not None:
         return tv
-    if _LEARNED_EVAL:
+    blend = _effective_blend()
+    if blend <= 0.0:
+        return board_value(state, your_index)
+    if blend >= 1.0:
         return learned_eval.predict_value(state, your_index)
-    return board_value(state, your_index)
+    board = board_value(state, your_index)
+    learned = learned_eval.predict_value(state, your_index)
+    return blend * learned + (1.0 - blend) * board
