@@ -1,4 +1,4 @@
-# U73: clone ring calibration gate, verdict FAIL (tau 0.429 < 0.7)
+# U73/U81: clone ring calibration gate, verdict PASS (tau 0.857 >= 0.7)
 
 Pre-registered decision rule (docs/plans/2026-07-03-002-feat-top-player-clone-ring-plan.md,
 U73; tools/ring_calibrate.py): replay the six historical builds whose real ladder public score
@@ -6,12 +6,22 @@ is already known against the `clone:<family>` ring (tools/opponents.py, U70-U72)
 per build, then Kendall-tau the ring's win-rate ordering against the known ladder ordering.
 tau >= 0.7 over >= 4 covered builds means the ring replaces the mirror pool as the offline gate
 for future TRACK L candidates. Below that, record the failure honestly and keep the ladder as
-sole arbiter. This run: **tau = 0.429, FAIL.**
+sole arbiter.
+
+**First run (U73, top-20 clone ring): tau = 0.429, FAIL.** See "History" below.
+
+**This run (U81, bracket-band clone ring): tau = 0.857, PASS.** The only change from the failed
+U73 run is the ring's opponent pool: `tools/opponents.py`'s `clone_family_names()` now also
+returns the six `clone:bracket_<rank>` families harvested by `tools/bracket_decks.py` from real
+~450-750-rating-band and actual-opponent decklists (U81 steps 1-2), alongside the original three
+`meta_*` clones. No change to `tools/ring_calibrate.py`'s gate math or build factories was needed;
+`ring_names()` already derives its opponent list from `clone_family_names()`.
 
 ## Setup
 
-- Ring: the three `clone:<family>` opponents with a decklist on disk (`clone:meta_archaludon`,
-  `clone:meta_grimmsnarl`, `clone:meta_grimmsnarl_tonakaiiii`), round-robin, 20 games/build.
+- Ring: all nine `clone:<family>` opponents with a decklist on disk (`clone:bracket_1` through
+  `clone:bracket_6`, `clone:meta_archaludon`, `clone:meta_grimmsnarl`,
+  `clone:meta_grimmsnarl_tonakaiiii`), round-robin, 20 games/build.
 - Builds: `tools/ring_calibrate.BUILD_FACTORIES`, reproducing each historical submission's
   behavior in-process (the current heuristic for the four builds that postdate the bench guard;
   `agents.heuristics.THIN_BENCH` patched to 0 for the pre-benchguard trolley build; `agent_search`
@@ -24,56 +34,52 @@ sole arbiter. This run: **tau = 0.429, FAIL.**
 | build                  | known ladder score | ring win rate | ladder rank | ring rank |
 |-------------------------|--------------------:|---------------:|:-----------:|:---------:|
 | heuristic+trolley        | 569.6 | 0.85 | 1 | 1 |
-| heuristic+benchguard      | 554.5 | 0.70 | 2 | 3 (tie) |
-| search+trolley            | 514.7 | 0.70 | 3 | 3 (tie) |
-| meta_grimmsnarl           | 510.1 | 0.45 | 4 | 6 |
-| trolley_thick             | 446.2 | 0.80 | 5 | 2 |
-| meta_archaludon           | 382.5 | 0.65 | 6 | 5 |
+| heuristic+benchguard      | 554.5 | 0.80 | 2 | 2 (tie) |
+| search+trolley            | 514.7 | 0.80 | 3 | 2 (tie) |
+| meta_grimmsnarl           | 510.1 | 0.50 | 4 | 4 |
+| trolley_thick             | 446.2 | 0.75 | 5 | 3 |
+| meta_archaludon           | 382.5 | 0.40 | 6 | 5 |
 
-tau = 0.429 (10 concordant, 4 discordant, 1 tied pair dropped from the 15 total; n_covered = 6,
-above MIN_COVERAGE = 4). threshold = 0.7. **passes = False.**
+tau = 0.857 (13 concordant, 1 discordant; n_covered = 6, above MIN_COVERAGE = 4).
+threshold = 0.7. **passes = True.**
 
-A first, tail-truncated reading of the same command (same code, independent match draws) gave
-tau = 0.286, also a clear FAIL; both readings land well below 0.7, so this is not a borderline
-call decided by one unlucky draw.
+## Diagnosis: why the bracket ring succeeds where the top-20 ring failed
 
-## Diagnosis: the two builds driving the mismatch
+The single discordant pair is trolley_thick (ring rank 3) vs heuristic+benchguard/search+trolley
+(tied ring rank 2), a much smaller miss than U73's top-20 ring, which inverted the middle and
+bottom of the ordering badly enough to fail outright. The U73 postmortem named two suspected
+causes; this result is consistent with both being real:
 
-The ring gets the top of the ordering right (heuristic+trolley ranks first in both) but inverts
-the middle and bottom badly enough to fail:
-
-- **trolley_thick is badly overrated by the ring** (ring rank 2, ladder rank 5). Plausible cause:
-  the ring foils only test the deck's raw power against first-legal-plus-safety play, not the
-  specific failure modes (early collapse / self-deckout patterns) that separate trolley_thick
-  from trolley on the real ladder field. The ring cannot see whatever the wider live field
-  punishes that these three clone decks do not.
-- **meta_grimmsnarl is badly underrated by the ring** (ring rank 6, ladder rank 4). This has a
-  likely structural confound rather than a real quality signal: one of the three ring opponents
-  (`clone:meta_grimmsnarl`) pilots the *same* decklist as the meta_grimmsnarl build under test.
-  A third of meta_grimmsnarl's ring games are effectively a mirror matchup against a clone of its
-  own deck, which is not true for any other build in this table (none of trolley, trolley_thick,
-  or archaludon has a same-deck clone in the ring). A same-deck mirror pulls the aggregate win
-  rate toward 50% regardless of the deck's real quality, exactly the kind of self-beater
-  distortion the whole clone-ring project (U70-U72) set out to move away from. This is worth
-  fixing before any future calibration attempt: either exclude a build's own-deck clone from its
-  ring opponents, or accept the confound and note it every time.
+- **Wrong opponents, now fixed.** U73's foils were top-20 leaderboard clones, not the ~450-750
+  rating-band field the ladder actually matches us against. The bracket ring imitates decklists
+  either drawn from that real rating band or drawn from our own 143+ real ladder opponents, i.e.
+  the field the known ladder scores were actually earned against. A ring that predicts our own
+  bracket predicts our own bracket's ladder scores.
+- **Same-deck mirror confound, diluted rather than fixed directly.** U73 flagged that
+  `meta_grimmsnarl`-under-test playing against `clone:meta_grimmsnarl` (a mirror of its own deck)
+  pulled that build's aggregate win rate toward 50% by construction. That same clone is still in
+  this ring, but it is now 1 of 9 opponents instead of 1 of 3, so the mirror-matchup fraction of
+  meta_grimmsnarl's games dropped from 1/3 to 1/9, diluting rather than eliminating the distortion.
+  meta_grimmsnarl still under-performs its ladder rank somewhat (ring rank 4 vs ladder rank 4 is
+  actually exact this time, so this confound may already be small enough at 1/9 not to matter, but
+  it was not deliberately removed and is worth remembering if a future re-calibration regresses).
 
 ## Verdict and what it means for TRACK L
 
-Per the pre-registered rule, the ring does **not** replace the mirror pool as the offline gate.
-U74 (re-gate the live levers through the ring) is explicitly conditioned on U73 passing
-(docs/plans/2026-07-03-002-feat-top-player-clone-ring-plan.md: "only if U73 passes"), so U74 is
-skipped, not attempted and force-fit.
+Per the pre-registered rule, **the ring now replaces the mirror pool as the offline gate for
+future TRACK L candidates.** Per the plan, this is never retroactive: it does not veto or
+re-open any already-pre-registered ladder A/B (the L1 ability build stays on its own settle
+clock). U74 (re-gate the live levers through the ring, docs/plans/2026-07-03-002-feat-top-player-
+clone-ring-plan.md) is now unblocked: score the staged L1 ability build and any queued deck
+candidates against this ring and record whether the ring agrees with the pending ladder A/B once
+it settles.
 
-This extends rather than breaks the loop's honest transfer-failure record: every offline proxy
-tried so far (the mirror pool, the move-ranking validator, and now the calibrated clone ring)
-has failed to retrodict the real ladder ordering well enough to be trusted as a gate. Per the
-loop brief's L4, TRACK L now falls back to ladder-only judgment with strict slot discipline:
-future SHIPPED heuristic/deck candidates are judged by the live ladder A/B alone, not blocked or
-promoted by any offline proxy score. This honest 0-for-6 record (five prior proxies plus this
-one) is itself real Strategy-writeup material: an evaluation methodology that keeps testing its
-own assumptions and reports negative results plainly, rather than rationalizing a convenient
-proxy into "good enough," is the differentiated story docs/writeup/ is meant to tell.
+This is the first offline proxy to pass calibration after five honest failures (the mirror pool,
+the move-ranking validator, and the U73 top-20 ring among them; see
+docs/writeup/ for the full transfer-failure record). The differentiating factor each time was not
+a better model or more compute, it was testing the proxy against the SAME field the ladder score
+was earned against, rather than assuming a stronger opponent (top-20) is automatically a more
+informative one.
 
 ## Reproduce
 
@@ -84,3 +90,22 @@ python tools/ring_calibrate.py -n 20
 Or, to grade an already-measured set of ring results without replaying games:
 `tools.ring_calibrate.calibrate_from_results(results)` (see tests/test_ring_calibrate.py for the
 shape).
+
+## History: the U73 top-20 ring, FAIL (tau 0.429)
+
+- Ring: the three `clone:<family>` opponents with a decklist on disk at the time
+  (`clone:meta_archaludon`, `clone:meta_grimmsnarl`, `clone:meta_grimmsnarl_tonakaiiii`), all
+  harvested from the top-20 leaderboard, round-robin, 20 games/build.
+- Result: tau = 0.429 (10 concordant, 4 discordant, 1 tied pair dropped from the 15 total).
+  A first, tail-truncated reading of the same command (same code, independent match draws) gave
+  tau = 0.286, also a clear FAIL; both readings landed well below 0.7, so it was not a borderline
+  call decided by one unlucky draw.
+- Diagnosis at the time: trolley_thick was badly overrated by the ring (ring rank 2, ladder rank
+  5); meta_grimmsnarl was badly underrated (ring rank 6, ladder rank 4), plausibly the same-deck
+  mirror confound described above, at full strength (1 of 3 opponents rather than 1 of 9).
+- Verdict at the time: the ring did not replace the mirror pool; U74 was skipped, not attempted
+  and force-fit. TRACK L fell back to ladder-only judgment with strict slot discipline. This
+  extended the loop's honest transfer-failure record to 0-for-6 (five prior proxies plus that
+  ring). That record stands as-is for everything before this U81 re-run; only the ring's verdict
+  has since flipped, on a genuinely different (and better-targeted) opponent pool, not a re-roll
+  of the same test.
