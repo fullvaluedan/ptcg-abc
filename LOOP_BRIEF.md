@@ -15,19 +15,20 @@ two explicit tracks and never let TRACK S masquerade as ladder progress.
 ### TRACK L (LADDER = rank; HIGHEST PRIORITY; only the SHIPPED agent counts)
 A unit may claim LADDER progress ONLY if it changes a SHIPPED path (agents/heuristics.py or the deck csv) AND
 beats the 569.6 king offline before it spends a slot. Actions in priority order:
-  L1. DIAGNOSE AND FIX THE ABILITY ERROR (TOP PRIORITY). The flagship ability A/B (ref 54281824,
-      submission_trolley_ability.tar.gz, submitted 2026-07-03 01:01 UTC) is SubmissionStatus.ERROR on the
-      live board: it crashed the grader's validation despite passing tests/test_grader_submission.py. This
-      is the SECOND live-grader ERROR (first: 54207787, the no-__file__ bug). Do NOT resubmit blind:
-      (a) pull the failed episode's log/replay (kaggle competitions episodes 54281824, then the replay; the
-      error message is usually in the episode json), (b) reproduce locally in a grader-parity harness (exec
-      main.py with no __file__, fresh process, the EXACT tarball contents, simulate both seats including the
-      validation self-play match), (c) fix the root cause, and (d) GENERALIZE the reproduction into
-      tests/test_grader_submission.py so a third ERROR class is impossible. Only then rebuild, re-verify,
-      and resubmit at a free slot under the existing pre-registration. Note the offline +4.0pp had a
-      confound: PTCG_ABILITY is process-global, so the "on" arm's opponents also played abilities; when
-      re-validating offline, use a per-agent flag or subprocess arms so the candidate is compared against a
-      FIXED field.
+  L1. DONE 2026-07-03: the ability ERROR (ref 54281824) was root-caused by direct tarball inspection (no
+      episode log needed): the hand-run build command omitted --extra agents/card_effects.py, and
+      heuristics.py has imported card_effects unconditionally since U33 (2e18145), so the module failed to
+      load under the grader's exec-without-__file__ path. Fixed the command, rebuilt, verified via the
+      grader test AND a direct extracted-tarball kaggle_environments env.run (reward=1, DONE, 25 steps),
+      resubmitted (ref 54282097, COMPLETE 536.7 first reading), and submitted a king-copy cleanup (ref
+      54282104, COMPLETE 691.5) to evict the dead ERRORed ref from the tracked latest-2 window. Generalized
+      per (d): tests/test_grader_submission.py::test_extras_cover_flat_layout_imports now derives each
+      shipped entrypoint's required flat-layout extras from its AST and asserts the declared list covers
+      them; it immediately caught the same gap in _SEARCH_EXTRAS (fixed alongside, search stays unshipped).
+      Fresh pre-registration settle-by 2026-07-08. Note the offline +4.0pp still had the documented confound
+      (PTCG_ABILITY is process-global, so the "on" arm's opponents also played abilities) -- not
+      re-validated this iteration; if the ladder verdict is a surprising LOSS, re-check that confound before
+      trusting the offline gauntlet.
   L2. DONE 2026-07-03 01:00-01:01: trolley_thick settled LOSS and was evicted; slot 1 = king copy 54281812
       (settled 600.0, new best-ever). Standing rule stays: settle any candidate the instant it reads clearly
       outside the M=60 band; a mandatory per-iteration auto-settlement step (compute band position from the
