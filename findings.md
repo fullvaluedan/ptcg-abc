@@ -101,9 +101,15 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
 - gameplan_seeds_diffuse: mining the top decks for concentrated "always do X" seeds came back nearly empty at
   full scale (Grimmsnarl 0 seeds); the one Archaludon seed was a deck-identity fact, not a win edge.
   `analysis/gameplans/seeds_real_run.md`.
-- cem_prio_agreement_generalizes: two CEM runs tuned expert-move agreement on train but got zero or negative
-  held-out transfer, both blocked by the pre-registered filter. `analysis/cem_run_prio.md`,
-  `analysis/cem_run_prio_pooled.md`.
+- cem_prio_agreement_generalizes: three CEM runs, three different fitness formulations, tuned expert-move
+  agreement on train but got zero or negative held-out transfer every time, all blocked by the pre-registered
+  filter. The third (2026-07-03, U83) targeted the second attempt's own named re-open condition, a materially
+  larger sample, with a 92x/356x larger teacher self-play corpus (32003 train / 10689 held-out test decisions
+  vs 116/30) and the calibrated L5 ring instead of an uncalibrated pool; held-out delta was still negative
+  (-0.0022), and full-population train agreement went backwards too. Diagnosis: the sweep's own best fitness
+  was dominated by a noisy 6-game ring-win-rate read, not a real agreement gradient, the same
+  proxy-metric-moves-backwards failure the second attempt found. `analysis/cem_run_prio.md`,
+  `analysis/cem_run_prio_pooled.md`, `analysis/cem_run_prio_teacher.md`.
 - missed_lethal: a detector artifact, not a real bug (safety-1 lethal already fires).
   `analysis/missed_lethal_falsified.md`.
 - Category-mining v2 follow-ons mostly refuted: the retreat gap is matchup-shaped not threshold-shaped, the

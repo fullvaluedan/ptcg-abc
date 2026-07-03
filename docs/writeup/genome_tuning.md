@@ -127,7 +127,7 @@ different region of weight space with an observed non-flat held-out gradient;
 a third attempt at the same configuration and sample size is explicitly not
 expected to change the answer and is not planned.
 
-## Attempt 3: teacher-student distillation at scale (in progress, 2026-07-03)
+## Attempt 3: teacher-student distillation at scale (2026-07-03, BLOCKED)
 
 The prior section named two concrete re-test conditions and explicitly ruled
 out a third attempt at the *same* configuration and sample size. This attempt
@@ -175,34 +175,55 @@ tired of writing the same by-hand diff a third time.
 
 A real sweep (`tools/cem_tune.py --population 16 --elite 4 --iterations 6
 --injected-variance 0.05 --ring-matches 6 --pool-matches 0 --teacher-labels
-data/training --limit 4000 --split train`, seed 0) is running in the
-background as of this writing (`analysis/cem_runs/u83_teacher_ring_seed0.json`
-once complete). Consistent with the discipline in the rest of this writeup,
-no result is reported here until `tools/cem_held_out_gate.py` has scored it
-against the clean held-out test split; this section will be updated with a
-WIN or BLOCKED verdict, not a training-side number alone, once that run
-finishes.
+data/training --limit 4000 --split train`, seed 0) ran to completion
+(`analysis/cem_runs/u83_teacher_ring_seed0.json`, best training-side fitness
+0.8940). `tools/cem_held_out_gate.py --result
+analysis/cem_runs/u83_teacher_ring_seed0.json --teacher-labels data/training`
+scored it against the clean held-out test split, now 10689 scorable MAIN
+decisions (versus the first two attempts' 30): default agreement 0.8210,
+tuned agreement 0.8189, delta **-0.0022**. Verdict: **BLOCKED**, the same
+result as the first two attempts, this time at roughly two orders of
+magnitude more data on both splits.
+
+This is a materially stronger negative than it looks at first glance. The
+pooled-run writeup (attempt 2) left one concrete re-open condition standing
+for a future attempt: "(a) a materially larger expert-move sample." This run
+was built specifically to answer that condition, not sidestep it, and the
+answer came back negative: a ten-to-ninety-times larger corpus did not turn
+the held-out sign positive, and the tuned vector was also worse than default
+on its own held-out-clean full train split (0.8049 vs 0.8077), a result the
+first two attempts did not even produce (they at least improved train
+agreement, the metric being directly selected on, before failing to
+transfer). The diagnosed mechanism matches attempt 2's own failure shape:
+the CEM sweep's reported "best fitness" blended a high-variance 6-game ring
+win rate with agreement over only a 4000-decision slice, so the optimizer's
+actual selection pressure was dominated by opponent-noise rather than a
+real, generalizing agreement gradient, the same proxy-metric-moves-backwards
+problem a calibrated ring and a larger corpus did not fix. Full detail and
+the source numbers are in `analysis/cem_run_prio_teacher.md`.
 
 ## Bottom line for the Strategy prize
 
 This is the same discipline demonstrated in the offline-to-ladder transfer
 writeup, applied to an optimizer instead of a proxy: a pre-registered,
 non-negotiable held-out gate (fit on train, judged on test the tuner never
-saw), applied twice, to two different fitness formulations, over a genome that
-is a real, live, shipped-agent lever rather than an academic exercise. Both
-attempts failed that gate cleanly, and both failures were named with a
+saw), applied three times, to three different fitness formulations and label
+sources (small-sample agreement-only, small-sample pooled win-rate, then a
+calibrated-ring win-rate blend at 10-92x the data scale), over a genome that
+is a real, live, shipped-agent lever rather than an academic exercise. All
+three attempts failed that gate cleanly, and each failure was named with a
 specific mechanism (overfitting to a small train bucket; a fitness channel
-moving backwards on its own training data) rather than absorbed into a vague
+moving backwards on its own training data; opponent-noise-dominated selection
+pressure surviving a 92x data increase) rather than absorbed into a vague
 "needs more tuning" note. The shipped heuristic's `PRIO_*` weights remain at
 their hand-set defaults as a direct result: not because tuning was never
-tried, but because two independent, honestly-reported attempts to improve on
-them did not survive the same held-out bar every other offline claim in this
-project has to clear.
+tried, but because three independent, honestly-reported attempts to improve
+on them, including one specifically built to answer the prior attempt's own
+named re-open condition, did not survive the same held-out bar every other
+offline claim in this project has to clear.
 
-A third attempt is now in flight (above), but it earns its place under this
-project's own re-open conditions rather than by exception: it targets the
-named data-scale gap with a ten-times-larger sample from a different source,
-reuses the calibrated L5 ring instead of an uncalibrated pool, and is graded
-by an automated gate that enforces the exact strictly-positive rule the first
-two attempts were held to. Whether it lands WIN or BLOCKED, this section will
-report the outcome with the same mechanism-level honesty as attempts 1 and 2.
+The one re-open condition still standing, per `analysis/cem_run_prio_teacher.md`,
+is a genome region with a measured non-flat held-out gradient, checked before a
+full sweep is spent on it rather than assumed. No further sweep over this same
+18-dim PRIO genome is planned without it; the comprehension track (U90-U94)
+is the project's live source for candidate levers that might supply one.

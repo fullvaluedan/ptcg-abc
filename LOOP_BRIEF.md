@@ -62,15 +62,26 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
       gate at n=140 -- so this specific lever is closed for now, not just unexplored. Do not re-run U82's
       single-field miners again without a genuinely new category to check (mirrors the early_collapse
       STOP rule).
-  L7. NEXT TRACK L ACTION (not yet started): U83 TEACHER-STUDENT DISTILL (the expedite engine; uses the
-      20-core parallel gauntlet). Run the full search stack (learned eval + move prior + confidence time
-      allocation, all gates green) as an offline TEACHER at generous per-move budgets over thousands of
-      self-play + bracket-ring games on OUR deck; log its chosen moves; distill them into the SHIPPED
-      heuristic's tunable genome (PRIO weights + the U82 rule flags, none of which had a live gap to flip
-      right now, so this is a genome-tuning distillation rather than a new flag) via CEM fit to teacher
-      agreement + the now-calibrated L5 ring win rate. The teacher never ships (too slow, no grader risk);
-      only the distilled weights do, through the normal gates. This is the next real TRACK L prep unit
-      while both ladder slots are occupied (settle-by 2026-07-08).
+  L7. DONE 2026-07-03, BLOCKED (honest FAIL): U83 TEACHER-STUDENT DISTILL ran to completion. Built a teacher
+      (the full search stack, all gates green) as an offline harvester over self-play + bracket-ring games on
+      OUR deck (20-core parallel harvest, 1157 train / 398 held-out test distinct games logged via
+      TeacherLogger), then ran a real CEM sweep (population 16, elite 4, iterations 6, --ring-matches 6
+      against the calibrated L5 ring, --teacher-labels data/training, seed 0; best training-side fitness
+      0.8940). `tools/cem_held_out_gate.py` scored it against the held-out test split, now 10689 scorable
+      MAIN decisions (92x/356x the two prior CEM attempts' 116/30 real-replay sample): default agreement
+      0.8210, tuned agreement 0.8189, delta -0.0022, verdict BLOCKED, the same as the first two attempts.
+      This is CEM candidate 3 of 3 non-WIN reads, and it specifically answers the second attempt's own
+      named re-open condition (a materially larger sample) with a negative result: full-population train
+      agreement also went backwards for the tuned vector (0.8077 -> 0.8049), and the diagnosed mechanism is
+      that the sweep's own best fitness was dominated by a noisy 6-game ring-win-rate read rather than a
+      real agreement gradient, the same proxy-metric-moves-backwards failure attempt 2 found, surviving the
+      scale increase. No ladder A/B; shipped PRIO_* weights stay at their hand-set defaults.
+      analysis/cem_run_prio_teacher.md, docs/writeup/genome_tuning.md, state/hypotheses.md
+      (cem_prio_agreement_generalizes). Only remaining re-test condition: (c) a genome region with a
+      measured non-flat held-out gradient, not yet tried; the comprehension track below (U90/U91) is this
+      project's live source for a candidate lever that might supply one. The 20-worker teacher harvest and
+      its corpus remain useful infrastructure regardless (a future genome region can reuse the same held-out
+      split without re-harvesting).
   L8. COMPREHENSION TRACK (U90-U94, Dan-directed, supersedes the "top-20 too subtle" verdict): the clone
       autopsy proved the U71 FAIL was an INSTRUMENT DEFECT, not unlearnable play. Three defects, all verified
       in analysis/clone_quality.md and tools/train_clone.py: (a) pointwise per-row log-loss whose zero-risk
