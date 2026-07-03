@@ -51,11 +51,21 @@ ring instead; it PASSED (the first offline instrument proven to predict the ladd
 category. Launched teacher-student distillation. Added an OS-level watchdog after the loop kept dying
 silently.
 
-**Phase 4, comprehension (2026-07-03, current).** On the user's challenge that we never actually understood
+**Phase 4, comprehension (2026-07-03).** On the user's challenge that we never actually understood
 top-20 play, a forensic autopsy proved the clone failure was an instrument defect, not unlearnable play
 (Section 4D). Opened a comprehension track (U90-U94): card-semantics, mined per-archetype playbooks whose
 every claim must predict held-out top-player moves, a correctly-built ranker, and ring-gated transfer into the
 shipped pilot.
+
+**Phase 5, transfer and its limits (2026-07-04, current).** The comprehension track finished (U90-U94 all
+shipped, U92's rerun-with-a-different-objective closed FAIL, see Section 4B). Its two shippable levers both
+reached a real ladder verdict: the ability lever WIN (+66.3pp, promoted to shadow-king) and the
+attack-first lever NEUTRAL (both offline gates passed, +5.5pp gauntlet and +10.0pp ring, but the ladder never
+accumulated enough decisive shared-bracket games to confirm before its settle-by date). Per the pre-registered
+BAND/NEUTRAL action the slot reverts to a byte-identical king copy; that revert is built and grader-verified
+but blocked by Kaggle's daily submission quota as of this writing. With no further comprehension-track units
+defined and the CEM line closed on all three re-test conditions, TRACK L currently has no build awaiting a
+slot beyond the queued revert, so the loop is running the standing writeup cadence on TRACK S.
 
 ---
 
@@ -271,17 +281,23 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
 
 ---
 
-## 6. Current state and open direction (2026-07-03)
+## 6. Current state and open direction (2026-07-04)
 
-- King reads 691.5 best-ever (ref 54282104), almost certainly noise-inflated; true level ~560-600.
-- TRACK L queued: comprehension track U90 (card semantics + on-evolve ability probe, the best remaining ladder
-  hope, same shape as the 0/554 ability find) through U94 (writeup chapter). Plus the standing daily data
-  refresh (U80) and teacher-student distillation (U83).
-- TRACK S: the offline ML stack and the writeup, assembled continuously.
+- Shadow-king is heuristic+trolley-ability (ref 54282097, settled WIN 561.1 vs reclaim-king 494.8, +66.3pp),
+  promoted 2026-07-04. Byte-identical king resubmissions have read between 452 and 691 across all
+  resubmissions to date.
+- The comprehension track (U90-U94) is fully shipped. Its only other candidate, attack-first, SETTLED NEUTRAL
+  on the ladder (both offline gates passed, +5.5pp gauntlet / +10.0pp ring, but too few decisive shared-bracket
+  games landed before settle-by); a king-copy revert for that slot is built and grader-verified, queued behind
+  Kaggle's daily submission quota. The CEM/genome-tuning line is closed on all three re-test conditions
+  (Section 4B). No further TRACK L unit is defined without a plan review (freeze through 2026-08-16).
+- TRACK S: the offline ML stack and the writeup, assembled continuously; this is now the default per-iteration
+  action whenever TRACK L has no build awaiting a slot.
 - Honest outlook: #1 is off the table. Realistic ladder landing with the fixes is the median band
   (~600-700 score, roughly #1500-2200 from ~#2980). The Strategy prize is the stronger bet: the differentiated
-  story is the pre-registration machinery, the quantified noise model, the honest 0-for-5 transfer record with
-  its diagnosis, and the self-caught clone-autopsy reversal.
+  story is the pre-registration machinery, the quantified noise model, the offline-to-ladder transfer record
+  (three named proxy failures, then two real levers reaching WIN and NEUTRAL verdicts), and the self-caught
+  clone-autopsy reversal.
 
 ---
 
