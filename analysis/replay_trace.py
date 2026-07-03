@@ -239,15 +239,18 @@ def iter_expert_decisions(replay, expert_index):
         yield obs, idx
 
 
-def _scorable_card(obs, expert_index, contexts):
+def _scorable_card(obs, expert_index, contexts, min_counts=frozenset({1})):
     """The (sel, options) of a scorable CARD decision by `expert_index`, or None.
 
     A scorable CARD decision: the deciding seat is `expert_index`, the select is a
-    CARD single-pick (minCount == maxCount == 1) among more than one option, whose
-    context is one of `contexts`. Mirrors `_scorable_main`'s gate shape exactly,
-    generalized over select type and context so any CARD-level decision (a
-    post-knockout promote, a deck-search fetch target) can share one primitive.
-    None on any miss. Pure, never raises.
+    CARD single-pick (minCount in `min_counts`, maxCount == 1) among more than one
+    option, whose context is one of `contexts`. Mirrors `_scorable_main`'s gate
+    shape exactly, generalized over select type and context so any CARD-level
+    decision (a post-knockout promote, a deck-search fetch target) can share one
+    primitive. `min_counts` defaults to {1} (a forced pick, e.g. a post-knockout
+    promote); an optional "you may search" effect reports minCount 0 with the
+    expert still choosing one option, so a caller like a deck-search miner passes
+    {0, 1} to include those. None on any miss. Pure, never raises.
     """
     if not isinstance(obs, dict):
         return None
@@ -261,7 +264,7 @@ def _scorable_card(obs, expert_index, contexts):
         return None
     if sel.get("context") not in contexts:
         return None
-    if sel.get("minCount", 1) != 1 or sel.get("maxCount", 1) != 1:
+    if sel.get("minCount", 1) not in min_counts or sel.get("maxCount", 1) != 1:
         return None
     options = sel.get("option") or []
     if len(options) <= 1:
@@ -269,17 +272,20 @@ def _scorable_card(obs, expert_index, contexts):
     return sel, options
 
 
-def iter_expert_card_decisions(replay, expert_index, contexts):
+def iter_expert_card_decisions(replay, expert_index, contexts, min_counts=frozenset({1})):
     """Yield (obs, played_index) for each scorable CARD decision by `expert_index`.
 
     Generalizes `iter_expert_decisions` from MAIN to CARD selects, filtered to a
     caller-supplied set of SelectContext values (e.g. {CTX_TO_ACTIVE} for a
     post-knockout promote miner), so every CARD-level imitation unit reads the
-    same decision population the same way. Pure and defensive: a malformed step is
-    skipped, never fatal.
+    same decision population the same way. `min_counts` passes through to
+    `_scorable_card` (see there). A played index of an empty action (the expert
+    declined an optional pick) never resolves to an int, so it is skipped like
+    any other unresolvable action rather than miscounted as a choice. Pure and
+    defensive: a malformed step is skipped, never fatal.
     """
     for obs, entry in _iter_active_obs(replay, expert_index):
-        got = _scorable_card(obs, expert_index, contexts)
+        got = _scorable_card(obs, expert_index, contexts, min_counts)
         if got is None:
             continue
         _sel, options = got

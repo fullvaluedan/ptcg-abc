@@ -126,6 +126,33 @@ def test_iter_card_yields_only_scorable_promote_in_contexts():
     assert idx == 1 and obs["select"]["context"] == CTX_TO_ACTIVE
 
 
+def test_iter_card_default_min_counts_excludes_optional_pick():
+    # An optional "you may search" effect reports minCount 0; the {1}-only
+    # default (a forced pick, e.g. a post-knockout promote) must not count it.
+    steps = [
+        _step(_main_entry(seat=0, action=[0], sel_type=SEL_CARD,
+                           context=CTX_TO_ACTIVE, min_count=0), 0),
+    ]
+    got = list(
+        iter_expert_card_decisions(_replay(steps), expert_index=0, contexts={CTX_TO_ACTIVE})
+    )
+    assert got == []
+
+
+def test_iter_card_min_counts_param_includes_optional_pick():
+    steps = [
+        _step(_main_entry(seat=0, action=[0], sel_type=SEL_CARD,
+                           context=CTX_TO_ACTIVE, min_count=0), 0),
+    ]
+    got = list(
+        iter_expert_card_decisions(
+            _replay(steps), expert_index=0, contexts={CTX_TO_ACTIVE},
+            min_counts=frozenset({0, 1}),
+        )
+    )
+    assert len(got) == 1 and got[0][1] == 0
+
+
 def test_iter_card_skips_malformed_without_raising():
     steps = ["not-a-step", [None, {"status": "ACTIVE"}],
               _step(_main_entry(seat=0, action=[1], sel_type=SEL_CARD,
