@@ -71,8 +71,42 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
       agreement + the now-calibrated L5 ring win rate. The teacher never ships (too slow, no grader risk);
       only the distilled weights do, through the normal gates. This is the next real TRACK L prep unit
       while both ladder slots are occupied (settle-by 2026-07-08).
-  L8. Standing: each shipped-path candidate that survives its gate gets a pre-registered ladder A/B; slot
-      discipline and the M=60 protocol unchanged; the Aug 10-16 endgame noise campaign stays booked.
+  L8. COMPREHENSION TRACK (U90-U94, Dan-directed, supersedes the "top-20 too subtle" verdict): the clone
+      autopsy proved the U71 FAIL was an INSTRUMENT DEFECT, not unlearnable play. Three defects, all verified
+      in analysis/clone_quality.md and tools/train_clone.py: (a) pointwise per-row log-loss whose zero-risk
+      optimum IS the first-legal baseline (models picked option 0 in 13019/13019 then 11092/11092 held-out
+      decisions), (b) the baseline policy handed to the model as features (opt_is_first/opt_index_norm) while
+      the gate was margin-over-first-legal, (c) semantically blind features (8 regex tags, no card identity,
+      no energy costs, no evolution lines). Learnable structure EXISTS unexploited: first-of-played-category
+      beats first-legal by 20-27pp on every family; END_TURN is never option 0 yet was the real choice 4.3%
+      of the time. AMEND state/hypotheses.md: the U71 refutation's re-test condition is a ranking objective.
+      Units in order, one per iteration, interleaving with U83 (U90/U91 outputs feed U83's genome):
+      U90 CARD SEMANTICS V2 + ON-EVOLVE PROBE (cheapest, best ladder hope): probe how the engine surfaces
+          on-evolve abilities (Punk Up / Assemble Alloy, the engines of BOTH meta decks) and whether our
+          pilot ever triggers that class (same shape as the 0/554 ability find that paid +4pp); extend
+          agents/card_effects.py TAG_VOCAB (v2, additive, golden tests keep passing) until ZERO untagged
+          effect cards remain on the two meta decklists (today 4 and 5 blind, including Boss's Orders).
+      U91 PLAYBOOK MINER V2: fix attach_target to resolve the RECEIVING Pokemon (not the energy card id) and
+          root-cause play_target's 0.000 resolution; then mine within-turn sequencing, energy banking,
+          win-condition timing per family. CLAIM GATE: n>=200 and bootstrap 90% CI excluding zero, dropped
+          claims published. PREDICTION GATE: the playbook must predict held-out top-player moves or be cut.
+      U92 CLONE REBUILT: step 0 is the half-day KILL TEST: rerun the U26 pairwise RankNet (already written,
+          analysis/unit_zero_spike.py) against FIRST-LEGAL on the clone data. Then tools/train_clone2.py:
+          groupwise/pairwise ranking objective (NEVER per-row binary log-loss), position features
+          QUARANTINED to tiebreak only, U90 semantic features, per-category eval. Gate: beat first-legal by
+          >=5pp held-out, beat first-of-category by >=3pp on contested decisions, END_TURN recall >=0.3.
+          Joins the ring as an aspiration tier WITHOUT gate authority; re-check ring tau stays >=0.7 with it
+          excluded from calibration.
+      U93 TRANSFER TO THE SHIPPED PILOT (the only ladder-moving piece): each playbook lever that applies to
+          OUR deck (on-evolve usage if the probe finds a miss; energy front-load ordering; attach-recipient
+          policy) ships as a flag-gated rule, pre-registered, bracket-ring A/B >=+5pp with gauntlet direction
+          agreement BEFORE any ladder slot, then the M=60 ladder protocol.
+      U94 WRITEUP CHAPTER: docs/writeup/comprehension.md, the full arc (autopsy, WHY layer, playbooks, honest
+          gates incl FAILs) with a machine-audited claims ledger (every number links to a committed analysis
+          file).
+  L9. Standing: each shipped-path candidate that survives its gate gets a pre-registered ladder A/B; slot
+      discipline and the M=60 protocol unchanged; the Aug 10-16 endgame noise campaign stays booked and must
+      not be displaced (if U92 slips past ~2 weeks, cut it and ship U90+U91+U93+U94).
 
 ### TRACK S (STRATEGY prize = the $30k model-approach award; offline; NEVER claims ladder progress)
 U60-U65, the Phase A DoD, and U8 (U8a/U8b/U8c) are all DONE as of 019dfa2 (move-prior default flipped on after
