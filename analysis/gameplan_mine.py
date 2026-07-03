@@ -19,6 +19,20 @@ Six blocks, in the two shapes the emitter thresholds:
     first_attack_ordinal  when the seat took its first ATTACK
     first_evolve_ordinal  when the seat made its first EVOLVE
 
+Three more blocks (plan U91, comprehension track) read WITHIN a turn rather than
+across the whole game, so they need turn boundaries: a seat can make several MAIN
+decisions in one turn (PLAY, ATTACH, EVOLVE, ATTACK) before ending it, and END is
+always the last decision of a turn (_turns splits on it):
+
+  categorical (a per-turn True/False, not per-decision):
+    attach_before_attack  on turns with BOTH an ATTACH and an ATTACK, did the
+                          ATTACH come first (within-turn sequencing)
+    energy_banking        on turns with an ATTACH, was there NO attack that same
+                          turn (energy attached ahead rather than spent at once)
+  timing (a per-episode count, not an ordinal into one game):
+    game_length_turns     how many turns the seat took this episode (a family's
+                          win-condition timing: how long a winning game runs)
+
 Every block carries a resolution_rate: for a categorical block the fraction of
 its relevant decisions whose card / category actually resolved from the
 observation (an unresolved option is card_id None), for a timing block the
@@ -122,16 +136,80 @@ def _first_evolve_ordinal(decisions):
     return _first_ordinal(decisions, "EVOLVE")
 
 
+def _turns(decisions):
+    """Split one seat's ordered decisions into per-turn sublists.
+
+    A turn ends at its END decision (inclusive); a trailing partial turn (the
+    seat's decisions after its last END, e.g. the game ended before it chose to
+    end again) is kept as its own turn so no decision is dropped. Pure.
+    """
+    turns = []
+    current = []
+    for d in decisions:
+        current.append(d)
+        if d["played"]["category"] == "END":
+            turns.append(current)
+            current = []
+    if current:
+        turns.append(current)
+    return turns
+
+
+def _attach_before_attack(decisions):
+    """Per turn with BOTH an ATTACH and an ATTACK, True when ATTACH came first.
+
+    A turn with only one of the two (or neither) contributes nothing: the
+    sequencing question only exists when both happened that turn.
+    """
+    out = []
+    for turn in _turns(decisions):
+        attach_i = next(
+            (i for i, d in enumerate(turn) if d["played"]["category"] == "ATTACH"), None
+        )
+        attack_i = next(
+            (i for i, d in enumerate(turn) if d["played"]["category"] == "ATTACK"), None
+        )
+        if attach_i is not None and attack_i is not None:
+            out.append(attach_i < attack_i)
+    return out
+
+
+def _energy_banking(decisions):
+    """Per turn with an ATTACH, True when the seat did NOT also attack that turn.
+
+    "Banking" energy: attaching ahead of an attack instead of only attaching just
+    enough to swing immediately. A turn with no ATTACH contributes nothing.
+    """
+    out = []
+    for turn in _turns(decisions):
+        has_attach = any(d["played"]["category"] == "ATTACH" for d in turn)
+        if not has_attach:
+            continue
+        has_attack = any(d["played"]["category"] == "ATTACK" for d in turn)
+        out.append(not has_attack)
+    return out
+
+
+def _game_length_turns(decisions):
+    """Number of turns the seat took this episode, or None with no decisions."""
+    if not decisions:
+        return None
+    return len(_turns(decisions))
+
+
 CATEGORICAL_BLOCKS = (
     ("opening_category", _opening_category),
     ("attach_target", _attach_targets),
     ("play_target", _play_targets),
     ("evolve_target", _evolve_targets),
+    ("attach_before_attack", _attach_before_attack),
+    ("energy_banking", _energy_banking),
 )
 
 TIMING_BLOCKS = (
     ("first_attack_ordinal", _first_attack_ordinal),
     ("first_evolve_ordinal", _first_evolve_ordinal),
+    ("game_length_turns", _game_length_turns),
 )
 
 
@@ -184,15 +262,20 @@ def timing_stats(values) -> dict:
     }
 
 
-def mine(episode_streams) -> dict:
-    """Mine the six stat blocks over the target family's (won, decisions) streams.
+def mine(episode_streams, keep_raw: bool = False) -> dict:
+    """Mine the nine stat blocks over the target family's (won, decisions) streams.
 
     `episode_streams` is an iterable of (won, decisions) pairs -- one per seat
     appearance of the target family, `won` True when that seat won the episode and
     `decisions` its ordered resolved MAIN decisions. Each block is computed twice,
     over the winning appearances and over the losing ones, so the emitter reads the
     winning-play signal and can contrast it with losses. A block is barred when its
-    WINNING split resolves below BAR_RESOLUTION. Pure, never raises.
+    WINNING split resolves below BAR_RESOLUTION. `keep_raw` additionally stashes each
+    block's pre-fold value lists under block["raw"] = {"win": [...], "loss": [...]}
+    (default off, so the ordinary seeds pipeline's block shape is unchanged); the
+    U91 claim/prediction gates (analysis/gameplan_claim_gate) need those raw values
+    to bootstrap a CI, but the committed aggregate docs never read this key. Pure,
+    never raises.
     """
     win_cat = {name: [] for name, _ in CATEGORICAL_BLOCKS}
     loss_cat = {name: [] for name, _ in CATEGORICAL_BLOCKS}
@@ -215,21 +298,27 @@ def mine(episode_streams) -> dict:
     for name, _ in CATEGORICAL_BLOCKS:
         win = categorical_stats(win_cat[name])
         loss = categorical_stats(loss_cat[name])
-        blocks[name] = {
+        block = {
             "kind": "categorical",
             "win": win,
             "loss": loss,
             "barred": win["resolution_rate"] < BAR_RESOLUTION,
         }
+        if keep_raw:
+            block["raw"] = {"win": win_cat[name], "loss": loss_cat[name]}
+        blocks[name] = block
     for name, _ in TIMING_BLOCKS:
         win = timing_stats(win_tim[name])
         loss = timing_stats(loss_tim[name])
-        blocks[name] = {
+        block = {
             "kind": "timing",
             "win": win,
             "loss": loss,
             "barred": win["resolution_rate"] < BAR_RESOLUTION,
         }
+        if keep_raw:
+            block["raw"] = {"win": win_tim[name], "loss": loss_tim[name]}
+        blocks[name] = block
     return {"episodes_win": n_win, "episodes_loss": n_loss, "blocks": blocks}
 
 
@@ -257,13 +346,15 @@ def episode_family_streams(replay, signatures, target, threshold: float = 0.35):
         yield (s == seat, list(iter_resolved_decisions(replay, s)))
 
 
-def run_mine(source, signatures, target, threshold: float = 0.35, limit=None) -> dict:
+def run_mine(
+    source, signatures, target, threshold: float = 0.35, limit=None, keep_raw: bool = False
+) -> dict:
     """Mine the target family's game plan over every episode in `source`."""
     def streams():
         for replay, _label in load_replays(source, limit=limit):
             yield from episode_family_streams(replay, signatures, target, threshold)
 
-    return mine(streams())
+    return mine(streams(), keep_raw=keep_raw)
 
 
 def _print_summary(target, result) -> None:

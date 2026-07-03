@@ -97,20 +97,28 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
           pilot ever triggers that class (same shape as the 0/554 ability find that paid +4pp); extend
           agents/card_effects.py TAG_VOCAB (v2, additive, golden tests keep passing) until ZERO untagged
           effect cards remain on the two meta decklists (today 4 and 5 blind, including Boss's Orders).
-      U91 PLAYBOOK MINER V2 (step 1 DONE 2026-07-03, rest not started): fixed attach_target to resolve the
-          RECEIVING Pokemon (analysis/replay_trace.attach_receiver_id, mirrors heuristics._attach_slot_card_id)
-          and root-caused + fixed play_target's 0.000 resolution (analysis/replay_trace.play_hand_card_id,
-          mirrors heuristics.play_card_id; the bug was a PLAY option carrying no "area" key at all, only a bare
-          hand index). Validated on real data (bracket_4, n=1500 episodes): both blocks jumped from
-          0.470/0.285 and 0.000-barred to 1.000/1.000 resolution (analysis/gameplan_target_resolution_fixed.md).
-          Discovered a real side-blocker: meta_archaludon/meta_grimmsnarl no longer classify ANY deck in the
-          mined dataset because the L5 bracket_1..6 archetype csvs (added after this dataset was mined) now
-          shadow them in classify_family's alphabetical tie-break; fix that or swap the mining target to a
-          bracket family before re-mining the two named families end to end. STILL TODO: re-mine a real target
-          family end-to-end with the fixed resolvers and concentrate past the 0.70 share bar (a narrower
-          cohort or a new block shape), then mine within-turn sequencing, energy banking, win-condition timing
-          per family. CLAIM GATE: n>=200 and bootstrap 90% CI excluding zero, dropped claims published.
-          PREDICTION GATE: the playbook must predict held-out top-player moves or be cut.
+      U91 PLAYBOOK MINER V2 (step 1 DONE 2026-07-03, step 2 DONE 2026-07-03, step 3 not started): step 1 fixed
+          attach_target to resolve the RECEIVING Pokemon (analysis/replay_trace.attach_receiver_id, mirrors
+          heuristics._attach_slot_card_id) and root-caused + fixed play_target's 0.000 resolution
+          (analysis/replay_trace.play_hand_card_id, mirrors heuristics.play_card_id; the bug was a PLAY option
+          carrying no "area" key at all, only a bare hand index). Validated on real data (bracket_4, n=1500
+          episodes): both blocks jumped from 0.470/0.285 and 0.000-barred to 1.000/1.000 resolution
+          (analysis/gameplan_target_resolution_fixed.md). Discovered a real side-blocker: meta_archaludon/
+          meta_grimmsnarl no longer classify ANY deck in the mined dataset because the L5 bracket_1..6
+          archetype csvs (added after this dataset was mined) now shadow them in classify_family's
+          alphabetical tie-break; still unfixed, still blocks a like-for-like re-mine of those two named
+          families. Step 2 (analysis/gameplan_mine.py, analysis/gameplan_claim_gate.py): added three
+          turn-scoped blocks (attach_before_attack, energy_banking, game_length_turns) and the CLAIM GATE
+          (n>=200/side, bootstrap 90% CI excluding zero) / PREDICTION GATE (KD4 train-mined CI must bracket
+          the held-out test mean) machinery. Ran end to end on bracket_4's full dataset (the resolvers'
+          validated family, since the two named meta families are still blocked): attach_before_attack and
+          energy_banking both CONFIRMED (winners attach-before-attacking 3.4pp less, bank energy 4.4pp less,
+          n>=1400/side, both gates pass); game_length_turns CUT (claim CI straddles zero). Full writeup:
+          analysis/gameplan_claims_bracket_4.md. Real footgun found and documented: build_signatures(None)
+          silently mines ZERO appearances for bracket families; --decks-dir decks is required. STILL TODO
+          (step 3): U93 must design a flag-gated rule from the confirmed sequencing gap and A/B it (these are
+          descriptive correlations, not yet proven prescriptive); the archetype-registry shadowing fix is
+          still open for whoever wants the two named meta families back.
       U92 CLONE REBUILT: step 0 is the half-day KILL TEST: rerun the U26 pairwise RankNet (already written,
           analysis/unit_zero_spike.py) against FIRST-LEGAL on the clone data. Then tools/train_clone2.py:
           groupwise/pairwise ranking objective (NEVER per-row binary log-loss), position features

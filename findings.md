@@ -110,6 +110,8 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   `analysis/gameplan_target_resolution_fixed.md`. Still open: concentrating the now-resolvable distributions
   past the 0.70 emission bar, and a real side-finding that meta_archaludon/meta_grimmsnarl no longer classify
   any deck in this dataset (the newer bracket_1..6 archetypes shadow them in the classifier's tie-break).
+  This refutation covers TARGET-CARD seeds only; see 4C for a related within-turn SEQUENCING signal that did
+  clear both gates on the same family (2026-07-03, U91 step 2).
 - cem_prio_agreement_generalizes: three CEM runs, three different fitness formulations, tuned expert-move
   agreement on train but got zero or negative held-out transfer every time, all blocked by the pre-registered
   filter. The third (2026-07-03, U83) targeted the second attempt's own named re-open condition, a materially
@@ -157,6 +159,13 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   or once-per-turn active ability); probed and confirmed our own pilot deck contains no on-evolve-ability
   Pokemon, so the gap does not apply to the shipped deck as-is (a deck-design question, not a heuristic-logic
   one). `agents/card_effects.py` TAG_VOCAB v2, `analysis/on_evolve_probe.md`.
+- U91 step 2 within-turn sequencing (2026-07-03): two new mined blocks (attach_before_attack, energy_banking)
+  cleared BOTH a claim gate (n>=1400/side, bootstrap 90% CI excludes zero) and a prediction gate (KD4
+  train-mined CI brackets the held-out test mean) on bracket_4's full dataset. Winning play attaches-before-
+  attacking 3.4pp less (0.524 vs 0.558) and banks energy 4.4pp less (0.192 vs 0.236) than losing play; a third
+  block (game_length_turns) was mined but CUT (claim CI straddles zero). Small effect sizes, descriptive not
+  yet prescriptive; U93 must design and A/B a real rule before this can claim any ladder value.
+  `analysis/gameplan_claims_bracket_4.md`.
 
 ### 4D. Methodological findings (the meta-record, the strongest Strategy material)
 

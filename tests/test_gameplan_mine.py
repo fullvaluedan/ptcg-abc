@@ -85,6 +85,44 @@ def test_first_ordinals_are_one_based_and_none_when_absent():
     assert gm._first_attack_ordinal([_decision(PLAY)]) is None
 
 
+# --- turn-scoped blocks (U91 comprehension track) ---------------------------
+
+def test_turns_splits_on_end_and_keeps_trailing_partial_turn():
+    decisions = [_decision(PLAY), _decision(END), _decision(ATTACH), _decision(ATTACK)]
+    turns = gm._turns(decisions)
+    assert len(turns) == 2
+    assert [d["played"]["category"] for d in turns[0]] == ["PLAY", "END"]
+    assert [d["played"]["category"] for d in turns[1]] == ["ATTACH", "ATTACK"]
+    assert gm._turns([]) == []
+
+
+def test_attach_before_attack_only_counts_turns_with_both():
+    # Turn 1: attach then attack (True). Turn 2: attack then attach (False).
+    # Turn 3: attach only (no attack) -> not counted.
+    decisions = [
+        _decision(ATTACH), _decision(ATTACK), _decision(END),
+        _decision(ATTACK), _decision(ATTACH), _decision(END),
+        _decision(ATTACH), _decision(END),
+    ]
+    assert gm._attach_before_attack(decisions) == [True, False]
+    assert gm._attach_before_attack([_decision(PLAY), _decision(END)]) == []
+
+
+def test_energy_banking_true_when_no_attack_that_turn():
+    decisions = [
+        _decision(ATTACH), _decision(ATTACK), _decision(END),  # spent, not banked
+        _decision(ATTACH), _decision(END),  # banked
+        _decision(PLAY), _decision(END),  # no attach -> not counted
+    ]
+    assert gm._energy_banking(decisions) == [False, True]
+
+
+def test_game_length_turns_counts_turns_and_none_when_empty():
+    decisions = [_decision(PLAY), _decision(END), _decision(ATTACK), _decision(END)]
+    assert gm._game_length_turns(decisions) == 2
+    assert gm._game_length_turns([]) is None
+
+
 # --- stat folds ------------------------------------------------------------
 
 def test_categorical_stats_resolution_and_mode_share():
@@ -148,16 +186,31 @@ def test_mine_bars_block_below_resolution_on_winning_split():
     assert result2["blocks"]["attach_target"]["barred"] is False
 
 
-def test_all_six_blocks_present():
+def test_all_nine_blocks_present():
     result = gm.mine([_stream_win([_decision(PLAY, card_id="p")])])
     assert set(result["blocks"]) == {
         "opening_category",
         "attach_target",
         "play_target",
         "evolve_target",
+        "attach_before_attack",
+        "energy_banking",
         "first_attack_ordinal",
         "first_evolve_ordinal",
+        "game_length_turns",
     }
+
+
+def test_mine_keep_raw_stashes_prefold_values():
+    streams = [
+        _stream_win([_decision(ATTACH, card_id="w"), _decision(ATTACK), _decision(END)]),
+        _stream_loss([_decision(ATTACH, card_id="l")]),
+    ]
+    without_raw = gm.mine(streams)
+    assert "raw" not in without_raw["blocks"]["attach_target"]
+    with_raw = gm.mine(streams, keep_raw=True)
+    assert with_raw["blocks"]["attach_target"]["raw"] == {"win": ["w"], "loss": ["l"]}
+    assert with_raw["blocks"]["attach_before_attack"]["raw"] == {"win": [True], "loss": []}
 
 
 # --- live wrapper (family filter, win flag, drop rules) --------------------
