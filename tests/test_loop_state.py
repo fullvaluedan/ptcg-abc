@@ -344,6 +344,45 @@ def test_settle_verdict_margin_arithmetic():
     assert ls.settle_verdict(541, 600, margin=60) == "BAND"
 
 
+def test_auto_settle_returns_the_rows_own_committed_action():
+    data = {}
+    ls.upsert_prereg(data, _complete_row())
+    result = ls.auto_settle(data, "heuristic+trolley_thick", 660, 600)
+    assert result["verdict"] == "WIN"
+    assert result["margin"] == 60
+    assert result["action"] == "promote to king"
+
+    result = ls.auto_settle(data, "heuristic+trolley_thick", 540, 600)
+    assert result["verdict"] == "LOSS"
+    assert result["action"] == "evict, revert to king"
+
+    result = ls.auto_settle(data, "heuristic+trolley_thick", 600, 600)
+    assert result["verdict"] == "BAND"
+    assert result["action"] == "one repeat then scoreboard"
+
+
+def test_auto_settle_margin_override_beats_row_margin():
+    data = {}
+    ls.upsert_prereg(data, _complete_row(margin=60))
+    # 30 points is BAND at the row's own M=60 but a WIN once overridden to M=20.
+    assert ls.auto_settle(data, "heuristic+trolley_thick", 630, 600)["verdict"] == "BAND"
+    result = ls.auto_settle(data, "heuristic+trolley_thick", 630, 600, margin=20)
+    assert result["verdict"] == "WIN"
+    assert result["margin"] == 20
+
+
+def test_auto_settle_raises_without_a_registration_row():
+    with pytest.raises(ValueError, match="no pre-registration row"):
+        ls.auto_settle({}, "unregistered-build", 660, 600)
+
+
+def test_auto_settle_raises_on_incomplete_row():
+    # A hand-planted incomplete row (bypassing upsert) must still be refused.
+    data = {"pre_registrations": [{"build": "x", "hypothesis": "h"}]}
+    with pytest.raises(ValueError, match="pre-registration incomplete"):
+        ls.auto_settle(data, "x", 660, 600)
+
+
 # --------------------------------------------------------------------------- #
 # proxy retrodiction gate: no uncalibrated proxy may block a slot (plan U24)
 # --------------------------------------------------------------------------- #

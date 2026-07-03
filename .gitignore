@@ -24,3 +24,4 @@ autoloop_status.md
 Thumbs.db
 .DS_Store
 watchdog.log
+.watchdog_heartbeat

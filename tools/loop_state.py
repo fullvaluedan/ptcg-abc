@@ -534,6 +534,44 @@ def settle_verdict(candidate_score, king_score, margin: int = DEFAULT_MARGIN) ->
     return "BAND"
 
 
+def auto_settle(data: dict, build: str, candidate_score, king_score,
+                margin: int | None = None) -> dict:
+    """Mechanically settle a pre-registered build against the board: the verdict
+    plus the EXACT committed action text for that verdict, with no prose
+    interpretation.
+
+    Looks up the build's own pre-registration row, computes WIN/LOSS/BAND via
+    settle_verdict using the row's own margin (unless margin overrides it), and
+    returns the row's already-committed action string for that verdict. This is
+    the mandatory per-iteration auto-settlement step the L2 candidate-eviction
+    note called for: a candidate reading clearly outside the band should be
+    settled the instant it is observed, mechanically, rather than re-litigated
+    in prose each time. Raises ValueError when no complete pre-registration row
+    exists for the build, so nothing can be "settled" without one.
+    """
+    reg = None
+    for r in data.get("pre_registrations") or []:
+        if r.get("build") == build:
+            reg = r
+            break
+    if reg is None:
+        raise ValueError(f"no pre-registration row for build '{build}'")
+    problems = validate_prereg(reg)
+    if problems:
+        raise ValueError("pre-registration incomplete: " + "; ".join(problems))
+    m = margin if margin is not None else int(reg["margin"])
+    verdict = settle_verdict(candidate_score, king_score, margin=m)
+    action = (reg.get("actions") or {}).get(verdict.lower(), "")
+    return {
+        "build": build,
+        "verdict": verdict,
+        "margin": m,
+        "candidate_score": candidate_score,
+        "king_score": king_score,
+        "action": action,
+    }
+
+
 # --------------------------------------------------------------------------- #
 # proxy retrodiction gate: no uncalibrated proxy may block a slot (plan U24)
 # --------------------------------------------------------------------------- #
@@ -713,6 +751,18 @@ def _cmd_check_gate(args) -> None:
         raise SystemExit(1)
 
 
+def _cmd_auto_settle(args) -> None:
+    try:
+        result = auto_settle(read_current(), args.build, args.candidate_score,
+                             args.king_score, margin=args.margin)
+    except ValueError as exc:
+        print(str(exc))
+        raise SystemExit(2)
+    print(f"{result['verdict']} (margin {result['margin']}, "
+          f"{result['candidate_score']} vs king {result['king_score']}): "
+          f"{result['action']}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="stateful loop memory (plan U12)")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -754,6 +804,17 @@ def main() -> None:
     cg = sub.add_parser("check-gate", help="dry-run the U24 proxy gate for a proxy")
     cg.add_argument("--proxy", required=True, help="the proxy about to gate a slot")
 
+    ast = sub.add_parser("auto-settle",
+                         help="mechanically settle a pre-registered build: WIN/LOSS/BAND "
+                              "plus its exact committed action, no prose interpretation")
+    ast.add_argument("--build", required=True, help="the exact build/candidate name")
+    ast.add_argument("--candidate-score", type=float, required=True, dest="candidate_score",
+                     help="the candidate's current board reading")
+    ast.add_argument("--king-score", type=float, required=True, dest="king_score",
+                     help="the king's current board reading")
+    ast.add_argument("--margin", type=int, default=None,
+                     help="override the row's own margin (defaults to the row's margin)")
+
     args = ap.parse_args()
     if args.cmd == "refresh":
         _cmd_refresh(args)
@@ -769,6 +830,8 @@ def main() -> None:
         _cmd_calibrate_proxy(args)
     elif args.cmd == "check-gate":
         _cmd_check_gate(args)
+    elif args.cmd == "auto-settle":
+        _cmd_auto_settle(args)
 
 
 if __name__ == "__main__":
