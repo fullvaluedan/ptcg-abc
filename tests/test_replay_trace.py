@@ -16,10 +16,13 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
 from analysis.replay_trace import (  # noqa: E402
     AREA_DECK,
     AREA_HAND,
+    CTX_TO_ACTIVE,
     OPT_CATEGORY,
+    SEL_CARD,
     SEL_MAIN,
     episode_bucket,
     episode_id_of,
+    iter_expert_card_decisions,
     iter_expert_decisions,
     iter_resolved_decisions,
     option_card_id,
@@ -32,7 +35,8 @@ from analysis.replay_trace import (  # noqa: E402
 # fixtures ------------------------------------------------------------------
 
 def _main_entry(*, seat, action, options=None, n_options=3, sel_type=SEL_MAIN,
-                min_count=1, max_count=1, status="ACTIVE", deck=None, players=None):
+                min_count=1, max_count=1, status="ACTIVE", deck=None, players=None,
+                context=None):
     """One ACTIVE seat record for a MAIN decision by `seat`.
 
     `options` supplies real option dicts (for resolution tests); otherwise a bare
@@ -42,6 +46,8 @@ def _main_entry(*, seat, action, options=None, n_options=3, sel_type=SEL_MAIN,
     sel = {"type": sel_type, "minCount": min_count, "maxCount": max_count, "option": opt}
     if deck is not None:
         sel["deck"] = deck
+    if context is not None:
+        sel["context"] = context
     current = {"yourIndex": seat}
     if players is not None:
         current["players"] = players
@@ -92,6 +98,41 @@ def test_iter_skips_malformed_without_raising():
     steps = ["not-a-step", [None, {"status": "ACTIVE"}],
              _step(_main_entry(seat=0, action=[1]), 0)]
     got = list(iter_expert_decisions(_replay(steps), expert_index=0))
+    assert len(got) == 1 and got[0][1] == 1
+
+
+def test_iter_card_yields_only_scorable_promote_in_contexts():
+    steps = [
+        _step(_main_entry(seat=0, action=[1], sel_type=SEL_CARD,
+                           context=CTX_TO_ACTIVE), 0),                      # scorable
+        _step(_main_entry(seat=1, action=[0], sel_type=SEL_CARD,
+                           context=CTX_TO_ACTIVE), 1),                      # wrong seat
+        _step(_main_entry(seat=0, action=[0], sel_type=SEL_CARD,
+                           context=CTX_TO_ACTIVE, n_options=1), 0),         # single option
+        _step(_main_entry(seat=0, action=[0], sel_type=SEL_MAIN,
+                           context=CTX_TO_ACTIVE), 0),                      # not CARD
+        _step(_main_entry(seat=0, action=[0], sel_type=SEL_CARD,
+                           context=99), 0),                                 # wrong context
+        _step(_main_entry(seat=0, action=[0, 1], sel_type=SEL_CARD,
+                           context=CTX_TO_ACTIVE, max_count=2), 0),         # multi-pick
+        _step(_main_entry(seat=0, action=[9], sel_type=SEL_CARD,
+                           context=CTX_TO_ACTIVE), 0),                      # out of range
+    ]
+    got = list(
+        iter_expert_card_decisions(_replay(steps), expert_index=0, contexts={CTX_TO_ACTIVE})
+    )
+    assert len(got) == 1
+    obs, idx = got[0]
+    assert idx == 1 and obs["select"]["context"] == CTX_TO_ACTIVE
+
+
+def test_iter_card_skips_malformed_without_raising():
+    steps = ["not-a-step", [None, {"status": "ACTIVE"}],
+              _step(_main_entry(seat=0, action=[1], sel_type=SEL_CARD,
+                                 context=CTX_TO_ACTIVE), 0)]
+    got = list(
+        iter_expert_card_decisions(_replay(steps), expert_index=0, contexts={CTX_TO_ACTIVE})
+    )
     assert len(got) == 1 and got[0][1] == 1
 
 

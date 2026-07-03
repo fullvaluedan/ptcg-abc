@@ -28,6 +28,17 @@ import hashlib
 # trace any replay without loading the card engine.
 SEL_MAIN = 0
 
+# SelectType.CARD (api.py SelectType enum): a sub-decision that picks one card by
+# area+index, e.g. a post-knockout promote or a deck-search fetch target. Kept
+# local for the same cg-free reason as SEL_MAIN.
+SEL_CARD = 1
+
+# SelectContext.TO_ACTIVE (api.py SelectContext enum): select the Pokemon to put
+# into your Active Spot. Fires only as a forced promote after a knockout leaves
+# the active spot empty; the ordinary retreat swap uses SWITCH (context 3), a
+# different context entirely, so the two decisions never collide here.
+CTX_TO_ACTIVE = 4
+
 # OptionType (api.py OptionType enum) values that can appear at a MAIN decision,
 # mapped to the action category name. A MAIN option's `type` field names the KIND
 # of action, so labeling the option turns a raw index into a readable category.
@@ -219,6 +230,56 @@ def iter_expert_decisions(replay, expert_index):
     """
     for obs, entry in _iter_active_obs(replay, expert_index):
         got = _scorable_main(obs, expert_index)
+        if got is None:
+            continue
+        _sel, options = got
+        idx = _played_index(entry.get("action"))
+        if idx is None or idx >= len(options):
+            continue
+        yield obs, idx
+
+
+def _scorable_card(obs, expert_index, contexts):
+    """The (sel, options) of a scorable CARD decision by `expert_index`, or None.
+
+    A scorable CARD decision: the deciding seat is `expert_index`, the select is a
+    CARD single-pick (minCount == maxCount == 1) among more than one option, whose
+    context is one of `contexts`. Mirrors `_scorable_main`'s gate shape exactly,
+    generalized over select type and context so any CARD-level decision (a
+    post-knockout promote, a deck-search fetch target) can share one primitive.
+    None on any miss. Pure, never raises.
+    """
+    if not isinstance(obs, dict):
+        return None
+    sel = obs.get("select")
+    current = obs.get("current")
+    if not isinstance(sel, dict) or not isinstance(current, dict):
+        return None
+    if current.get("yourIndex", None) != expert_index:
+        return None
+    if sel.get("type") != SEL_CARD:
+        return None
+    if sel.get("context") not in contexts:
+        return None
+    if sel.get("minCount", 1) != 1 or sel.get("maxCount", 1) != 1:
+        return None
+    options = sel.get("option") or []
+    if len(options) <= 1:
+        return None
+    return sel, options
+
+
+def iter_expert_card_decisions(replay, expert_index, contexts):
+    """Yield (obs, played_index) for each scorable CARD decision by `expert_index`.
+
+    Generalizes `iter_expert_decisions` from MAIN to CARD selects, filtered to a
+    caller-supplied set of SelectContext values (e.g. {CTX_TO_ACTIVE} for a
+    post-knockout promote miner), so every CARD-level imitation unit reads the
+    same decision population the same way. Pure and defensive: a malformed step is
+    skipped, never fatal.
+    """
+    for obs, entry in _iter_active_obs(replay, expert_index):
+        got = _scorable_card(obs, expert_index, contexts)
         if got is None:
             continue
         _sel, options = got
