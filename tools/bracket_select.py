@@ -13,7 +13,16 @@ Two independent sources, unioned:
   1. fetch_full_leaderboard: `kaggle competitions leaderboard -d` downloads
      the ENTIRE public leaderboard as one CSV (unlike --show, which is capped
      at page-size 200 and only covers the very top of the field), then
-     band_teams filters it to [low, high] by Score.
+     band_teams filters it to [low, high] by Score. The download lands in its
+     own data/leaderboard_cache/ directory, never data/episodes/: the kaggle
+     CLI always names this file "<competition-slug>.zip", and
+     tools.top_player_tracker.newest_dataset picks the lexicographically LAST
+     "*.zip" under episodes_dir as the newest episode dump (by design, see
+     its own test). "pokemon-tcg-ai-battle.zip" sorts after every real dated
+     dump ("pokemon-tcg-ai-battle-episodes-2026-07-02.zip" etc, since "-" <
+     "." in the shared prefix), so dropping the leaderboard zip into
+     data/episodes/ would permanently shadow the real dumps for every other
+     tool that calls newest_dataset (clone_dataset.py, daily_refresh.py).
   2. opponents_from_replays: info.TeamNames from our own data/replays/*.json,
      skipping self-play validation episodes and any replay where our own
      team cannot be confidently matched (no guessing which seat is ours).
@@ -42,7 +51,7 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
 from analysis.expert_cohort import team_names  # noqa: E402
 from tools.scout import OUR_TEAM, SIMULATION_SLUG, is_self_play, load_replay, our_index_from_replay, run_kaggle  # noqa: E402
 
-DEFAULT_EPISODES_DIR = _ROOT / "data" / "episodes"
+DEFAULT_LEADERBOARD_DIR = _ROOT / "data" / "leaderboard_cache"
 DEFAULT_REPLAYS_DIR = _ROOT / "data" / "replays"
 DEFAULT_OUT_DIR = _ROOT / "data" / "training"
 DEFAULT_BAND_LOW = 450.0
@@ -56,9 +65,11 @@ def fetch_full_leaderboard(dest_dir=None, timeout: int = 120) -> dict:
     {"rank", "team_id", "name", "rating"} dicts, or [] on any download,
     zip, or parse failure. Unlike tools.top_player_tracker.fetch_leaderboard
     (--show, capped at page-size 200), -d downloads the full field so a
-    mid-pack rating band is actually reachable.
+    mid-pack rating band is actually reachable. dest_dir must never be the
+    episode-dump directory (see the module docstring for why); the default
+    is a dedicated cache directory instead.
     """
-    dest_dir = Path(dest_dir) if dest_dir else DEFAULT_EPISODES_DIR
+    dest_dir = Path(dest_dir) if dest_dir else DEFAULT_LEADERBOARD_DIR
     dest_dir.mkdir(parents=True, exist_ok=True)
     res = run_kaggle(
         ["competitions", "leaderboard", SIMULATION_SLUG, "-d", "-p", str(dest_dir)],
@@ -161,8 +172,9 @@ def select_bracket(leaderboard_rows, replays_dir=None, team_name: str = OUR_TEAM
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--episodes-dir", default=str(DEFAULT_EPISODES_DIR),
-                     help="directory to download the leaderboard zip into")
+    ap.add_argument("--leaderboard-dir", default=str(DEFAULT_LEADERBOARD_DIR),
+                     help="directory to download the leaderboard zip into "
+                          "(must not be the episode-dump directory)")
     ap.add_argument("--replays-dir", default=str(DEFAULT_REPLAYS_DIR),
                      help="directory of our own harvested ladder replays")
     ap.add_argument("--low", type=float, default=DEFAULT_BAND_LOW)
@@ -171,7 +183,7 @@ def main(argv=None) -> int:
                      help="output JSON path (default data/training/bracket_teams.json)")
     args = ap.parse_args(argv)
 
-    lb = fetch_full_leaderboard(args.episodes_dir)
+    lb = fetch_full_leaderboard(args.leaderboard_dir)
     if not lb["ok"]:
         print(f"leaderboard download failed: {lb['error']}")
         return 1

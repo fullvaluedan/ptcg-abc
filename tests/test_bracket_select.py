@@ -140,7 +140,7 @@ def test_main_writes_output_json(tmp_path, monkeypatch):
 
     out_path = tmp_path / "out.json"
     rc = bs.main([
-        "--episodes-dir", str(tmp_path / "episodes"),
+        "--leaderboard-dir", str(tmp_path / "leaderboard_cache"),
         "--replays-dir", str(replays_dir),
         "--out", str(out_path),
     ])
@@ -151,5 +151,13 @@ def test_main_writes_output_json(tmp_path, monkeypatch):
 
 def test_main_returns_nonzero_on_leaderboard_failure(tmp_path, monkeypatch):
     monkeypatch.setattr(bs, "run_kaggle", lambda args, timeout=None: {"ok": False, "error": "429 rate limited"})
-    rc = bs.main(["--episodes-dir", str(tmp_path)])
+    rc = bs.main(["--leaderboard-dir", str(tmp_path)])
     assert rc == 1
+
+
+def test_default_leaderboard_dir_is_not_episodes_dir():
+    """The download dir must never collide with the episode-dump directory
+    that tools.top_player_tracker.newest_dataset scans (lexicographic *.zip
+    sort would let the leaderboard zip shadow real dated dumps forever)."""
+    assert bs.DEFAULT_LEADERBOARD_DIR != bs.DEFAULT_LEADERBOARD_DIR.parent / "episodes"
+    assert bs.DEFAULT_LEADERBOARD_DIR.name != "episodes"

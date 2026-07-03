@@ -99,10 +99,24 @@ def fetch_leaderboard(top_n: int = DEFAULT_TOP_N) -> dict:
     return {"ok": True, "teams": teams}
 
 
+NON_DUMP_ZIP_NAMES = {
+    f"{SIMULATION_SLUG}.zip",  # a leaderboard -d download (tools/bracket_select.py)
+    f"{SIMULATION_SLUG}-episodes-index.zip",  # the tiny index dataset (tools/daily_refresh.py)
+}
+
+
 def newest_dataset(episodes_dir=None) -> Path | None:
-    """The most recently dated episode dataset .zip under episodes_dir, or None."""
+    """The most recently dated episode dataset .zip under episodes_dir, or None.
+
+    Picks the lexicographically last "*.zip", which only sorts correctly
+    among real dated dumps (pokemon-tcg-ai-battle-episodes-YYYY-MM-DD.zip):
+    excludes NON_DUMP_ZIP_NAMES, since both known non-dump zips that
+    legitimately live in this directory sort AFTER every dated dump ("i" in
+    "-index.zip" and "." in the bare slug name both sort after the digits in
+    "-YYYY-MM-DD.zip"), which would otherwise shadow the real newest dump.
+    """
     episodes_dir = Path(episodes_dir) if episodes_dir else DEFAULT_EPISODES_DIR
-    zips = sorted(episodes_dir.glob("*.zip"))
+    zips = sorted(p for p in episodes_dir.glob("*.zip") if p.name not in NON_DUMP_ZIP_NAMES)
     return zips[-1] if zips else None
 
 

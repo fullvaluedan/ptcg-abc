@@ -221,6 +221,21 @@ def test_newest_dataset_none_when_empty(tmp_path):
     assert tpt.newest_dataset(tmp_path) is None
 
 
+def test_newest_dataset_ignores_index_and_leaderboard_zips(tmp_path):
+    """A leaderboard -d download (tools/bracket_select.py, named
+    "<slug>.zip") or the -index dataset (tools/daily_refresh.py, named
+    "<slug>-episodes-index.zip") can legitimately land next to the dated
+    dumps in data/episodes/. Both sort lexicographically AFTER every dated
+    dump ("pokemon-tcg-ai-battle-episodes-2026-07-02.zip" < either name), so
+    a naive "*.zip" sort would pick one of them instead of the real newest
+    dump -- this must not happen."""
+    real_newest = tmp_path / "pokemon-tcg-ai-battle-episodes-2026-07-02.zip"
+    real_newest.write_bytes(b"")
+    (tmp_path / "pokemon-tcg-ai-battle-episodes-index.zip").write_bytes(b"")
+    (tmp_path / "pokemon-tcg-ai-battle.zip").write_bytes(b"")
+    assert tpt.newest_dataset(tmp_path) == real_newest
+
+
 def test_dedupe_new_games_drops_already_seen_game_ids():
     rows = [["1", 0, 3, 1, "top_player", "Alpha"], ["2", 1, 4, 1, "top_player", "Beta"]]
     out = tpt.dedupe_new_games(rows, existing_game_ids={"1"})
