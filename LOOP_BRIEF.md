@@ -115,9 +115,16 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
           energy_banking both CONFIRMED (winners attach-before-attacking 3.4pp less, bank energy 4.4pp less,
           n>=1400/side, both gates pass); game_length_turns CUT (claim CI straddles zero). Full writeup:
           analysis/gameplan_claims_bracket_4.md. Real footgun found and documented: build_signatures(None)
-          silently mines ZERO appearances for bracket families; --decks-dir decks is required. STILL TODO
-          (step 3): U93 must design a flag-gated rule from the confirmed sequencing gap and A/B it (these are
-          descriptive correlations, not yet proven prescriptive); the archetype-registry shadowing fix is
+          silently mines ZERO appearances for bracket families; --decks-dir decks is required. Step 3 (U93
+          step 1, DONE 2026-07-03): built the literal flag-gated rule the plan names -- PTCG_ATTACK_FIRST
+          (default off) in agents/heuristics.py's choose(): when a positive-value attack is already legal
+          THIS decision without a further attach, take it now instead of the discretionary attach. 6 new
+          tests (tests/test_heuristic.py). Ran the same fires-vs-inert discipline as measure_energy_seq/
+          measure_bench_dig BEFORE spending a bracket-ring slot: tools/measure_attack_first.py captured 20
+          real trolley ATTACH+ATTACK positions (up to 10 matches), 8 with a positive-value attack on the
+          table, 3/20 flipped the end-to-end pilot decision. Verdict LIVE, not inert (analysis/
+          attack_first_flip_check.md). STILL TODO (U93 step 2): the bracket-ring A/B (>=+5pp with
+          gauntlet-direction agreement) before any ladder slot; the archetype-registry shadowing fix is
           still open for whoever wants the two named meta families back.
       U92 CLONE REBUILT: step 0 is the half-day KILL TEST: rerun the U26 pairwise RankNet (already written,
           analysis/unit_zero_spike.py) against FIRST-LEGAL on the clone data. Then tools/train_clone2.py:
@@ -129,7 +136,9 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
       U93 TRANSFER TO THE SHIPPED PILOT (the only ladder-moving piece): each playbook lever that applies to
           OUR deck (on-evolve usage if the probe finds a miss; energy front-load ordering; attach-recipient
           policy) ships as a flag-gated rule, pre-registered, bracket-ring A/B >=+5pp with gauntlet direction
-          agreement BEFORE any ladder slot, then the M=60 ladder protocol.
+          agreement BEFORE any ladder slot, then the M=60 ladder protocol. Step 1 DONE 2026-07-03: the
+          sequencing rule (PTCG_ATTACK_FIRST) is built and confirmed LIVE on trolley (3/20 real-position
+          decision flips, analysis/attack_first_flip_check.md). NEXT (step 2): the bracket-ring A/B.
       U94 WRITEUP CHAPTER: docs/writeup/comprehension.md, the full arc (autopsy, WHY layer, playbooks, honest
           gates incl FAILs) with a machine-audited claims ledger (every number links to a committed analysis
           file).

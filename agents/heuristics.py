@@ -175,6 +175,27 @@ _BENCH_DIG = os.environ.get("PTCG_BENCH_DIG", "0") != "0"
 # weak-bot gauntlets are not predictive, so the ladder is the judge.
 _ABILITY = os.environ.get("PTCG_ABILITY", "0") != "0"
 
+# Attack-before-attach sequencing (PTCG_ATTACK_FIRST, default off). U91's game-plan
+# miner (analysis/gameplan_claims_bracket_4.md) confirmed two related within-turn
+# patterns on bracket_4 real ladder replays (both gates pass: n>1400/side, claim CI
+# excludes zero, prediction CI brackets the held-out test mean): winners
+# attach-before-attack LESS often than losers on turns where both are already legal
+# (52.4% vs 55.8%), and winners bank energy (attach with no attack that same turn)
+# LESS often too (19.2% vs 23.6%). The shipped default always attaches first
+# whenever an attach option is legal (PRIO_ATTACH outranks PRIO_ATTACK), so it
+# over-attaches relative to BOTH cohorts in the mined data. This lever tests the
+# literal prescriptive rule the plan names (U93): when a positive-value attack is
+# already legal THIS decision using energy already attached (no further attach
+# needed to unlock it), take the attack now instead of the discretionary attach.
+# Narrow and bounded: only fires when OPT_ATTACH is also legal and best_attack
+# reports eff_damage > 0; candy/evolve/play/ability/retreat priority is untouched,
+# they still resolve before this check exactly as before. Staged behind a
+# default-off flag so every shipped build stays byte-identical until it clears the
+# bracket-ring A/B the plan requires before any ladder slot (the mined pattern is a
+# correlation, not yet proven prescriptive; see the caveat in
+# analysis/gameplan_claims_bracket_4.md).
+_ATTACK_FIRST = os.environ.get("PTCG_ATTACK_FIRST", "0") != "0"
+
 # Deck-aware game-plan seeds (PTCG_SEEDS, default off). The U36 miner distills a
 # target family's WINNING expert episodes into concentrated play seeds (attach /
 # play / evolve card-id targets); analysis/gameplan_seeds.py emits only the blocks
@@ -1171,6 +1192,20 @@ def choose(obs) -> list:
     def _resolve_attach():
         return _choose_attach(groups[OPT_ATTACH], me) if OPT_ATTACH in groups else None
 
+    def _resolve_attack_first():
+        # PTCG_ATTACK_FIRST (default off, see the flag comment above): take an
+        # already-legal positive-value attack now instead of the discretionary
+        # attach. Returns None (no-op) whenever the flag is off or the narrow
+        # condition does not hold, so the normal ladder (attach, then attack)
+        # runs unchanged.
+        if not _ATTACK_FIRST:
+            return None
+        if OPT_ATTACH not in groups:
+            return None
+        if ba is None or ba[1] <= 0:
+            return None
+        return ba[0]
+
     def _resolve_ability():
         # A once-per-turn ability engine (draw/search/damage abilities are 12% of
         # the top players' MAIN actions and the pilot has never used one, 0/554;
@@ -1198,6 +1233,7 @@ def choose(obs) -> list:
         (PRIO_CANDY, 0, _resolve_candy),
         (PRIO_EVOLVE, 1, _resolve_evolve),
         (PRIO_PLAY, 2, _resolve_play),
+        (PRIO_ATTACH + 0.5, 2.5, _resolve_attack_first),
         (PRIO_ATTACH, 3, _resolve_attach),
         (PRIO_ABILITY, 4, _resolve_ability),
         (PRIO_RETREAT, 5, _resolve_retreat),

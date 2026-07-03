@@ -672,6 +672,100 @@ def test_lethal_taken_before_ability(monkeypatch):
     assert heuristic_agent(obs) == [1]  # the knockout, not the ability
 
 
+# Attack-before-attach sequencing lever (PTCG_ATTACK_FIRST). U91's game-plan miner
+# found winners attach-before-attack, and bank energy without attacking, LESS often
+# than losers (analysis/gameplan_claims_bracket_4.md). This lever tests taking an
+# already-legal positive-value attack instead of a discretionary attach.
+def _attack_and_attach_obs(*, opp_hp=999, energy_attached=True):
+    attacks = heuristics.attack_index()
+    aid, attack = next((k, a) for k, a in attacks.items() if (a.damage or 0) > 0)
+    attacker_id = next(iter(heuristics.card_index()))
+    opp = _pokemon(722, opp_hp)
+    eff = heuristics.effective_damage(attacker_id, attack, opp["id"])
+    assert eff > 0 and eff < opp_hp  # legal, positive-value, non-lethal
+    opts = [
+        {"type": heuristics.OPT_ATTACH, "inPlayArea": heuristics.AREA_ACTIVE},
+        {"type": heuristics.OPT_ATTACK, "attackId": aid},
+        {"type": heuristics.OPT_END},
+    ]
+    obs = _main_obs(opts, energy_attached=energy_attached,
+                    my_active=_pokemon(attacker_id, 90), opp_active=opp)
+    return obs, eff
+
+
+# Default off: shipped builds stay byte-identical, so attach still outranks a
+# non-lethal attack exactly as before.
+def test_attack_first_inert_by_default(monkeypatch):
+    monkeypatch.setattr(heuristics, "_ATTACK_FIRST", False)
+    obs, _ = _attack_and_attach_obs()
+    assert heuristic_agent(obs) == [0]  # attach, the default ladder order
+
+
+# With the flag on, a positive-value attack already legal this decision is taken
+# now instead of the discretionary attach.
+def test_attack_first_prefers_attack_when_flag_on(monkeypatch):
+    monkeypatch.setattr(heuristics, "_ATTACK_FIRST", True)
+    obs, _ = _attack_and_attach_obs()
+    assert heuristic_agent(obs) == [1]  # attack, ahead of attach
+
+
+# A knockout still wins: the lethal check runs before the whole ladder, so the flag
+# never diverts the pilot from taking a guaranteed prize.
+def test_lethal_taken_before_attack_first(monkeypatch):
+    monkeypatch.setattr(heuristics, "_ATTACK_FIRST", True)
+    attacks = heuristics.attack_index()
+    aid, attack = next((k, a) for k, a in attacks.items() if (a.damage or 0) > 0)
+    attacker_id = next(iter(heuristics.card_index()))
+    opp = _pokemon(722, 90)
+    eff = heuristics.effective_damage(attacker_id, attack, opp["id"])
+    opp["hp"] = eff  # lethal
+    opts = [
+        {"type": heuristics.OPT_ATTACH, "inPlayArea": heuristics.AREA_ACTIVE},
+        {"type": heuristics.OPT_ATTACK, "attackId": aid},
+        {"type": heuristics.OPT_END},
+    ]
+    obs = _main_obs(opts, my_active=_pokemon(attacker_id, 90), opp_active=opp)
+    assert heuristic_agent(obs) == [1]  # the knockout branch, same option either way
+
+
+# With the flag on but no attach option legal, behavior is unchanged: the attack is
+# taken via the normal _resolve_attack branch, not the new resolver.
+def test_attack_first_noop_without_attach_option(monkeypatch):
+    monkeypatch.setattr(heuristics, "_ATTACK_FIRST", True)
+    attacks = heuristics.attack_index()
+    aid, attack = next((k, a) for k, a in attacks.items() if (a.damage or 0) > 0)
+    attacker_id = next(iter(heuristics.card_index()))
+    opp = _pokemon(722, 999)
+    eff = heuristics.effective_damage(attacker_id, attack, opp["id"])
+    assert eff > 0
+    opts = [
+        {"type": heuristics.OPT_ATTACK, "attackId": aid},
+        {"type": heuristics.OPT_END},
+    ]
+    obs = _main_obs(opts, my_active=_pokemon(attacker_id, 90), opp_active=opp)
+    assert heuristic_agent(obs) == [0]  # attack, the only legal category move
+
+
+# With the flag on but no positive-value attack (the only ATTACK option deals 0
+# effective damage), the resolver declines and attach is taken as before.
+def test_attack_first_noop_when_attack_has_no_value(monkeypatch):
+    monkeypatch.setattr(heuristics, "_ATTACK_FIRST", True)
+    attacks = heuristics.attack_index()
+    aid = next(iter(attacks))
+    attacker_id = next(iter(heuristics.card_index()))
+    # A defender with no matching type interplay may still take 0 effective damage
+    # for some attacker/attack pairs; force it directly to keep this deterministic.
+    monkeypatch.setattr(heuristics, "effective_damage", lambda *a, **k: 0)
+    opts = [
+        {"type": heuristics.OPT_ATTACH, "inPlayArea": heuristics.AREA_ACTIVE},
+        {"type": heuristics.OPT_ATTACK, "attackId": aid},
+        {"type": heuristics.OPT_END},
+    ]
+    obs = _main_obs(opts, my_active=_pokemon(attacker_id, 90),
+                    opp_active=_pokemon(722, 90))
+    assert heuristic_agent(obs) == [0]  # attach, attack has no value
+
+
 # --- CEM-tunable category ordering (PTCG_W_PRIO_*, the U6 gradient levers) --------
 # choose() scores each action category by its PRIO_* weight and takes the highest
 # that yields a legal move. At the shipped defaults this reproduces the historical

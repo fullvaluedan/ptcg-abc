@@ -166,6 +166,12 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   block (game_length_turns) was mined but CUT (claim CI straddles zero). Small effect sizes, descriptive not
   yet prescriptive; U93 must design and A/B a real rule before this can claim any ladder value.
   `analysis/gameplan_claims_bracket_4.md`.
+- U93 step 1, attack-before-attach lever built and confirmed LIVE (2026-07-03): PTCG_ATTACK_FIRST (default
+  off, agents/heuristics.py choose()) takes an already-legal positive-value attack instead of a discretionary
+  attach, the literal rule the U91 sequencing gap names. The fires-vs-inert check (mirrors measure_energy_seq's
+  discipline) found it changes real trolley pilot decisions on 3/20 captured ATTACH+ATTACK positions (8 of the
+  20 had a positive-value attack on the table). Not yet A/B'd; the bracket-ring check is still open before any
+  ladder slot. `analysis/attack_first_flip_check.md`.
 
 ### 4D. Methodological findings (the meta-record, the strongest Strategy material)
 
