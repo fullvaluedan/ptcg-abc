@@ -15,17 +15,19 @@ two explicit tracks and never let TRACK S masquerade as ladder progress.
 ### TRACK L (LADDER = rank; HIGHEST PRIORITY; only the SHIPPED agent counts)
 A unit may claim LADDER progress ONLY if it changes a SHIPPED path (agents/heuristics.py or the deck csv) AND
 beats the 569.6 king offline before it spends a slot. Actions in priority order:
-  L1. A/B THE DORMANT ABILITY LEVER (highest-EV untested lever we own). agents/heuristics.py:176 ships
-      `_ABILITY = os.environ.get("PTCG_ABILITY", "0") != "0"`, default OFF, and the pilot agrees with top
-      players on 0/554 ability decisions (analysis/move_ranking_diverges_ability_gap.md); a loop-safe
-      once-per-turn ability guard already exists. NOW: build the submission with the flag baked
-      (tools/build_submission.py --env PTCG_ABILITY=1), gauntlet it vs the current heuristic (must not
-      regress), and PRE-REGISTER the ladder A/B vs the trolley king (direction up, M=60). SUBMIT it at the
-      next FREE slot.
-  L2. SETTLE-OR-EVICT trolley_thick (in-flight since 2026-07-02 03:59 UTC, currently trailing the king). Give
-      it >=30 rated episodes + >=24h, then decide once: promote if it clears the king OUTSIDE the M=60 band,
-      else evict to a king copy. STOP re-reading its number every iteration; that churn produces no code and
-      no rank change.
+  L1. SHIP THE ABILITY A/B THIS ITERATION (highest-EV lever we own; it is already BUILT, validated, and
+      staged): submission_trolley_ability.tar.gz has PTCG_ABILITY=1 baked, offline gauntlet +4.0pp
+      (67.5% -> 71.5%, no regression, analysis/ability_ab.md), grader-verified, pre-registered vs the king
+      (up, M=60, N=30). The pilot otherwise never activates an ability (0/554 vs top players,
+      analysis/move_ranking_diverges_ability_gap.md). Ship it: board-check, reclaim slot 2 with a KING COPY
+      (this evicts the settled-loss trolley_thick per L2, so the king stays the floor), then submit the
+      ability build as the experiment so it is A/B'd against the king. Two submissions, board-check between,
+      respect the 5/day quota.
+  L2. trolley_thick has SETTLED as a LOSS. The live board on 2026-07-03 shows it at 446.2 vs the king's
+      558.5, a -112 gap far past the M=60 LOSS threshold, with >24h elapsed. The pre-registered LOSS rule is
+      MET: EVICT it NOW (do NOT wait for the 07-06 date). Reclaiming slot 2 to a king copy (L1's first
+      submission) is the eviction. Then stop tracking trolley_thick. General rule going forward: settle any
+      candidate the instant it is clearly outside the M=60 band, never idle days on a decided loser.
   L3. After L1/L2 settle: tune the SHIPPED heuristic + deck only, each candidate gated on beating 569.6
       offline before a slot.
 
