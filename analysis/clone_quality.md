@@ -20,10 +20,16 @@ decisions (below that the read is too noisy to trust either way).
 
 | family | model | train rows | test rows | decisions scored | accuracy | first-legal baseline | margin | qualified | other kind's margin |
 |---|---|---|---|---|---|---|---|---|---|
-| meta_archaludon | linear | 30404 | 10637 | 1469 | 0.4534 | 0.4534 | +0.0000 | NO | +0.0000 (tree) |
-| meta_grimmsnarl | linear | 386248 | 138495 | 13019 | 0.4307 | 0.4307 | +0.0000 | NO | +0.0000 (tree) |
-| meta_grimmsnarl_tonakaiiii | linear | 28835 | 11108 | 1299 | 0.3918 | 0.3903 | +0.0015 | NO | +0.0000 (tree) |
-| other | linear | 55957 | 17431 | 1353 | 0.3296 | 0.3296 | +0.0000 | NO | -0.0007 (tree) |
+| meta_archaludon | linear | 44104 | 13886 | 1951 | 0.4464 | 0.4454 | +0.0010 | NO | +0.0000 (tree) |
+| meta_grimmsnarl | linear | 331381 | 123386 | 11092 | 0.3957 | 0.3957 | +0.0000 | NO | +0.0000 (tree) |
+| meta_grimmsnarl_tonakaiiii | linear | 28835 | 11108 | 1299 | 0.3903 | 0.3903 | +0.0000 | NO | +0.0000 (tree) |
+| other | linear | 55957 | 17431 | 1353 | 0.3289 | 0.3296 | -0.0007 | NO | -0.0007 (tree) |
+
+Table reflects the latest retrain (feature_version 3, dataset
+clone_groups_1783047584.npz, opt_local_rank_norm / opt_is_local_first
+added). See "Diagnosis (2026-07-03, local-rank featurizer fix)" below for
+the read on why the seam found in the prior diagnosis still did not move
+the gate.
 
 Qualified families (0): (none).
 
@@ -205,3 +211,81 @@ dataset, and rerun the U71 gate. This is a real, separately-scoped
 featurizer change (new feature computation, a FEATURE_VERSION bump, a
 drift-test update, a dataset regen, a retrain) and should be sized and
 started fresh next iteration rather than squeezed in here.
+
+## Diagnosis (2026-07-03, local-rank featurizer fix): the new feature landed
+## and got large weight, but the gate still ties -- the models never needed
+## the seam because they already max out held-out accuracy without it
+
+Implemented the fix the prior diagnosis specified: `opt_local_rank_norm`
+and `opt_is_local_first` added to agents/imitation_features.py
+(FEATURE_VERSION bumped 2 -> 3, N_FEATURES 33 -> 35), computed as this
+option's rank among only the options sharing its own `type`, mirroring the
+existing global opt_index_norm / opt_is_first pair. Regenerated the U70
+dataset under feature_version 3 (data/training/clones/clone_groups_
+1783047584.npz, 60033 groups; the team-episode sample shifts slightly
+run-to-run since it re-pulls the live leaderboard, so this is not
+directly comparable to the prior run's 65870, but the same four families
+are present) and reran tools/train_clone.py (both the linear and tree
+kinds, per family).
+
+Result: still GATE FAIL, all four families, and the margins did not
+materially move from the pre-fix (feature_version 2) read -- meta_
+grimmsnarl and meta_grimmsnarl_tonakaiiii both stayed at exactly +0.0000,
+other stayed at -0.0007, meta_archaludon moved from +0.0000 to +0.0010
+(still noise at n=1951). The tree kind ties or loses identically to the
+linear kind on every family, same as before the fix.
+
+Diagnosed why directly (meta_grimmsnarl, 11092 held-out decisions,
+refit standalone): the fitted logistic regression's top-1 pick still
+equals GLOBAL option 0 in 11092/11092 held-out decisions (100%), the
+identical total collapse the two prior diagnoses found before this
+feature existed. The new features did get real weight -- the top 4
+standardized coefficients by magnitude are now opt_is_local_first
+(+0.69), opt_index_norm (-0.67), opt_local_rank_norm (+0.56), and
+opt_is_first (+0.24), each larger than the top content weight
+(attach_x_no_energy_yet, -0.19) -- but this is not useful signal, it is
+redundancy: the first option in the whole list is, by construction,
+always also the first option of its own category (a category block that
+starts the list cannot have anything ahead of it within itself), so
+opt_is_local_first is 1.0 on exactly the same rows opt_is_first is 1.0
+on the top-predicted row of every decision. Giving the model a second,
+third, and fourth way to say "this is position 0" did not give it a new
+reason to ever pick something else; it gave the same conclusion more
+routes to the same answer.
+
+This is a materially different (and more concerning) finding than "the
+seam wasn't visible yet": the seam FROM the read-only analysis (53-72%
+local-rank-0 accuracy vs 33-45% global-first) is real on the DATA, but it
+never gets exercised inside a decision the model is uncertain about,
+because both model families (linear and shallow GBDT, log-loss trained
+over every decision) find that defaulting to "always predict global
+option 0" already achieves the SAME held-out top-1 accuracy as the
+first-legal baseline by definition, with zero risk of ever being wrong
+in a way the loss function penalizes more than the reward for occasionally
+using content. Put plainly: the training objective has no incentive to
+ever deviate from copying position, because deviating can only look worse
+on this metric when it disagrees with the (frequently correct) baseline,
+even though the local-rank seam shows there exist real decisions where
+content plus local rank would predict better than global position alone.
+Neither model family here can be pushed to actually use a feature just
+because it is theoretically informative in the population -- both
+converge on the same degenerate, zero-risk policy.
+
+Two live candidates now, and neither is "try yet another feature or model
+family blind," since three separate attempts (linear, tree, richer
+features) have converged on the literal identical collapse: (a) retrain
+with the global opt_index_norm / opt_is_first pair EXCLUDED entirely, to
+directly measure whether a content-plus-local-rank-only model can beat
+first-legal without a global-position escape hatch available at all (this
+tests the local-rank seam honestly, instead of letting the model default
+back to the cheaper global signal); (b) accept, after three converging
+negative results, that first-legal is very likely the practical ceiling
+for a per-decision imitation model on this feature/label setup, and move
+U72 to a first-legal-plus-safety-fallback opponent (plays the family's
+harvested deck, uses the existing heuristic's safety guards, no trained
+per-option weights) instead of a trained clone. (a) is the cheaper, more
+honest next step and should be tried before falling back to (b).
+
+Tests: `python -m pytest tests -q`, 860 passed (up from 858), 0 failed;
++2 new tests in tests/test_imitation_features.py covering the local-rank
+feature's within-category grouping and its single-option-group zero case.

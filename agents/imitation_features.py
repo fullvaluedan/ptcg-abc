@@ -30,6 +30,14 @@ to main.py in a submission and imports the same way locally):
   itself correlates with what strong players pick, and this featurizer had no
   feature that could see an option's raw position. Without a position feature, no
   content-based ranker trained on this layout can ever recover that signal.
+- Added by U71's within-category sub-order fix: two local-position features
+  (opt_local_rank_norm, opt_is_local_first). analysis/clone_quality.md found the
+  option list is laid out as contiguous category blocks (PLAY, then ATTACH, EVOLVE,
+  ABILITY, ATTACK, RETREAT, END) and that within-category rank is a much stronger
+  predictor of the played option (53-72%) than global position (33-45%) -- but the
+  global opt_index_norm / opt_is_first pair cannot see it, since an option deep in
+  the PLAY block looks nowhere near "first" globally even when it is first within
+  its own category.
 
 Only features that VARY within a decision group carry signal in a pairwise ranker
 (a scalar constant across every option cancels in the chosen-minus-other difference
@@ -52,7 +60,7 @@ except ImportError:  # inside a submission, main.py and these sit together
 
 # Bump on ANY change to FEATURE_NAMES or an extractor below. A drift test
 # (tests/test_imitation_features.py) pins this so a featurizer edit is never silent.
-FEATURE_VERSION = "2"
+FEATURE_VERSION = "3"
 
 # The TAG_VOCAB multi-hot needs a deterministic order (TAG_VOCAB is a frozenset).
 # This explicit tuple is that order; a test asserts set(TAG_ORDER) == TAG_VOCAB so a
@@ -101,6 +109,9 @@ FEATURE_NAMES = (
     # --- U71 featurizer-gap fix: the option's own position in the legal-option list ---
     "opt_index_norm",              # 0.0 (first) .. 1.0 (last), 0.0 when only one option
     "opt_is_first",                # 1.0 iff this option is index 0 (the first-legal pick)
+    # --- U71 within-category sub-order fix: position among same-type options only ---
+    "opt_local_rank_norm",         # 0.0 (first of its category) .. 1.0 (last), 0.0 if alone
+    "opt_is_local_first",          # 1.0 iff this option is the first of its own category
 ) + _TAG_FEATURE_NAMES
 N_FEATURES = len(FEATURE_NAMES)
 
@@ -208,6 +219,18 @@ def option_features(obs, sel, opt_index) -> list:
     n_opts = len(options)
     put("opt_index_norm", (opt_index / (n_opts - 1)) if n_opts > 1 else 0.0)
     put("opt_is_first", opt_index == 0)
+
+    # Local rank: this option's position among only the options sharing its own
+    # category (type), matching the contiguous category-block layout confirmed in
+    # analysis/clone_quality.md. Category peers are found by type equality alone, so
+    # the block-contiguity assumption is never required for correctness here.
+    same_type = [
+        i for i, o in enumerate(options) if isinstance(o, dict) and o.get("type") == otype
+    ]
+    local_rank = same_type.index(opt_index)
+    n_same = len(same_type)
+    put("opt_local_rank_norm", (local_rank / (n_same - 1)) if n_same > 1 else 0.0)
+    put("opt_is_local_first", local_rank == 0)
 
     is_play = otype == H.OPT_PLAY
     is_attach = otype == H.OPT_ATTACH

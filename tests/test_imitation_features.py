@@ -36,7 +36,7 @@ def _obs(options, turn=1, your_index=0):
 
 def test_feature_names_pinned():
     assert IF.N_FEATURES == len(IF.FEATURE_NAMES)
-    assert IF.N_FEATURES == 33
+    assert IF.N_FEATURES == 35
     assert IF.FEATURE_NAMES[:7] == (
         "is_play", "is_attach", "is_evolve", "is_ability", "is_retreat", "is_attack", "is_end",
     )
@@ -118,3 +118,37 @@ def test_opt_index_norm_zero_for_single_option_group():
     feats = IF.option_features({"select": sel, "current": {}}, sel, 0)
     assert feats[IF._INDEX["opt_index_norm"]] == 0.0
     assert feats[IF._INDEX["opt_is_first"]] == 1.0
+
+
+def test_opt_local_rank_features_encode_within_category_position():
+    # Two PLAY options (local ranks 0, 1) sandwiched between a RETREAT and an END
+    # (each alone in its own category, so both must read as local-first).
+    options = [
+        _opt(H.OPT_RETREAT),
+        _opt(H.OPT_PLAY),
+        _opt(H.OPT_PLAY),
+        _opt(H.OPT_END),
+    ]
+    obs = _obs(options)
+    retreat = IF.option_features(obs, obs["select"], 0)
+    play_first = IF.option_features(obs, obs["select"], 1)
+    play_second = IF.option_features(obs, obs["select"], 2)
+    end = IF.option_features(obs, obs["select"], 3)
+
+    assert retreat[IF._INDEX["opt_is_local_first"]] == 1.0
+    assert retreat[IF._INDEX["opt_local_rank_norm"]] == 0.0
+
+    assert play_first[IF._INDEX["opt_is_local_first"]] == 1.0
+    assert play_first[IF._INDEX["opt_local_rank_norm"]] == 0.0
+    assert play_second[IF._INDEX["opt_is_local_first"]] == 0.0
+    assert play_second[IF._INDEX["opt_local_rank_norm"]] == 1.0
+
+    assert end[IF._INDEX["opt_is_local_first"]] == 1.0
+    assert end[IF._INDEX["opt_local_rank_norm"]] == 0.0
+
+
+def test_opt_local_rank_norm_zero_for_single_option_group():
+    sel = {"option": [_opt(H.OPT_END)]}
+    feats = IF.option_features({"select": sel, "current": {}}, sel, 0)
+    assert feats[IF._INDEX["opt_local_rank_norm"]] == 0.0
+    assert feats[IF._INDEX["opt_is_local_first"]] == 1.0
