@@ -13,6 +13,7 @@ dir), and runs env.run([extracted main.py, "random"]). It MUST exercise the
 env.run-on-extracted-tarball path (a file-path agent string), not a module
 import, because importing main.py as a module DEFINES __file__ and hides the bug.
 """
+import ast
 import os
 import tarfile
 from pathlib import Path
@@ -25,7 +26,13 @@ ROOT = Path(__file__).resolve().parents[1]
 AGENTS = ROOT / "agents"
 SEARCH = ROOT / "search"
 ANALYSIS = ROOT / "analysis"
+SRC_PTCG_AGENT = ROOT / "src" / "ptcg_agent"
 DECKS = ROOT / "decks"
+
+# Every top-level package a shipped module's flat-layout fallback can resolve
+# a bare `import X` / `from X import ...` against (a submission tarball has no
+# subpackages: main.py and every extra sit together at the top level).
+_FLAT_LAYOUT_SEARCH_DIRS = (AGENTS, SEARCH, ANALYSIS, SRC_PTCG_AGENT)
 
 # The heuristic pilot and every entrypoint that reuses it (the search rollout
 # policy) import agents/card_effects.py from agents/heuristics.py, so the
@@ -38,14 +45,26 @@ _HEUR_EXTRAS = [
 
 # The top-level support modules each shipped entrypoint imports inside a built
 # submission (the search agent pulls in the whole search/ and analysis/ stack).
+# rollout needs imitation_features (agents/), eval needs learned_eval (search/),
+# move_prior needs imitation_features too, and learned_eval needs features
+# (src/ptcg_agent/): all four were missing here until
+# test_extras_cover_flat_layout_imports below caught the gap (the same ERROR
+# class as ref 54281824, just on the non-shipped search agent). agent_search is
+# not on the ladder today (search has been ladder-negative), so this had never
+# actually errored a real submission, but it would the instant a search-revival
+# ships it.
 _SEARCH_EXTRAS = [
     *_HEUR_EXTRAS,
+    str(AGENTS / "imitation_features.py"),
     str(SEARCH / "rollout.py"),
     str(SEARCH / "eval.py"),
+    str(SEARCH / "learned_eval.py"),
+    str(SEARCH / "move_prior.py"),
     str(SEARCH / "determinize.py"),
     str(SEARCH / "timebudget.py"),
     str(SEARCH / "endgame.py"),
     str(ANALYSIS / "archetype.py"),
+    str(SRC_PTCG_AGENT / "features.py"),
 ]
 
 # Each shipped entrypoint, the deck it ships, and the top-level support modules
@@ -108,6 +127,82 @@ SHIPPED_AGENTS = [
         str(AGENTS / "agent_search.py"), str(DECKS / "trolley.csv"), _SEARCH_EXTRAS, {}, id="search-trolley"
     ),
 ]
+
+
+def _flat_layout_fallback_names(module_path: Path) -> set:
+    """Top-level module names a submission-layout ImportError fallback needs.
+
+    Every shipped module imports its support modules two ways: `from agents
+    import X` locally, falling back to a bare `import X` (or `from X import
+    ...`) "inside a submission, main.py and X.py sit together" (a tarball is
+    flat, no subpackages). Ref 54281824 ERRORed because a hand-run
+    build_submission.py command left card_effects.py out of --extra even
+    though heuristics.py's fallback branch requires it unconditionally at
+    import time; the in-process test below caught nothing because it built its
+    own tarball from a hardcoded extras list that happened to already include
+    it. This scans the AST for that except-ImportError shape and returns the
+    bare names it falls back to import, so the extras list can be checked
+    against what the code actually requires instead of what a human remembered
+    to type.
+    """
+    tree = ast.parse(module_path.read_text(encoding="utf-8"))
+    names = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Try):
+            continue
+        for handler in node.handlers:
+            for stmt in handler.body:
+                if isinstance(stmt, ast.Import):
+                    names.update(alias.name.split(".")[0] for alias in stmt.names)
+                elif isinstance(stmt, ast.ImportFrom) and stmt.module:
+                    names.add(stmt.module.split(".")[0])
+    return names
+
+
+def _required_flat_extras(entry_path: Path) -> set:
+    """Transitive closure of flat-layout support modules entry_path needs.
+
+    Follows each ImportError fallback name to its source file under
+    agents/search/analysis (the only places a flat-layout submission draws
+    support modules from) and repeats until no new module is discovered, so a
+    chain (agent_search -> rollout -> eval -> ...) is fully covered, not just
+    the entrypoint's own direct fallbacks.
+    """
+    seen_paths = set()
+    pending = [entry_path]
+    required_names = set()
+    while pending:
+        path = pending.pop()
+        if path in seen_paths:
+            continue
+        seen_paths.add(path)
+        for name in _flat_layout_fallback_names(path):
+            required_names.add(name)
+            for directory in _FLAT_LAYOUT_SEARCH_DIRS:
+                candidate = directory / f"{name}.py"
+                if candidate.exists() and candidate not in seen_paths:
+                    pending.append(candidate)
+    return required_names
+
+
+@pytest.mark.parametrize("agent_file, deck_file, extras, env", SHIPPED_AGENTS)
+def test_extras_cover_flat_layout_imports(agent_file, deck_file, extras, env):
+    """The declared extras list must satisfy every flat-layout fallback import.
+
+    Regression test for the ref 54281824 ERROR class: a build's --extra list
+    silently drifting out of sync with what the shipped code actually imports
+    under the submission's flat layout. Derives the requirement from the
+    source itself (not a second hand-maintained list) so a future module that
+    adds a new "sits together" import is caught here even if nobody remembers
+    to update SHIPPED_AGENTS' extras.
+    """
+    required = _required_flat_extras(Path(agent_file))
+    provided = {Path(p).stem for p in extras}
+    missing = required - provided
+    assert not missing, (
+        f"{agent_file} needs {sorted(missing)} bundled as --extra (flat-layout "
+        f"ImportError fallback), but the declared extras only provide {sorted(provided)}"
+    )
 
 
 def _extract(tar_path: Path, dest: Path) -> None:

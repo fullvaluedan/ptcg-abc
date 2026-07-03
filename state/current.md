@@ -14,8 +14,8 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Kings
 
-- **shadow-king** (best live build): heuristic+trolley (ref 54281812, ladder PENDING (600.0 same-build historical high))
-- **reclaim-king** (safe floor): heuristic+trolley (ref 54281812, ladder PENDING (600.0 same-build historical high))
+- **shadow-king** (best live build): heuristic+trolley (ref 54282104, ladder 691.5)
+- **reclaim-king** (safe floor): heuristic+trolley (ref 54282104, ladder 691.5)
 
 ## Candidates awaiting a ladder slot
 
@@ -34,13 +34,13 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
 | build | hypothesis | dir | M | N | settle-by | complete |
 | --- | --- | --- | --- | --- | --- | --- |
 | heuristic+trolley_thick | trolley_thick basic-density cuts early_collapse (thin_bench_threshold deck-change re-test) | up | 60 | 30 | 2026-07-06 | yes |
-| heuristic+trolley-ability | PTCG_ABILITY on (once-per-turn ability activation) improves ladder win rate; pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md) | up | 60 | 30 | 2026-07-07 | yes |
+| heuristic+trolley-ability | PTCG_ABILITY on (once-per-turn ability activation) improves ladder win rate; pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md) | up | 60 | 30 | 2026-07-08 | yes |
 
 - **heuristic+trolley_thick** filters: mirror empty-bench collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md); tarball grader-verified
   - WIN: promote heuristic+trolley_thick to shadow-king; reclaim-king stays heuristic+trolley
   - LOSS: evict trolley_thick, revert slot 2 to a king copy
   - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king, record thin_bench_threshold re-test condition
-- **heuristic+trolley-ability** filters: offline gauntlet deck:trolley vs 8-deck pool, 200 games/arm: off 67.5% (135/65), on 71.5% (143/57), diff_pp +4.0, no regression, 0 invalid moves (analysis/ability_ab.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-ability])
+- **heuristic+trolley-ability** filters: offline gauntlet deck:trolley vs 8-deck pool, 200 games/arm: off 67.5% (135/65), on 71.5% (143/57), diff_pp +4.0, no regression, 0 invalid moves (analysis/ability_ab.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-ability]) and extracted-tarball env.run verified (reward=1, DONE, 25 steps). RESUBMITTED 2026-07-03: original ref 54281824 ERRORed (missing agents/card_effects.py in the tarball, never played an episode, settle clock never validly started); rebuilt with the module bundled and resubmitted as ref 54282097, fresh settle-by set below.
   - WIN: promote heuristic+trolley-ability to shadow-king; reclaim-king stays heuristic+trolley
   - LOSS: evict the ability build, revert slot to a king copy
   - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king
@@ -86,6 +86,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley_thick | n/a | n/a | 446.2 | 0 | SETTLED LOSS 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp, far past the M=60 LOSS threshold. Evicted; slot 2 reclaimed by a king copy (ref 54281812). |
 | heuristic+trolley (reclaim, 2026-07-03) | n/a | n/a | PENDING | 0 | L2 slot-2 reclaim: byte-identical king copy submitted to evict the settled-LOSS trolley_thick. |
 | heuristic+trolley-ability | n/a | n/a | PENDING | 0 | L1 ability A/B SUBMITTED into the slot L2 freed. See pre_registrations and in_flight for the settle protocol. |
+| heuristic+trolley (reclaim, cleanup) | n/a | n/a | 691.5 | 0 | L1 fix cleanup slot-1 king copy (ref 54282104): evicts the dead ERRORed ability build (ref 54281824) from the tracked latest-2 window so the ability fix (ref 54282097) has a live floor to be compared against, not a permanently-inert ERROR entry. |
+| heuristic+trolley-ability (ERRORed, superseded) | n/a | n/a | ERROR | 0 | SETTLED (non-scoring): ref 54281824 ERRORed at grader load, missing agents/card_effects.py in the tarball (build command omitted --extra agents/card_effects.py). Never played an episode. Superseded by ref 54282097 (fix: card_effects.py bundled, COMPLETE 536.7 first reading), which carries forward the same pre-registration under a fresh settle-by. |
 
 ```json STATE
 {
@@ -123,10 +125,10 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "source": "analysis/final_scoring_semantics.md"
   },
   "in_flight": {
-    "board_reading": null,
+    "board_reading": 536.7,
     "build": "heuristic+trolley-ability",
-    "note": "L1 ladder lever SUBMITTED 2026-07-03 01:01:28 UTC (ref 54281824) as the pre-registered A/B vs the trolley king, into the slot freed by evicting trolley_thick (ref 54281812 king copy submitted 2026-07-03 01:00:59 UTC, one minute earlier, same iteration). Pre-registered: direction up, M=60, N=30, settle-by 2026-07-07. WIN>=king+60 promote to shadow-king; LOSS<=king-60 evict, revert slot to a king copy; BAND one repeat then U23 scoreboard. Both submissions PENDING as of this iteration; no board score yet. Quota used today: 2/5.",
-    "ref": "54281824"
+    "note": "L1 FIX resubmission ref 54282097: the prior ref 54281824 ERRORed (missing agents/card_effects.py in the tarball, hand-run build command omitted --extra agents/card_effects.py; heuristics.py imports card_effects unconditionally since U33, 2e18145; never played an episode). Rebuilt with card_effects.py bundled, verified via tests/test_grader_submission.py[heuristic-trolley-ability] AND a direct extracted-tarball kaggle_environments env.run (reward=1, DONE, 25 steps) before resubmitting. Board-checked this iteration: COMPLETE 536.7 (first reading, not yet settled), the king-copy cleanup (ref 54282104) also COMPLETE 691.5. Both scored slots now hold live, playable builds (the dead ERRORed ref 54281824 was evicted from the tracked latest-2 window by these two resubmissions). Pre-registered: direction up, M=60, N=30, settle-by 2026-07-08 (fresh clock, since the ERRORed build's original clock never validly started). WIN>=king+60 promote to shadow-king; LOSS<=king-60 evict, revert slot to a king copy; BAND one repeat then U23 scoreboard. Quota used today: 4/5.",
+    "ref": "54282097"
   },
   "ledger": [
     {
@@ -218,6 +220,24 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "oracle": "n/a",
       "ref": "54281824",
       "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley (reclaim, cleanup)",
+      "ladder": 691.5,
+      "move_agreement_delta": "n/a",
+      "note": "L1 fix cleanup slot-1 king copy (ref 54282104): evicts the dead ERRORed ability build (ref 54281824) from the tracked latest-2 window so the ability fix (ref 54282097) has a live floor to be compared against, not a permanently-inert ERROR entry.",
+      "oracle": "n/a",
+      "ref": "54282104",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-ability (ERRORed, superseded)",
+      "ladder": "ERROR",
+      "move_agreement_delta": "n/a",
+      "note": "SETTLED (non-scoring): ref 54281824 ERRORed at grader load, missing agents/card_effects.py in the tarball (build command omitted --extra agents/card_effects.py). Never played an episode. Superseded by ref 54282097 (fix: card_effects.py bundled, COMPLETE 536.7 first reading), which carries forward the same pre-registration under a fresh settle-by.",
+      "oracle": "n/a",
+      "ref": "54281824",
+      "sample_size": 0
     }
   ],
   "loss_distribution": {
@@ -271,18 +291,17 @@ _none calibrated; every proxy gate is refused (default-deny)_
       },
       "build": "heuristic+trolley-ability",
       "direction": "up",
-      "filters": "offline gauntlet deck:trolley vs 8-deck pool, 200 games/arm: off 67.5% (135/65), on 71.5% (143/57), diff_pp +4.0, no regression, 0 invalid moves (analysis/ability_ab.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-ability])",
+      "filters": "offline gauntlet deck:trolley vs 8-deck pool, 200 games/arm: off 67.5% (135/65), on 71.5% (143/57), diff_pp +4.0, no regression, 0 invalid moves (analysis/ability_ab.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-ability]) and extracted-tarball env.run verified (reward=1, DONE, 25 steps). RESUBMITTED 2026-07-03: original ref 54281824 ERRORed (missing agents/card_effects.py in the tarball, never played an episode, settle clock never validly started); rebuilt with the module bundled and resubmitted as ref 54282097, fresh settle-by set below.",
       "hypothesis": "PTCG_ABILITY on (once-per-turn ability activation) improves ladder win rate; pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md)",
       "margin": 60,
       "n": 30,
-      "settle_by": "2026-07-07"
+      "settle_by": "2026-07-08"
     }
   ],
   "reclaim_king": {
     "build": "heuristic+trolley",
-    "ladder": "PENDING (600.0 same-build historical high)",
-    "note": "safe floor to revert to before any A/B; slot 2 reclaimed 2026-07-03 with a byte-identical king copy (ref 54281812, PENDING) after evicting the settled-LOSS trolley_thick (446.2 vs 558.5); prior scored copy 54252006 (600.0) is the same-build historical high",
-    "ref": "54281812"
+    "ladder": "691.5",
+    "ref": "54282104"
   },
   "reconciliation": {
     "census_tier": "FULL (167531 groups >> 2500)",
@@ -302,9 +321,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
   },
   "shadow_king": {
     "build": "heuristic+trolley",
-    "ladder": "PENDING (600.0 same-build historical high)",
-    "note": "safe floor to revert to before any A/B; slot 2 reclaimed 2026-07-03 with a byte-identical king copy (ref 54281812, PENDING) after evicting the settled-LOSS trolley_thick (446.2 vs 558.5); prior scored copy 54252006 (600.0) is the same-build historical high",
-    "ref": "54281812"
+    "ladder": "691.5",
+    "ref": "54282104"
   },
   "tag_coverage": {
     "gate": "no deck-aware build may spend a ladder slot unless deck_covered_100pct(target) is true (advisory until U37/U40 land)",

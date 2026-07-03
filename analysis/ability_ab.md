@@ -10,12 +10,28 @@ and carry a complete pre-registration, per the plan's L1 action.
 ## Build
 
 `tools/build_submission.py --agent agents/agent_heuristic.py --deck decks/trolley.csv --extra
-agents/heuristics.py --env PTCG_ABILITY=1 --out submission_trolley_ability.tar.gz`
+agents/heuristics.py --extra agents/card_effects.py --env PTCG_ABILITY=1 --out
+submission_trolley_ability.tar.gz`
 
 Baked lever flags: `{'PTCG_ABILITY': '1'}`. Linux engine lib present. Grader
 exec-without-`__file__` load verified green (`tests/test_grader_submission.py
 [heuristic-trolley-ability]`, added this iteration alongside the existing
 heuristic/heuristic-trolley/heuristic-trolley_thick/search/search-trolley cases).
+
+**2026-07-03 correction:** the command above originally omitted `--extra
+agents/card_effects.py`. Since U33 (2e18145), `agents/heuristics.py` imports
+`card_effects` unconditionally at module load, so a tarball missing it fails to
+import under the grader's exec-without-`__file__` path and the whole submission
+is marked ERROR (the same failure class as the original `__file__` bug this
+test suite exists to catch). The test file's own `_HEUR_EXTRAS` list
+(`tests/test_grader_submission.py`) already included both files and built its
+own in-memory tarball via `bs.build()` directly, so the local grader-emulation
+test passed even though the real uploaded tarball, built by hand-running this
+now-corrected command, did not carry `card_effects.py` and ERRORed for real on
+the ladder (ref 54281824). Lesson: a test that re-derives its own tarball
+in-process does not catch a stale/hand-typed CLI invocation used for the real
+submission; keep the two in sync, or have the real build shell out to the same
+extras list the test uses.
 
 ## Gauntlet (must-not-regress check)
 
@@ -47,3 +63,18 @@ NOT submitted this iteration: both ladder slots are occupied (slot 1 the trolley
 in-flight trolley_thick A/B, <24h old, not yet eligible to settle). This build is now fully
 staged (tarball built, grader-verified, offline gauntlet clean, pre-registered) so it can submit
 the instant L2 frees a slot, per the plan's "prep L1 even while slots are full" instruction.
+
+**2026-07-03 update:** submitted (ref 54281824) once L2 freed a slot -- but built from the stale
+CLI command above (missing `--extra agents/card_effects.py`), so it ERRORed on the grader and
+never played a single episode (see the correction under Build). Root-caused and rebuilt correctly
+this iteration; verified both via the grader-emulation test and a direct extracted-tarball
+`env.run` (reward=1, status=DONE, 25 steps, real gameplay). Resubmitted as ref 54282097; a
+king-copy cleanup resubmission (ref 54282104) followed immediately to evict the dead ERRORed ref
+54281824 from the tracked latest-2 scoring window (analysis/final_scoring_semantics.md). Fresh
+pre-registration: direction up, M=60, N=30, settle-by 2026-07-08 (the earlier settle clock never
+validly started, since the ERRORed build could not play episodes). Both resubmissions read
+COMPLETE on the first board check: king copy 691.5, ability build 536.7 (both first readings, not
+settled). The new regression test `tests/test_grader_submission.py::test_extras_cover_flat_layout_
+imports` also caught the SAME missing-extras bug class already present in `_SEARCH_EXTRAS` for the
+(non-shipped) search agent (features.py, imitation_features.py, learned_eval.py, move_prior.py all
+missing); fixed alongside this unit since it was already found by the new test.
