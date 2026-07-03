@@ -39,6 +39,7 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
 | --- | --- | --- | --- | --- | --- | --- |
 | heuristic+trolley_thick | trolley_thick basic-density cuts early_collapse (thin_bench_threshold deck-change re-test) | up | 60 | 30 | 2026-07-06 | yes |
 | heuristic+trolley-ability | PTCG_ABILITY on (once-per-turn ability activation) improves ladder win rate; pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md) | up | 60 | 30 | 2026-07-08 | yes |
+| heuristic+trolley-attack_first | PTCG_ATTACK_FIRST on (take an already-legal positive-value attack over a discretionary attach) improves ladder win rate; U91 mined winners attach-before-attack 3.4pp less than losers, and the shipped pilot over-attaches relative to both cohorts (analysis/gameplan_claims_bracket_4.md) | up | 60 | 30 | 2026-07-11 | yes |
 
 - **heuristic+trolley_thick** filters: mirror empty-bench collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md); tarball grader-verified
   - WIN: promote heuristic+trolley_thick to shadow-king; reclaim-king stays heuristic+trolley
@@ -47,6 +48,10 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
 - **heuristic+trolley-ability** filters: offline gauntlet deck:trolley vs 8-deck pool, 200 games/arm: off 67.5% (135/65), on 71.5% (143/57), diff_pp +4.0, no regression, 0 invalid moves (analysis/ability_ab.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-ability]) and extracted-tarball env.run verified (reward=1, DONE, 25 steps). RESUBMITTED 2026-07-03: original ref 54281824 ERRORed (missing agents/card_effects.py in the tarball, never played an episode, settle clock never validly started); rebuilt with the module bundled and resubmitted as ref 54282097, fresh settle-by set below.
   - WIN: promote heuristic+trolley-ability to shadow-king; reclaim-king stays heuristic+trolley
   - LOSS: evict the ability build, revert slot to a king copy
+  - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king
+- **heuristic+trolley-attack_first** filters: offline gauntlet deck:trolley vs 8-deck pool 200 games/arm: off 71.5% (143/57), on 77.0% (154/46), diff_pp +5.5, no regression, 0 invalid moves (analysis/attack_first_ab.md); bracket-ring A/B 20 games/arm: off 75.0%, on 85.0%, diff_pp +10.0, agrees in direction (analysis/attack_first_ring_check.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-attack_first]) incl extracted-tarball env.run
+  - WIN: promote heuristic+trolley-attack_first to shadow-king; reclaim-king stays heuristic+trolley
+  - LOSS: evict the attack_first build, revert slot to a king copy
   - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king
 
 ## Calibrated proxies (U24 retrodiction gate)
@@ -297,6 +302,20 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "margin": 60,
       "n": 30,
       "settle_by": "2026-07-08"
+    },
+    {
+      "actions": {
+        "band": "one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king",
+        "loss": "evict the attack_first build, revert slot to a king copy",
+        "win": "promote heuristic+trolley-attack_first to shadow-king; reclaim-king stays heuristic+trolley"
+      },
+      "build": "heuristic+trolley-attack_first",
+      "direction": "up",
+      "filters": "offline gauntlet deck:trolley vs 8-deck pool 200 games/arm: off 71.5% (143/57), on 77.0% (154/46), diff_pp +5.5, no regression, 0 invalid moves (analysis/attack_first_ab.md); bracket-ring A/B 20 games/arm: off 75.0%, on 85.0%, diff_pp +10.0, agrees in direction (analysis/attack_first_ring_check.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-attack_first]) incl extracted-tarball env.run",
+      "hypothesis": "PTCG_ATTACK_FIRST on (take an already-legal positive-value attack over a discretionary attach) improves ladder win rate; U91 mined winners attach-before-attack 3.4pp less than losers, and the shipped pilot over-attaches relative to both cohorts (analysis/gameplan_claims_bracket_4.md)",
+      "margin": 60,
+      "n": 30,
+      "settle_by": "2026-07-11"
     }
   ],
   "reclaim_king": {

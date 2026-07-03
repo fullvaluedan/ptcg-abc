@@ -114,6 +114,19 @@ SHIPPED_AGENTS = [
         {"PTCG_ABILITY": "1"},
         id="heuristic-trolley-ability",
     ),
+    # U93 step 2 candidate: PTCG_ATTACK_FIRST=1 baked at build time, same heuristic and
+    # trolley deck as the king. Confirmed LIVE on real positions (analysis/
+    # attack_first_flip_check.md), then cleared both offline gates before spending a
+    # ladder slot: the weak-bot gauntlet (analysis/attack_first_ab.md, +5.5pp, no
+    # regression) and the calibrated bracket-ring A/B (analysis/attack_first_ring_check.md,
+    # +10.0pp, agrees in direction).
+    pytest.param(
+        str(AGENTS / "agent_heuristic.py"),
+        str(DECKS / "trolley.csv"),
+        _HEUR_EXTRAS,
+        {"PTCG_ATTACK_FIRST": "1"},
+        id="heuristic-trolley-attack_first",
+    ),
     pytest.param(str(AGENTS / "agent_search.py"), str(DECKS / "baseline.csv"), _SEARCH_EXTRAS, {}, id="search"),
     # The exact build queued for the next free ladder slot: the search agent
     # piloting the Precious Trolley deck. search+baseline proves the search stack

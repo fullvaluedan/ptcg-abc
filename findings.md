@@ -172,6 +172,12 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   discipline) found it changes real trolley pilot decisions on 3/20 captured ATTACH+ATTACK positions (8 of the
   20 had a positive-value attack on the table). Not yet A/B'd; the bracket-ring check is still open before any
   ladder slot. `analysis/attack_first_flip_check.md`.
+- U93 step 2, both offline gates PASSED (2026-07-04): the weak-bot gauntlet (200 games/arm) reads off 71.5% ->
+  on 77.0%, +5.5pp, no regression (`analysis/attack_first_ab.md`); the calibrated bracket-ring (20 games/arm)
+  reads off 75.0% -> on 85.0%, +10.0pp, agreeing in direction (`analysis/attack_first_ring_check.md`, new
+  `tools/attack_first_ring_check.py`). Tarball built and grader-verified, and pre-registered as
+  heuristic+trolley-attack_first (up, M=60, N=30, settle-by 2026-07-11); staged, not yet submitted (both
+  ladder slots occupied).
 
 ### 4D. Methodological findings (the meta-record, the strongest Strategy material)
 

@@ -1,0 +1,79 @@
+{
+  "agent": "deck:trolley",
+  "opponents": [
+    "deck:meta_archaludon",
+    "deck:meta_grimmsnarl",
+    "deck:meta_grimmsnarl_tonakaiiii",
+    "deck:aggro",
+    "deck:control",
+    "deck:ultraball",
+    "deck:trolley",
+    "deck:trolley_thick"
+  ],
+  "matches_per_arm": 200,
+  "off": {
+    "agent": "deck:trolley",
+    "opponents": [
+      "deck:meta_archaludon",
+      "deck:meta_grimmsnarl",
+      "deck:meta_grimmsnarl_tonakaiiii",
+      "deck:aggro",
+      "deck:control",
+      "deck:ultraball",
+      "deck:trolley",
+      "deck:trolley_thick"
+    ],
+    "jobs": 16,
+    "requested_matches": 200,
+    "matches": 200,
+    "shortfall": 0,
+    "wins": 143,
+    "draws": 0,
+    "losses": 57,
+    "win_rate": 0.715,
+    "win_rate_ci95": [
+      0.649,
+      0.773
+    ],
+    "avg_decision_ms": 0.072,
+    "max_decision_ms": 70.691,
+    "decisions": 6499,
+    "invalid_moves": 0,
+    "invalid_rate": 0.0,
+    "shard_errors": []
+  },
+  "on": {
+    "agent": "deck:trolley",
+    "opponents": [
+      "deck:meta_archaludon",
+      "deck:meta_grimmsnarl",
+      "deck:meta_grimmsnarl_tonakaiiii",
+      "deck:aggro",
+      "deck:control",
+      "deck:ultraball",
+      "deck:trolley",
+      "deck:trolley_thick"
+    ],
+    "jobs": 16,
+    "requested_matches": 200,
+    "matches": 200,
+    "shortfall": 0,
+    "wins": 154,
+    "draws": 0,
+    "losses": 46,
+    "win_rate": 0.77,
+    "win_rate_ci95": [
+      0.707,
+      0.823
+    ],
+    "avg_decision_ms": 0.08,
+    "max_decision_ms": 57.264,
+    "decisions": 6373,
+    "invalid_moves": 0,
+    "invalid_rate": 0.0,
+    "shard_errors": []
+  },
+  "diff_pp": 5.5,
+  "gate_margin_pp": 4.0,
+  "verdict": "flip default on"
+}

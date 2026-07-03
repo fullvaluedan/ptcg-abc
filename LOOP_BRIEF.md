@@ -138,7 +138,14 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
           policy) ships as a flag-gated rule, pre-registered, bracket-ring A/B >=+5pp with gauntlet direction
           agreement BEFORE any ladder slot, then the M=60 ladder protocol. Step 1 DONE 2026-07-03: the
           sequencing rule (PTCG_ATTACK_FIRST) is built and confirmed LIVE on trolley (3/20 real-position
-          decision flips, analysis/attack_first_flip_check.md). NEXT (step 2): the bracket-ring A/B.
+          decision flips, analysis/attack_first_flip_check.md). Step 2 DONE 2026-07-04: both required offline
+          gates PASSED -- weak-bot gauntlet +5.5pp, no regression (analysis/attack_first_ab.md); calibrated
+          bracket-ring +10.0pp, agrees in direction (analysis/attack_first_ring_check.md, new
+          tools/attack_first_ring_check.py mirroring ability_ring_check.py). Tarball built and grader-verified
+          (tests/test_grader_submission.py[heuristic-trolley-attack_first]); pre-registered as
+          heuristic+trolley-attack_first (state/current.md, up, M=60, N=30, settle-by 2026-07-11). NOT yet
+          submitted: both ladder slots occupied (trolley king copy + the in-flight L1 ability A/B, settle-by
+          2026-07-08). NEXT: submit the instant a slot frees, per TRACK L priority.
       U94 WRITEUP CHAPTER: docs/writeup/comprehension.md, the full arc (autopsy, WHY layer, playbooks, honest
           gates incl FAILs) with a machine-audited claims ledger (every number links to a committed analysis
           file).
