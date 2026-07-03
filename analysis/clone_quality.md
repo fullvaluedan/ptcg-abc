@@ -289,3 +289,61 @@ honest next step and should be tried before falling back to (b).
 Tests: `python -m pytest tests -q`, 860 passed (up from 858), 0 failed;
 +2 new tests in tests/test_imitation_features.py covering the local-rank
 feature's within-category grouping and its single-option-group zero case.
+
+## 2026-07-03 ablation: candidate (a) run, decisive, first-legal confirmed as the ceiling
+
+tools/train_clone.py gained an `--exclude-features` ablation flag (comma
+separated FEATURE_NAMES entries dropped from the feature matrix before
+either model kind is fit; both linear and tree are still tried and the
+larger-margin one reported, same as the normal gate path). In ablation
+mode weights are never exported: an exported payload's coef vector has to
+line up 1:1 with the FEATURE_NAMES list agents/clone_policy.py reads at
+inference time, and a masked fit has fewer columns than that.
+
+Ran candidate (a) exactly as specified: retrain on the feature_version 3
+dataset (data/training/clones/clone_groups_1783047584.npz) with
+opt_index_norm and opt_is_first excluded, removing the global-position
+escape hatch the last two diagnoses found the model always taking. Result,
+held-out, all four families:
+
+| family | model | accuracy | first-legal baseline | margin |
+|---|---|---|---|---|
+| meta_archaludon | tree | 0.3921 | 0.4454 | -0.0533 |
+| meta_grimmsnarl | tree | 0.3390 | 0.3957 | -0.0567 |
+| meta_grimmsnarl_tonakaiiii | tree | 0.3433 | 0.3903 | -0.0470 |
+| other | linear | 0.2646 | 0.3296 | -0.0650 |
+
+This is decisive, and it answers the open question honestly: without the
+global-position features to fall back on, every family's model does not
+just fail to beat first-legal, it loses to it outright (margin -0.047 to
+-0.065 on every family, not noise-sized at n=1299 to n=11092). Local rank
+plus the full content feature set is measurably WORSE than "always pick
+the first legal option" at predicting what a top player actually did.
+Combined with the earlier finding that global position ties the baseline
+exactly (never beats it, never loses to it) when it IS available, the
+full arc across four attempts (richer features, a tree model family, the
+local-rank fix, and now this ablation) is: engine list order carries more
+predictive power over top-player MAIN decisions than the entire hand-
+engineered content feature set does, on this dataset and label scheme.
+
+Conclusion: candidate (a) is closed, negative. Candidate (b) from the
+prior entry is now the adopted path: first-legal is the practical ceiling
+for a trained per-decision imitation model here, so U72's clone opponents
+should be a first-legal-plus-safety-fallback design (play the family's
+harvested deck, reuse the existing heuristic's safety guards -- lethal
+checks, no invalid moves, no self-collapse -- with no trained per-option
+scoring model), not the trained clone_policy approach this and the two
+prior iterations tried. The U70 dataset and the featurizer work are not
+wasted: they proved a real, reusable diagnostic (the category-block
+ordering, the position-collapse mechanism) worth keeping in the writeup,
+and clone_policy.py's tree-model loading path stays in the codebase in
+case a future feature set or label scheme reopens the question, but no
+further model-family or feature iteration on THIS setup is warranted.
+
+Tests: `python -m pytest tests -q`, 866 passed (up from 860), 0 failed;
++6 new tests in tests/test_train_clone.py covering feature_mask, the
+rows_for_family exclude parameter, a decisive train_family_best exclude
+test (a signal planted ONLY in opt_is_first collapses to exactly the
+first-legal baseline once that column is excluded, proving the ablation
+mechanism itself works before trusting it on real data), and main()'s
+ablation-mode report/export behavior.

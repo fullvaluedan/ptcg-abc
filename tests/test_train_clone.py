@@ -41,6 +41,21 @@ def _planted_groups(family, n_groups, split, seed=0, signal="is_play"):
     return groups
 
 
+def test_feature_mask_marks_only_excluded_columns_false():
+    mask = TC.feature_mask(("opt_index_norm", "opt_is_first"))
+
+    assert mask.dtype == bool
+    assert mask.sum() == len(FEATURE_NAMES) - 2
+    assert mask[FEATURE_NAMES.index("opt_index_norm")] == False  # noqa: E712
+    assert mask[FEATURE_NAMES.index("opt_is_first")] == False  # noqa: E712
+    assert mask[FEATURE_NAMES.index("opt_local_rank_norm")] == True  # noqa: E712
+
+
+def test_feature_mask_raises_on_unknown_feature_name():
+    with pytest.raises(ValueError):
+        TC.feature_mask(("not_a_real_feature",))
+
+
 def test_rows_for_family_filters_by_family_and_split():
     groups = [
         _group("alpha", played=1, n_options=2, episode="e0", split="train"),
@@ -65,6 +80,14 @@ def test_rows_for_family_all_splits_when_split_is_none():
 
     assert X.shape == (4, len(FEATURE_NAMES))
     assert set(group_id.tolist()) == {0, 1}
+
+
+def test_rows_for_family_excludes_named_columns():
+    groups = [_group("alpha", played=1, n_options=2, episode="e0", split="train")]
+
+    X, y, group_id = TC.rows_for_family(groups, "alpha", split="train", exclude=("opt_index_norm", "opt_is_first"))
+
+    assert X.shape == (2, len(FEATURE_NAMES) - 2)
 
 
 def test_top1_accuracy_counts_correct_argmax_per_decision():
@@ -117,6 +140,24 @@ def test_train_family_recovers_planted_preference_and_beats_first_legal_baseline
     assert result is not None
     assert result["n_scored"] > 0
     assert (result["accuracy"] - result["baseline"]) > 0.3  # the signal is perfectly separable
+
+
+def test_train_family_best_exclude_removes_the_only_signal_column():
+    # Signal lives ONLY in opt_is_first: every other feature is zero regardless
+    # of which option was played (see _feature_row/_group). Without exclude,
+    # the model finds it and separates perfectly; excluding it removes the
+    # only column that ever varies with the target, so every row in a group
+    # is identical (all zeros) and the fit can do no better than always
+    # picking the first row -- exactly the first-legal baseline, margin ~0.
+    train_groups = _planted_groups("meta_alpha", n_groups=200, split="train", seed=0, signal="opt_is_first")
+    test_groups = _planted_groups("meta_alpha", n_groups=60, split="test", seed=1, signal="opt_is_first")
+    groups = train_groups + test_groups
+
+    with_signal = TC.train_family_best(groups, "meta_alpha")
+    without_signal = TC.train_family_best(groups, "meta_alpha", exclude=("opt_is_first",))
+
+    assert (with_signal["accuracy"] - with_signal["baseline"]) > 0.3
+    assert abs(without_signal["accuracy"] - without_signal["baseline"]) < 1e-9
 
 
 def test_train_family_returns_none_without_train_rows():
@@ -191,8 +232,8 @@ def test_train_family_best_picks_the_larger_margin_and_keeps_the_loser_as_other(
                       "n_train": 100, "n_test": 50}
     tree_result = {"model_kind": "tree", "accuracy": 0.9, "baseline": 0.5, "n_scored": 50,
                    "n_train": 100, "n_test": 50}
-    monkeypatch.setattr(TC, "train_family", lambda groups, family: dict(linear_result))
-    monkeypatch.setattr(TC, "train_family_tree", lambda groups, family: dict(tree_result))
+    monkeypatch.setattr(TC, "train_family", lambda groups, family, exclude=None: dict(linear_result))
+    monkeypatch.setattr(TC, "train_family_tree", lambda groups, family, exclude=None: dict(tree_result))
 
     best = TC.train_family_best([], "meta_alpha")
 
@@ -205,8 +246,8 @@ def test_train_family_best_keeps_linear_on_a_tied_margin(monkeypatch):
                       "n_train": 100, "n_test": 50}
     tree_result = {"model_kind": "tree", "accuracy": 0.7, "baseline": 0.5, "n_scored": 50,
                    "n_train": 100, "n_test": 50}
-    monkeypatch.setattr(TC, "train_family", lambda groups, family: dict(linear_result))
-    monkeypatch.setattr(TC, "train_family_tree", lambda groups, family: dict(tree_result))
+    monkeypatch.setattr(TC, "train_family", lambda groups, family, exclude=None: dict(linear_result))
+    monkeypatch.setattr(TC, "train_family_tree", lambda groups, family, exclude=None: dict(tree_result))
 
     best = TC.train_family_best([], "meta_alpha")
 
@@ -217,8 +258,8 @@ def test_train_family_best_keeps_linear_on_a_tied_margin(monkeypatch):
 def test_train_family_best_falls_back_to_whichever_kind_trained(monkeypatch):
     tree_result = {"model_kind": "tree", "accuracy": 0.9, "baseline": 0.5, "n_scored": 50,
                    "n_train": 100, "n_test": 50}
-    monkeypatch.setattr(TC, "train_family", lambda groups, family: None)
-    monkeypatch.setattr(TC, "train_family_tree", lambda groups, family: dict(tree_result))
+    monkeypatch.setattr(TC, "train_family", lambda groups, family, exclude=None: None)
+    monkeypatch.setattr(TC, "train_family_tree", lambda groups, family, exclude=None: dict(tree_result))
 
     best = TC.train_family_best([], "meta_alpha")
 
@@ -294,3 +335,34 @@ def test_main_exports_only_qualifying_families(tmp_path):
     report = report_path.read_text()
     assert "meta_strong" in report and "meta_weak" in report
     assert "Qualified families (1): meta_strong" in report
+
+
+def test_main_ablation_mode_skips_export_and_notes_report(tmp_path):
+    train_groups = _planted_groups("meta_alpha", n_groups=200, split="train", seed=0, signal="opt_is_first")
+    test_groups = _planted_groups("meta_alpha", n_groups=60, split="test", seed=1, signal="opt_is_first")
+
+    npz_path = tmp_path / "clone_groups.npz"
+    from tools.clone_dataset import write_npz
+    write_npz(train_groups + test_groups, npz_path)
+
+    out_dir = tmp_path / "weights"
+    report_path = tmp_path / "clone_quality.md"
+    rc = TC.main([str(npz_path), "--out-dir", str(out_dir), "--report", str(report_path),
+                  "--min-test-groups", "20", "--exclude-features", "opt_is_first"])
+
+    assert rc == 0
+    assert not out_dir.exists() or not any(out_dir.iterdir())
+    report = report_path.read_text()
+    assert "Ablation mode" in report
+    assert "opt_is_first" in report
+    assert "no weights were exported" in report
+
+
+def test_main_rejects_unknown_exclude_feature(tmp_path):
+    groups = _planted_groups("meta_alpha", n_groups=10, split="train", seed=0)
+    npz_path = tmp_path / "clone_groups.npz"
+    from tools.clone_dataset import write_npz
+    write_npz(groups, npz_path)
+
+    with pytest.raises(ValueError):
+        TC.main([str(npz_path), "--exclude-features", "not_a_real_feature"])

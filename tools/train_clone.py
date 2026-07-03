@@ -97,12 +97,26 @@ def families_present(groups) -> list:
     return sorted({g["family"] for g in groups})
 
 
-def rows_for_family(groups, family, split=None) -> tuple:
+def feature_mask(exclude: tuple) -> np.ndarray:
+    """Boolean array over FEATURE_NAMES, True = keep, False = column named in `exclude`.
+
+    Raises ValueError on an unknown feature name (a typo here would silently
+    keep every column, hiding the ablation instead of running it).
+    """
+    unknown = sorted(set(exclude) - set(FEATURE_NAMES))
+    if unknown:
+        raise ValueError(f"unknown feature name(s) in exclude: {unknown}")
+    return np.array([name not in exclude for name in FEATURE_NAMES])
+
+
+def rows_for_family(groups, family, split=None, exclude=None) -> tuple:
     """(X, y, group_id) rows flattened from every group of `family` (optionally one split).
 
     y is 1 for the option the top team actually played, 0 for every sibling
     option in that decision; group_id ties rows back to the decision they
     came from so top1_accuracy / first_legal_baseline can regroup them.
+    `exclude`, if given, is a tuple of FEATURE_NAMES entries dropped from X
+    entirely (an ablation: see train_family_best's `exclude` parameter).
     """
     X, y, group_id = [], [], []
     gi = 0
@@ -117,6 +131,8 @@ def rows_for_family(groups, family, split=None) -> tuple:
             group_id.append(gi)
         gi += 1
     X_arr = np.asarray(X, dtype=float) if X else np.zeros((0, N_FEATURES))
+    if exclude:
+        X_arr = X_arr[:, feature_mask(exclude)] if X_arr.shape[0] else np.zeros((0, N_FEATURES - len(set(exclude))))
     return X_arr, np.asarray(y, dtype=int), np.asarray(group_id, dtype=int)
 
 
@@ -159,14 +175,15 @@ def _safe_family_filename(family: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]", "_", family) + ".json"
 
 
-def train_family(groups, family) -> dict | None:
+def train_family(groups, family, exclude=None) -> dict | None:
     """Fitted LINEAR model + held-out read for one family, or None if untrainable.
 
     None when the family has zero train or zero held-out rows (too little
     data to fit or to judge, rather than reporting a meaningless 0.0).
+    `exclude`: see rows_for_family.
     """
-    X_train, y_train, _ = rows_for_family(groups, family, split="train")
-    X_test, y_test, gid_test = rows_for_family(groups, family, split="test")
+    X_train, y_train, _ = rows_for_family(groups, family, split="train", exclude=exclude)
+    X_test, y_test, gid_test = rows_for_family(groups, family, split="test", exclude=exclude)
     if len(X_train) == 0 or len(X_test) == 0:
         return None
     model, mean, std = fit_standardized(X_train, y_train)
@@ -190,15 +207,16 @@ def fit_tree(X_train, y_train) -> GradientBoostingClassifier:
     return model
 
 
-def train_family_tree(groups, family) -> dict | None:
+def train_family_tree(groups, family, exclude=None) -> dict | None:
     """Fitted TREE model + held-out read for one family, or None if untrainable.
 
     Same shape as train_family (accuracy/baseline/n_scored/n_train/n_test) so
     the two model kinds compare directly; "model" holds the fitted
     GradientBoostingClassifier instead of a (model, mean, std) linear triple.
+    `exclude`: see rows_for_family.
     """
-    X_train, y_train, _ = rows_for_family(groups, family, split="train")
-    X_test, y_test, gid_test = rows_for_family(groups, family, split="test")
+    X_train, y_train, _ = rows_for_family(groups, family, split="train", exclude=exclude)
+    X_test, y_test, gid_test = rows_for_family(groups, family, split="test", exclude=exclude)
     if len(X_train) == 0 or len(X_test) == 0:
         return None
     model = fit_tree(X_train, y_train)
@@ -212,7 +230,7 @@ def train_family_tree(groups, family) -> dict | None:
     }
 
 
-def train_family_best(groups, family) -> dict | None:
+def train_family_best(groups, family, exclude=None) -> dict | None:
     """Whichever of train_family / train_family_tree has the larger margin.
 
     Both model kinds are fit and scored on the same held-out split; the one
@@ -223,9 +241,11 @@ def train_family_best(groups, family) -> dict | None:
     kind could train (both return None, i.e. no train or test rows at all).
     Ties keep the linear result: it is cheaper to score at match time and
     was already the proven-safe default before the tree model existed.
+    `exclude`: see rows_for_family; threaded into both model kinds so the
+    ablation is applied identically regardless of which one wins.
     """
-    linear = train_family(groups, family)
-    tree = train_family_tree(groups, family)
+    linear = train_family(groups, family, exclude=exclude)
+    tree = train_family_tree(groups, family, exclude=exclude)
     if linear is None and tree is None:
         return None
     if linear is None:
@@ -294,7 +314,7 @@ def export_tree_model(model: GradientBoostingClassifier, feature_names, path) ->
     return Path(path)
 
 
-def write_report(results: dict, margin: float, min_test_groups: int, path) -> Path:
+def write_report(results: dict, margin: float, min_test_groups: int, path, exclude=None) -> Path:
     lines = [
         "# Clone policy training (plan U71)",
         "",
@@ -309,6 +329,19 @@ def write_report(results: dict, margin: float, min_test_groups: int, path) -> Pa
         "shown so a family where both kinds tie the baseline is visible as such,",
         "not silently hidden behind the winning kind's number.",
         "",
+    ]
+    if exclude:
+        lines += [
+            "## Ablation mode",
+            "",
+            f"Excluded feature(s) this run: {', '.join(sorted(exclude))}. This is a",
+            "diagnostic run only (see analysis/clone_quality.md's per-iteration log for",
+            "why): weights are never exported in ablation mode, because an exported",
+            "payload's coef vector must line up 1:1 with the full FEATURE_NAMES list",
+            "agents/clone_policy.py reads at inference, and a masked fit has fewer columns.",
+            "",
+        ]
+    lines += [
         "## Gate",
         "",
         "A family qualifies as a ring opponent only if its held-out top-1",
@@ -337,15 +370,27 @@ def write_report(results: dict, margin: float, min_test_groups: int, path) -> Pa
             f"{r['accuracy']:.4f} | {r['baseline']:.4f} | {margin_val:+.4f} | "
             f"{'YES' if passed else 'NO'} | {other_margin} |"
         )
-    lines += [
-        "",
-        f"Qualified families ({len(qualified)}): {', '.join(qualified) if qualified else '(none)'}.",
-        "",
-        "Qualified families' weights are exported to agents/clone_weights/; every",
-        "other family is a valid negative result (same posture as U8b's",
-        "move-prior gate), not exported, and does not join the ring (U72).",
-        "",
-    ]
+    if exclude:
+        lines += [
+            "",
+            f"Qualified families ({len(qualified)}): {', '.join(qualified) if qualified else '(none)'}.",
+            "",
+            "Ablation mode: no weights were exported regardless of the qualified column",
+            "above (see the Ablation mode section). This run answers whether the",
+            "excluded feature(s) were the ONLY thing standing between the model and the",
+            "gate, not whether a shippable ring opponent exists.",
+            "",
+        ]
+    else:
+        lines += [
+            "",
+            f"Qualified families ({len(qualified)}): {', '.join(qualified) if qualified else '(none)'}.",
+            "",
+            "Qualified families' weights are exported to agents/clone_weights/; every",
+            "other family is a valid negative result (same posture as U8b's",
+            "move-prior gate), not exported, and does not join the ring (U72).",
+            "",
+        ]
     Path(path).write_text("\n".join(lines))
     return Path(path)
 
@@ -357,11 +402,16 @@ def main(argv=None) -> int:
     ap.add_argument("--min-test-groups", type=int, default=MIN_TEST_GROUPS)
     ap.add_argument("--out-dir", default=str(DEFAULT_WEIGHTS_DIR))
     ap.add_argument("--report", default=str(DEFAULT_REPORT_PATH))
+    ap.add_argument("--exclude-features", default=None,
+                     help="comma-separated FEATURE_NAMES entries to drop before fitting "
+                          "(ablation diagnostic; disables export, see write_report)")
     args = ap.parse_args(argv)
+
+    exclude = tuple(args.exclude_features.split(",")) if args.exclude_features else None
 
     groups = load_pooled_groups(args.npz_paths)
     families = families_present(groups)
-    results = {family: train_family_best(groups, family) for family in families}
+    results = {family: train_family_best(groups, family, exclude=exclude) for family in families}
 
     out_dir = Path(args.out_dir)
     exported = []
@@ -371,7 +421,10 @@ def main(argv=None) -> int:
             print(f"{family}: no train/test rows, skipped")
             continue
         margin_val = r["accuracy"] - r["baseline"]
-        if qualifies(r, args.margin, args.min_test_groups):
+        if exclude:
+            print(f"{family}: [{r['model_kind']}] accuracy {r['accuracy']:.4f} baseline {r['baseline']:.4f} "
+                  f"margin {margin_val:+.4f} n_scored {r['n_scored']} -> ablation mode, not exported")
+        elif qualifies(r, args.margin, args.min_test_groups):
             out_dir.mkdir(parents=True, exist_ok=True)
             out_path = out_dir / _safe_family_filename(family)
             if r["model_kind"] == "tree":
@@ -385,7 +438,7 @@ def main(argv=None) -> int:
             print(f"{family}: [{r['model_kind']}] accuracy {r['accuracy']:.4f} baseline {r['baseline']:.4f} "
                   f"margin {margin_val:+.4f} n_scored {r['n_scored']} -> NOT exported (below gate)")
 
-    write_report(results, args.margin, args.min_test_groups, args.report)
+    write_report(results, args.margin, args.min_test_groups, args.report, exclude=exclude)
     print(f"wrote {args.report}")
     print(f"exported {len(exported)}/{len(families)} families: {exported}")
     return 0
