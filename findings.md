@@ -1,0 +1,210 @@
+# findings.md
+
+Durable record of what we learned building the ptcg-abc agent for the Kaggle Pokemon TCG AI Battle
+Challenge, kept as raw material for a later report on how the approach evolved as we got more data and tried
+more things. Living document: append new findings with dates. Every claim points to a source under
+`analysis/`, `state/`, `docs/plans/`, or `docs/writeup/` so the report can trace it.
+
+No em dashes anywhere in this repo (hard constraint), so this file uses commas, colons, and parentheses.
+
+---
+
+## 1. Context and constraints (the fixed board)
+
+- Two prizes. Simulation ladder RANK (final 2026-08-16) and a separate Strategy prize (final 2026-09-13,
+  top 8 win $30k, scored 70% model approach / 20% deck concept / 10% writeup, ladder-independent).
+- The shipped agent is `agents/agent_heuristic.py` (a pure-Python heuristic, brain in `agents/heuristics.py`)
+  plus a `deck.csv`. It runs fully offline in the tarball (no numpy/sklearn/network at match time), the
+  grader loads `main.py` via `exec()` with no `__file__`, the entrypoint must be the last callable, the agent
+  must never raise, and the native engine is a process-global singleton.
+- Submission economics: 5 submissions/day, only the latest 2 are scored, the leaderboard uses the best of the
+  scored pair. This plus the noise band (below) is the true binding constraint on rank.
+- The field (public leaderboard, pulled 2026-07-02): ~3996 teams, MEDIAN score 678.5, top ~1249
+  (tonakaiiii). Our king has read between ~452 and ~691 across identical resubmissions.
+
+---
+
+## 2. Evolution of the approach (belief, then data, then change)
+
+**Phase 0, foundation (2026-06-30).** Original plan `2026-06-30-001`. Built the engine wrapper, baseline and
+heuristic agents, the gauntlet, the submission builder. Executed 13/13 units. Produced the only durable
+scoring asset: heuristic + a hand deck. Belief at this point: build a strong agent, climb the ladder directly.
+
+**Phase 1, the ladder teaches us what does not work (2026-07-01).** Every "obvious" way to climb was tried on
+the real ladder and refuted (see the ledger): copying the top players' meta decks scored BELOW our own deck,
+determinized search scored below the heuristic, an agent-level bench guard scored below baseline. Key reframe:
+the heuristic is the deployable player, search is at best an offline teacher. Wrote a self-improving plan,
+subjected it to a five-persona review (which found it could not reach #1 and was already stale), and
+synthesized a unified plan (`2026-07-02-001`) with a settlement protocol (M=60 noise margin), a slot budget,
+and an endgame noise campaign.
+
+**Phase 2, the learning detour (2026-07-02).** Pivoted the loop onto a learned-evaluator / search track
+(learned eval, move-ordering model, top-player imitation, CEM tuning), across several rapidly-superseded plans
+(`002`, combined v2, the top-player tracker addendum, `003`). This built a large offline ML stack and a
+173k-row top-player corpus. It was later found to have been aimed at the wrong scoreboard (Section 4D).
+
+**Phase 3, the correction (2026-07-03).** An independent audit found the loop had spent ~2 days improving
+`agent_search`, which does not ship. Split the loop into TWO explicit tracks: TRACK L (ladder, the shipped
+heuristic + deck) and TRACK S (Strategy prize, the offline ML). Fixed a live-grader submission ERROR (a
+missing bundled file). Built a top-20 clone practice ring; it FAILED calibration. Built a bracket-band clone
+ring instead; it PASSED (the first offline instrument proven to predict the ladder). Mined the top players by
+category. Launched teacher-student distillation. Added an OS-level watchdog after the loop kept dying
+silently.
+
+**Phase 4, comprehension (2026-07-03, current).** On the user's challenge that we never actually understood
+top-20 play, a forensic autopsy proved the clone failure was an instrument defect, not unlearnable play
+(Section 4D). Opened a comprehension track (U90-U94): card-semantics, mined per-archetype playbooks whose
+every claim must predict held-out top-player moves, a correctly-built ranker, and ring-gated transfer into the
+shipped pilot.
+
+---
+
+## 3. The single most important number
+
+Same-build ladder noise is roughly 90 to 130 points. The byte-identical king has scored 452, 507, 534, 558,
+600, 648, and 691 across resubmissions of the same code. Any lever smaller than that band is unresolvable in a
+single A/B, and the 5/day + latest-2 scoring means repeated resubmission of the best build (the Aug 10-16
+endgame campaign) is the cheapest source of rank. Source: `state/current.md` noise model,
+`analysis/final_scoring_semantics.md`.
+
+---
+
+## 4. Findings ledger
+
+### 4A. Ground-truth facts
+
+- Determinized search is inert on the ladder unless force-loaded: the match-time `cg.api` does not expose the
+  `search_*` forward model, so search silently falls back to the heuristic (~0.02s per decision).
+  `analysis/ladder_search_inert.md`, `analysis/search_recovered_on_ladder.md`.
+- Our dominant loss mode has been early_collapse (empty-bench board collapse). It was ~92% of losses early;
+  as of 2026-07-03 it is ~48% (60 of 125 losses over 224 replays), with bad_determinization and deck_matchup
+  rising. `analysis/early_collapse_empty_bench.md`, `state/current.md`.
+- The empty-bench collapse is opponent-agnostic and is draw variance, not play ordering: in 94% of
+  empty-bench moments we hold no benchable Basic to reorder. `analysis/deck_matchup_is_opponent_agnostic.md`,
+  `analysis/empty_bench_is_draw_variance.md`.
+
+### 4B. Refuted or falsified levers (dead ends, closed with evidence)
+
+Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
+
+- meta_deck_copy: copied Archaludon (382.5) and Grimmsnarl (510.1) scored well below the trolley floor
+  (569.6). The simple pilot plays a meta deck WORSE. Re-test only with a genuinely deck-aware pilot (never
+  measured). `analysis/meta_decks_underperform_on_ladder.md`.
+- search_active_beats_heuristic: real search scored 514.7 vs 569.6 same deck. Search costs points. Re-test
+  gated on the FAVORABLE PIMC diagnostic (belief-weighted search lane only). `analysis/ladder_scored_pair_reclaim.md`.
+- thin_bench_threshold and bench_floor_leaf_term and bench_dig: the board-out floor is DECK-density-set, not
+  guard-set. Widening guards is flat; the leaf term is squeezed; digging does not help at scale (its direction
+  even flipped with more data). `analysis/thin_bench_threshold_is_flat.md`,
+  `analysis/bench_floor_search_lever_squeezed.md`, `analysis/bench_dig_refuted_at_scale.md`.
+- energy_seq: front-loading energy onto the attacker matched only 6% of 1445 expert attaches; the gap is
+  ordering, not target. `analysis/energy_seq_refuted_by_expert_moves.md`.
+- gameplan_seeds_diffuse: mining the top decks for concentrated "always do X" seeds came back nearly empty at
+  full scale (Grimmsnarl 0 seeds); the one Archaludon seed was a deck-identity fact, not a win edge.
+  `analysis/gameplans/seeds_real_run.md`.
+- cem_prio_agreement_generalizes: two CEM runs tuned expert-move agreement on train but got zero or negative
+  held-out transfer, both blocked by the pre-registered filter. `analysis/cem_run_prio.md`,
+  `analysis/cem_run_prio_pooled.md`.
+- missed_lethal: a detector artifact, not a real bug (safety-1 lethal already fires).
+  `analysis/missed_lethal_falsified.md`.
+- Category-mining v2 follow-ons mostly refuted: the retreat gap is matchup-shaped not threshold-shaped, the
+  retreat-target and promote and deck-search gaps did not reduce to shippable rules, and the Archaludon
+  deckout is mandatory-draw depletion (no guard-tuning fix). `analysis/retreat_gap_conditional.md`,
+  `analysis/retreat_target_conditional.md`, `analysis/promote_gap_conditional.md`,
+  `analysis/search_gap_conditional.md`, `analysis/archaludon_deckout_is_mandatory_draw.md`.
+- Portfolio / two-deck decks collapse less but lose the prize race: not ladder-viable.
+  `analysis/portfolio_decks_not_ladder_viable.md`.
+- trolley_thick deck: offline it cut empty-bench collapse 80.8% to 65.4% (n=240, p<0.001) but on the ladder it
+  settled a decisive LOSS (446 vs king 558, -112). Another offline-to-ladder non-transfer.
+  `analysis/collapse_rate_thick_deck.md`.
+
+### 4C. Confirmed or positive findings (real signal)
+
+- The ability blind spot: our pilot activated abilities 0 times in 554 expert ability decisions (abilities are
+  ~12% of top-player MAIN decisions). Turning on a once-per-turn ability lever read +4pp offline gauntlet and
+  +20pp against the calibrated ring. It is our best-validated lever shape. `analysis/move_ranking_diverges_ability_gap.md`,
+  `analysis/ability_ab.md`, `analysis/ability_ring_check.md`.
+- Deck vs pilot: the SAME heuristic scores 570 on trolley, 451 on the copied Archaludon list, 409 on
+  kazuki0123's exact Grimmsnarl list. The ~900-point gap to the deck's real owners is PILOT execution, not the
+  60 cards. `analysis/meta_decks_underperform_on_ladder.md`.
+- How top teams win vs lose (1441 win / 1074 loss games): winners dig their deck HARDER mid-game then STOP
+  late, and end the game with more energy, a bigger hand, and fewer prizes left (they close faster). Their
+  loss modes (bad_determinization 29%, endgame_misplay 25%) differ from ours (early_collapse), so imitating
+  their move distribution without fixing our early-board survival cannot fully converge.
+  `analysis/top_player_win_loss_study.md`.
+- The move-ordering model (search-side) read +5.0pp in a gauntlet A/B and was flipped on; confidence-based
+  search time allocation (U12) passed its gate. `analysis/move_prior_search_ab.md`, `analysis/confidence_budget_ab.md`.
+- The bracket-band clone ring PASSED calibration (tau 0.857 >= 0.7) and now has gate authority for
+  submissions; the top-20 clone ring FAILED (tau 0.429). `analysis/ring_calibration.md`.
+
+### 4D. Methodological findings (the meta-record, the strongest Strategy material)
+
+- Offline-to-ladder non-transfer, the core epistemic failure: 0 of 5 incremental offline-positive levers
+  transferred (benchguard, both meta decks, search, trolley_thick). Root cause: the gauntlet opponent pool was
+  our own heuristic piloting 8 different decks, a mirror match that answers "does this beat ourselves", not
+  "does this beat the field". Fix in progress: the calibrated bracket ring. `docs/writeup/offline_ladder_transfer.md`.
+- Measurement discipline held: machine-enforced pre-registration (`tools/loop_state.py`), the M=60 noise
+  model, default-deny proxy gates, and held-out AUC filters blocked every bad ship. Six experiment failures
+  settled as written-down verdicts (CEM blocked on held-out, U9b archetype gate FAIL, U11 eval-blend FAIL)
+  instead of anecdotes. No regression was ever promoted to king.
+- The clone autopsy (2026-07-03): the recorded conclusion "top-20 play is too subtle to imitate" was WRONG. It
+  generalized an optimizer artifact. Three verified defects: (1) the trainer used a pointwise per-row log-loss
+  whose zero-risk optimum IS the first-legal baseline, so both model families picked option 0 in 13019/13019
+  then 11092/11092 held-out decisions; (2) the baseline policy (option position) was handed to the model as a
+  feature while the gate was margin-over-that-baseline; (3) the features were semantically blind (8 regex
+  tags, no card identity, no energy costs, no evolution lines, Boss's Orders invisible). Learnable structure
+  sits unexploited: first-of-played-category beats first-legal by 20-27pp on every family, and END_TURN is
+  never option 0 yet was the real choice 4.3% of the time. The known-good pairwise ranking objective (U26
+  spike) was never rerun on the clone data. `analysis/clone_quality.md`, `analysis/unit_zero_spike.md`,
+  and the comprehension track directive in `LOOP_BRIEF.md`.
+- Target selection failure: the loop spent ~2 days (roughly 37 consecutive commits) improving `agent_search`,
+  which does not ship, after the disqualifying fact was already written into the brief. Corrected by the
+  two-track split. This is the largest single process mistake and it was an orchestration error, not a loop
+  error.
+- Operational reliability: the tmux server died silently more than once (a 12.4h overnight gap, ~28% total
+  downtime), and a decisively-lost deck candidate held a scarce scored slot for ~21h while a better build sat
+  staged behind it. Fixes: an OS-level scheduled-task watchdog (`watchdog_check.sh`, survives tmux-server
+  death) and a settle-the-instant-it-is-out-of-band rule.
+- Planning economy: 9 plan docs in 4 days, some abandoned within 2-6 hours; the unified plan's ladder-
+  execution units got 0/11 execution before being superseded. Fix: a plan freeze until the next weekly review.
+  Narrow, offline plans by contrast executed at or near 100%.
+
+---
+
+## 5. Key pivots and decisions (dated)
+
+- 2026-07-01: reframe search from "the player" to "an offline teacher" after the 514.7 vs 569.6 fact.
+- 2026-07-02: pivot the loop to the learned-evaluator/search track (later found mis-aimed).
+- 2026-07-03: two-track split (ladder vs Strategy) after the value audit; make the ladder track own the
+  shipped agent.
+- 2026-07-03: reopen "understand the top 20" as a first-class comprehension track after the autopsy reversed
+  the "too subtle" verdict.
+- Standing decisions: one loop only (rank is quota/slot/noise-bound, parallel loops cannot buy rank); the
+  bracket ring is the only calibrated gate; the Aug 10-16 endgame noise campaign is booked.
+
+---
+
+## 6. Current state and open direction (2026-07-03)
+
+- King reads 691.5 best-ever (ref 54282104), almost certainly noise-inflated; true level ~560-600.
+- TRACK L queued: comprehension track U90 (card semantics + on-evolve ability probe, the best remaining ladder
+  hope, same shape as the 0/554 ability find) through U94 (writeup chapter). Plus the standing daily data
+  refresh (U80) and teacher-student distillation (U83).
+- TRACK S: the offline ML stack and the writeup, assembled continuously.
+- Honest outlook: #1 is off the table. Realistic ladder landing with the fixes is the median band
+  (~600-700 score, roughly #1500-2200 from ~#2980). The Strategy prize is the stronger bet: the differentiated
+  story is the pre-registration machinery, the quantified noise model, the honest 0-for-5 transfer record with
+  its diagnosis, and the self-caught clone-autopsy reversal.
+
+---
+
+## 7. Source index (for the report)
+
+- Falsification registry: `state/hypotheses.md`. Live ledger and noise model: `state/current.md`.
+- Per-finding analyses: `analysis/*.md` (indexed by first heading; see the win/loss study, the ability gap,
+  the ring calibration, the transfer record, the clone autopsy inputs).
+- Intent evolution: `docs/plans/*.md` (9 plans, 2026-06-30 to 2026-07-03) show what we believed at each step.
+- Strategy writeup drafts: `docs/writeup/` (learned_evaluator, offline_ladder_transfer, genome_tuning, and the
+  planned comprehension chapter).
+- The audits that produced the meta-findings ran as ephemeral multi-agent workflows this session (loop-value
+  audit, engagement report card, clone-failure autopsy). Their conclusions are captured above; if a fuller
+  transcript is wanted for the report, they can be re-run.

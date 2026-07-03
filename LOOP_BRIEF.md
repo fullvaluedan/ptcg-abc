@@ -130,6 +130,11 @@ docs/plans/2026-07-02-003-feat-offline-match-scale-topplayer-mining-plan.md (all
 - PLAN FREEZE: this two-track brief is the regime until 16 Aug; no new plan documents or re-pointings
   outside a weekly review. Track L is sized to the settlement budget (~1-2 ladder verdicts/day). Track S
   may iterate freely (its experiments settle in hours).
+- KEEP findings.md CURRENT: whenever a unit produces a real finding (a refutation, a confirmed lever, a
+  calibration verdict, a pivot, a meta-lesson), append a dated one-liner to the right section of the
+  repo-root findings.md with its source analysis file. findings.md is the durable raw material for a later
+  report on how the approach evolved; it is a synthesis/index, not a re-dump of the analysis docs. No em
+  dashes.
 - WRITEUP IS FIRST-CLASS, STARTING NOW: roughly every 6th iteration advances docs/writeup/ (the Strategy
   prize is 70% model approach). The differentiated story to assemble from existing analysis/: machine-
   enforced pre-registration, the quantified same-build noise model, the offline-to-ladder transfer record
