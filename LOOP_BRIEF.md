@@ -34,6 +34,17 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
       evicted from the tracked latest-2 (see L9 same-iteration attack_first submission below); 561.1 is its
       final frozen reading, not an ongoing one. The process-global-confound caveat above was never
       re-checked, so treat this WIN as directionally real but not confound-clean.
+      RE-CHECKED 2026-07-04 (offline, no ladder slot): tools/measure_ability_isolated.py toggles
+      agents.heuristics._ABILITY per seat (not per process), so an on/off arm (only our pilot has
+      the lever) is directly measurable against the confounded on/on arm the original env-var-baked
+      gauntlet could only produce. Three independent runs (n=200/200/300 per arm, 900 isolated-arm
+      games total): isolated diff_pp +2.5, -0.5, -1.3 (mean +0.2); confounded diff_pp -4.0, +5.5,
+      -0.7 (mean +0.3). Both oscillate around zero at every sample size tried; neither the confound
+      nor its removal produces a stable positive effect. Conclusion: the +4.0pp offline gauntlet
+      point estimate was itself noise-dominated, independent of the mirror-match confound; it should
+      not be read as confirming a real win-rate edge. Does not change the shipped shadow-king
+      disposition (L9: ring evidence, not gauntlet or ladder reads, is the standing decision gate;
+      the underlying 0/554 blind-spot motivation is untouched). analysis/ability_isolated_confound_check.md.
   L2. DONE 2026-07-03 01:00-01:01: trolley_thick settled LOSS and was evicted; slot 1 = king copy 54281812
       (settled 600.0, new best-ever). Standing rule stays: settle any candidate the instant it reads clearly
       outside the M=60 band; a mandatory per-iteration auto-settlement step (compute band position from the

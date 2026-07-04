@@ -116,6 +116,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 441.7 | 0 | Board check 2026-07-04: 441.7 (drifted from 441.5/456.0/444.8 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; no action taken. |
 | heuristic+trolley-ability (floor restoration) | n/a | n/a | 489.7 | 0 | Board check 2026-07-04: 489.7 (drifted from 470.1/504.7/526.2 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action taken. Now the current reference reading for the shadow-king floor slot. |
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 436.1 | 0 | Board check 2026-07-04: 436.1 (drifted from 441.7/441.5/456.0 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; reclaim_king ref/reading updated to this build (was stale, pointing at the evicted ref 54282104/494.8 reading). |
+| heuristic+trolley-ability (floor restoration) | n/a | n/a | 486.9 | 0 | Board check 2026-07-04: 486.9 (drifted from 489.7). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action taken. |
+| heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.7 | 0 | Board check 2026-07-04: 443.7 (drifted from 436.1). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; no action taken. |
 
 ```json STATE
 {
@@ -533,7 +535,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
   "shadow_king": {
     "build": "heuristic+trolley-ability",
     "ladder": "n/a (ring-gated, not ladder-gated per L9)",
-    "note": "Per the 2026-07-04 noise recalibration, ladder board reads no longer confirm or refute this build (same-build spread ~452-691 swamps M=60). The ability build is kept as shadow-king on RING evidence (calibrated bracket ring, tau 0.857, ability +20pp, analysis/ability_ring_check.md), not on the previously-recorded 561.1 ladder WIN (now understood as a noise artifact, findings.md 4D). Restored into the scored slot as ref 54315802 (PENDING) this iteration, floor maintenance not a fresh A/B.",
+    "note": "Per the 2026-07-04 noise recalibration, ladder board reads no longer confirm or refute this build (same-build spread ~452-691 swamps M=60). The ability build is kept as shadow-king on RING evidence (calibrated bracket ring, tau 0.857, ability +20pp, analysis/ability_ring_check.md), not on the previously-recorded 561.1 ladder WIN (now understood as a noise artifact, findings.md 4D). Restored into the scored slot as ref 54315802 (PENDING) this iteration, floor maintenance not a fresh A/B. RE-CHECKED 2026-07-04 (LOOP_BRIEF.md L1 process-global-confound caveat, tools/measure_ability_isolated.py): the offline gauntlet's original +4.0pp point estimate is itself noise-dominated (isolated-arm diff_pp +2.5/-0.5/-1.3 across three runs, mean +0.2, no stable sign), independent of the mirror-match confound. Does not change the shadow-king disposition; ring evidence remains the decision gate. analysis/ability_isolated_confound_check.md.",
     "ref": "54315802"
   },
   "tag_coverage": {

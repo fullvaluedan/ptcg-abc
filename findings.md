@@ -301,6 +301,22 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   basis. This does not retroactively change any already-settled pre-registration (each row carries its own
   hardcoded margin); it only fixes the record and sets a sane default for whatever ladder-side margin a
   future pre-registration might still want, given the ring is now the actual decision gate per L9.
+- Ability-lever confound re-check (2026-07-04): `LOOP_BRIEF.md` L1 had flagged, but never re-validated, that
+  the offline gauntlet gate for `heuristic+trolley-ability` (+4.0pp, `analysis/ability_ab.md`) baked
+  `PTCG_ABILITY` into a whole subprocess's environment, so both seats (our pilot AND every `deck:<name>`
+  opponent, which is the SAME `heuristics.py` module in the SAME process) got the ability lever in the "on"
+  arm, not just the pilot under test. `tools/measure_ability_isolated.py` toggles the module-global
+  `_ABILITY` per seat instead of per process, making a true "only our pilot has the lever" arm measurable for
+  the first time. Result across three independent runs (900 isolated-arm games total): the isolated diff_pp
+  oscillates around zero (+2.5, -0.5, -1.3; mean +0.2), and so does the confounded diff_pp it was designed to
+  compare against (-4.0, +5.5, -0.7; mean +0.3). Neither arm shows a stable positive effect at any sample
+  size tried. Conclusion: the originally reported +4.0pp was noise-dominated at its sample size, independent
+  of the mirror-match confound; it should not be read as confirming a real win-rate edge. This does not
+  change the shipped shadow-king disposition (per L9 the calibrated bracket ring, not the gauntlet or the
+  ladder, is the standing decision gate, and the underlying 0/554 blind-spot motivation for the lever is
+  untouched), but it is a second independent instance of this project's central methodological finding: weak
+  offline win-rate point estimates at n~200-300 are not trustworthy on their own, confound or no confound.
+  `analysis/ability_isolated_confound_check.md`.
 - Writeup staleness fix in `docs/writeup/comprehension.md` (2026-07-04, board-check iteration): the claims
   ledger row and closing paragraph still described `PTCG_ATTACK_FIRST` as "staged, not yet submitted", a
   fact that was true when U94 wrote the chapter but was superseded within the same day once the lever was
