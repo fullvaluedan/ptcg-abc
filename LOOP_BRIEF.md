@@ -184,9 +184,18 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
           not just a table. Comprehension track (U90+U91+U93+U94, U92 closed FAIL) is now fully written up.
           NEXT: no further comprehension-track units are defined; fold future TRACK L levers this track
           produces in as addenda rather than opening U95+ without a plan review.
-  L9. Standing: each shipped-path candidate that survives its gate gets a pre-registered ladder A/B; slot
-      discipline and the M=60 protocol unchanged; the Aug 10-16 endgame noise campaign stays booked and must
-      not be displaced. U92 closed 2026-07-04 (FAIL); comprehension track (U90+U91+U93+U94) fully shipped and
+  L9. NOISE RECALIBRATION (correction 2026-07-04, HIGH PRIORITY): the observed same-build spread is ~452 to
+      691 (one king copy, ref 54282104, drifted 691.5 -> 494.8 on its OWN reads), so M=60 is FAR too tight and
+      a single-read ladder A/B cannot confirm ANY lever we can build. Treat the "ability WIN" recorded below
+      (561.1 vs a 494.8 LOW king draw, +66.3) as a NOISE ARTIFACT, not proof: 561.1 is mid-range of the king's
+      own 452-691 reads. Log this as a top methodological finding in findings.md. NEW RULES:
+      (a) the CALIBRATED BRACKET RING (tau 0.857), NOT single-read ladder A/Bs, is the lever DECISION gate.
+      (b) FLOOR: keep the best ring-supported build in the scored pair. The ability build (ring +20pp) is it:
+      NEXT quota window, submit the ABILITY build (not a plain king copy) to restore it as the scored floor,
+      then HOLD. (c) STOP spending scored slots to confirm sub-band levers (the attack_first slots were wasted
+      noise-chasing). (d) Ladder submissions are now for FLOOR MAINTENANCE and the Aug 10-16 endgame
+      variance-harvest campaign ONLY; that campaign is the PRIMARY rank lever (the noise band exceeds any build
+      gain we can make) and stays booked. Historical record follows (unchanged): U92 closed 2026-07-04 (FAIL); comprehension track (U90+U91+U93+U94) fully shipped and
       written up as of U94. heuristic+trolley-ability settled WIN 2026-07-04 (561.1 vs 494.8, +66.3pp) and is
       now shadow-king (state/current.md); it is off the board (evicted by the attack_first submission), so
       its 561.1 reading is final. DONE 2026-07-03 (board-check iteration): attack_first's first reading (ref
