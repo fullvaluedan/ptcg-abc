@@ -224,6 +224,17 @@ offline claim in this project has to clear.
 
 The one re-open condition still standing, per `analysis/cem_run_prio_teacher.md`,
 is a genome region with a measured non-flat held-out gradient, checked before a
-full sweep is spent on it rather than assumed. No further sweep over this same
-18-dim PRIO genome is planned without it; the comprehension track (U90-U94)
-is the project's live source for candidate levers that might supply one.
+full sweep is spent on it rather than assumed. At the time this was written the
+comprehension track (U90-U94) was still open and named as the project's live
+source for a candidate lever that might supply one; that track has since run to
+completion (`docs/writeup/comprehension.md`) without surfacing one. Its two
+shippable levers (the once-per-turn ability guard, the attack-first sequencing
+rule) both went in as hand-coded, flag-gated `agents/heuristics.py` rules with
+their own offline gates and ladder A/Bs, not as a new region of the 18-dim PRIO
+vector, so neither one is a re-test case for CEM. Separately, U92's kill test
+(same writeup, "The final answer on the objective itself") answered the
+adjacent question of whether a different training objective could recover
+signal from the harvested clone dataset, and it also came back negative. No
+further sweep over this genome is planned; a fourth CEM attempt would need a
+genuinely new source for the still-open re-test condition, not the comprehension
+track, which is now fully accounted for elsewhere.
