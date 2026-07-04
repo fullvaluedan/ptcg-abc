@@ -100,6 +100,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley-ability | n/a | n/a | 561.1 | 0 | SETTLED WIN 2026-07-04: 561.1 vs reclaim king 494.8 (ref 54282104), +66.3pp, clears the M=60 WIN threshold. Promoted to shadow-king. Evicted from the tracked latest-2 in the same iteration by the attack_first submission (54304483); 561.1 is its final frozen reading. |
 | heuristic+trolley-attack_first | n/a | n/a | PENDING | 0 | U93 step 3 SUBMITTED into the slot the ability WIN settlement freed. See pre_registrations and in_flight for the settle protocol. |
 | heuristic+trolley-attack_first (repeat) | n/a | n/a | SETTLED NEUTRAL | 3 | BAND repeat resubmission (ref 54304681), byte-identical to ref 54304483. Board readings drifted to mixed sign (442.9 vs 600.0 vs king 494.8). U23 scoreboard settlement (analysis/attack_first_settlement.md): 3 shared brackets, candidate 1/3 (0.333) vs king 4/6 (0.667), confidence 0.171, favors_candidate=false, verdict neutral. Slot reverts to a king copy, queued for submission next iteration (quota exhausted for 2026-07-03 UTC). |
+| heuristic+trolley (king-copy revert) | n/a | n/a | PENDING | 0 | L9 revert SUBMITTED (ref 54315565) once the daily quota reset past ~00:00 UTC 2026-07-04 (real clock confirmed 2026-07-04 02:39 UTC before submitting). Byte-identical heuristic+trolley king copy, reverting the slot per the attack_first build's own pre-registered BAND->NEUTRAL action (analysis/attack_first_settlement.md). Evicts refs 54304483/54304681 from the tracked latest-2 once this clears PENDING. |
 
 ```json STATE
 {
@@ -138,9 +139,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
   },
   "in_flight": {
     "board_reading": "n/a",
-    "build": "heuristic+trolley (king-copy revert, queued)",
-    "note": "heuristic+trolley-attack_first SETTLED NEUTRAL 2026-07-03 via the U23 scoreboard tiebreak (analysis/attack_first_settlement.md). Per the pre-registered BAND action the slot reverts to a byte-identical heuristic+trolley king copy. Re-confirmed the quota block again this iteration with a non-mutating board check (kaggle competitions submissions): tracked latest-2 unchanged (54304681, 54304483), no new submission landed. Real clock (bash date -u) reads 2026-07-03 17:44 UTC, ~6.3h before the ~00:00 UTC 2026-07-04 reset, consistent with the prior countdown; did not re-attempt the submit API call itself since nothing about the blocking condition had changed. Since TRACK L stayed genuinely blocked, this iteration advanced TRACK S: found docs/writeup/genome_tuning.md still framed the comprehension track (U90-U94) as an OPEN live source for a CEM re-test lever, when that track has since run to completion (comprehension.md) without surfacing a non-flat-gradient genome region -- its two shippable levers (ability, attack_first) shipped as hand-coded flag-gated rules instead, and U92s kill test separately closed the adjacent training-objective question. Rewrote genome_tuning.md bottom line to reflect that. Tarball (submission_trolley.tar.gz) remains built, grader-verified, and ready; submit it as the first action next iteration once past the reset.",
-    "ref": "queued, not yet submitted"
+    "build": "heuristic+trolley (king-copy revert)",
+    "note": "SUBMITTED this iteration (ref 54315565, PENDING): the queued king-copy revert for the settled-NEUTRAL heuristic+trolley-attack_first build. Quota reset confirmed via real clock (date -u -> 2026-07-04 02:39 UTC, past the ~00:00 UTC reset) before submitting; grader test re-verified green (test_grader_submission.py[heuristic-trolley]) immediately before submit. Board-checked after submit: tracked latest-2 will become [54315565 revert, 54282104 reclaim-king] once 54315565 clears PENDING, i.e. both slots back to plain king copies with no experiment in flight. TRACK L now has NO build awaiting a slot; next iteration should prep the next TRACK L candidate (L7/U83's CEM line is closed; comprehension track U90-U94 fully shipped; no new lever is queued) or continue the TRACK S writeup cadence per the standing rule.",
+    "ref": "54315565"
   },
   "ledger": [
     {
@@ -277,6 +278,15 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "oracle": "n/a",
       "ref": "54304681",
       "sample_size": 3
+    },
+    {
+      "build": "heuristic+trolley (king-copy revert)",
+      "ladder": "PENDING",
+      "move_agreement_delta": "n/a",
+      "note": "L9 revert SUBMITTED (ref 54315565) once the daily quota reset past ~00:00 UTC 2026-07-04 (real clock confirmed 2026-07-04 02:39 UTC before submitting). Byte-identical heuristic+trolley king copy, reverting the slot per the attack_first build's own pre-registered BAND->NEUTRAL action (analysis/attack_first_settlement.md). Evicts refs 54304483/54304681 from the tracked latest-2 once this clears PENDING.",
+      "oracle": "n/a",
+      "ref": "54315565",
+      "sample_size": 0
     }
   ],
   "loss_distribution": {
