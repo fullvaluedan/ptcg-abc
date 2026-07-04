@@ -359,6 +359,14 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   existed to compare against), so it cannot yet say whether matchmaking is deprioritizing older submissions
   in favor of newer ones as the deadline approaches, but it gives future board-checks a concrete, checkable
   signal (compare newest episode id across checks) instead of guessing.
+- CORRECTION to the above (2026-07-04, next board check after the sixth confirmation): the king-copy ref's
+  newest episode id advanced again (83757916 to 83768597) and its score moved for the first time in seven
+  checks (423.5 to 443.1). The "stopped being scheduled" diagnosis was right about the moment it was checked
+  but wrong to generalize as a stable end state; it was a temporary scheduling gap, not a permanent one. Folded
+  into `docs/writeup/offline_ladder_transfer.md` as a direct follow-on paragraph to the original finding: a
+  diagnosis confirmed six times in a row can still need revising on the seventh, and the correction uses the
+  same discipline (check the concrete signal again) rather than either assuming permanence or distrusting the
+  original check.
 
 ---
 

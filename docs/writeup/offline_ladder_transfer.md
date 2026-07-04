@@ -245,6 +245,20 @@ proxy-ring story above at a much smaller scale: an unverified explanation that
 sounded reasonable was allowed to stand for several iterations before someone
 checked it against a concrete, checkable signal instead of repeating it.
 
+A correction to that finding followed almost immediately, and is itself
+worth recording: on the next board check after six unchanged reads, the same
+ref's newest episode id had advanced again (from the frozen 83757916 to
+83768597), and its score moved for the first time (423.5 to 443.1). The
+"stopped being scheduled" diagnosis had been correct about what was happening
+at the time, but wrong about permanence; it described a temporary scheduling
+gap, not a stable end state for that submission. The lesson is one level up
+from the one above: verifying an explanation against a concrete signal makes
+the explanation trustworthy at the moment it is checked, not trustworthy
+forever. A diagnosis that has held for six checks in a row can still need
+revising on the seventh, and the fix is the same discipline applied again
+(re-check the concrete signal) rather than either assuming permanence or
+distrusting the original check.
+
 ## A parallel thread: category mining converges on archetype awareness, and a gate closes it
 
 Attempt 2's move-ranking validator did not just surface the ABILITY blind spot;

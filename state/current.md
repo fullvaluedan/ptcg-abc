@@ -19,7 +19,7 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 ## Kings
 
 - **shadow-king** (best live build): heuristic+trolley-ability (ref 54315802, ladder n/a (ring-gated, not ladder-gated per L9))
-- **reclaim-king** (safe floor): heuristic+trolley (ref 54315565, ladder 423.5)
+- **reclaim-king** (safe floor): heuristic+trolley (ref 54315565, ladder 443.1)
 
 ## Candidates awaiting a ladder slot
 
@@ -132,6 +132,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 423.5 | 0 | Board check 2026-07-04: 423.5 (unchanged reading, FIFTH check in a row at this exact value). Re-verified with tools/scout.py episodes: newest completed episode id is still 83757916, identical to the prior check, confirming the earlier staleness diagnosis is holding rather than a one-off. Still a valid safe floor. |
 | heuristic+trolley-ability (floor restoration) | n/a | n/a | 593.4 | 0 | Board check 2026-07-04: 593.4 (drifted from 584.7). Within the v2 pooled range (396.7-691.5), no new low/high. tools/scout.py episodes confirms it is still actively playing (newest episode 83764623, up from 83763012 last check). Ring-gated per L9; no action taken. |
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 423.5 | 0 | Board check 2026-07-04: 423.5 (unchanged reading, SIXTH check in a row at this exact value). Re-verified with tools/scout.py episodes: newest completed episode id is still 83757916, identical to every prior check. Staleness diagnosis now confirmed stable across six consecutive checks; folded into docs/writeup/offline_ladder_transfer.md as a small methodology-discipline finding. |
+| heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04: 443.1 (up from 423.5, first movement after six consecutive unchanged reads). Re-verified with tools/scout.py episodes: newest completed episode id is now 83768597, up from the long-frozen 83757916 -- this OVERTURNS the prior staleness diagnosis ("stopped being scheduled for new matches"). The submission has resumed playing new games; the earlier six-check freeze was a temporary scheduling gap, not a permanent state. Still within the v2 pooled range (396.7-691.5), no new low/high. |
+| heuristic+trolley-ability (floor restoration) | n/a | n/a | 603.3 | 0 | Board check 2026-07-04: 603.3 (up from 593.4). Within the v2 pooled range (396.7-691.5), no new low/high. tools/scout.py episodes confirms it is still actively playing (newest episode 83768225, up from 83764623 last check). Ring-gated per L9; no action taken. |
 
 ```json STATE
 {
@@ -169,9 +171,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "source": "analysis/final_scoring_semantics.md"
   },
   "in_flight": {
-    "board_reading": "593.4/423.5 (unchanged since the prior check; see per-build ledger)",
+    "board_reading": "603.3/443.1 (both moved this check; king-copy staleness diagnosis overturned, see per-build ledger)",
     "build": "none (TRACK L HOLDS)",
-    "note": "Board-checked (kaggle competitions submissions): both tracked refs read exactly unchanged from the prior iteration (54315802 ability-floor 593.4, 54315565 king-copy 423.5), an eighth consecutive check with no new information, so this iteration's real work went to TRACK S instead of another board-check-only commit. Closed the last open CEM/PRIO re-test condition (c) directly rather than repeating the writeup-fold pattern: extended analysis/measure_cem_gradient.py to score against the U83 teacher-labels held-out split (new --teacher-labels/--split flags, tests/test_measure_cem_gradient.py extended with 3 new tests), ran it for real against the same 10689-decision test split the three prior CEM sweeps blocked on, and found the genome non-flat but already peaked at the shipped default on every load-bearing dim (analysis/cem_gradient_condition_c.md). This fully closes state/hypotheses.md's cem_prio_agreement_generalizes (all of conditions a, b, c now exhausted) with a mechanistic explanation, not just a fourth failed sweep. PLAN FREEZE remains in effect through 2026-08-16; this was a diagnostic check of an already-named re-open condition, not a new plan or unit. NEXT: continue board-checking for a reading outside the 396.7-691.5 pooled range; the CEM/PRIO lever needs a genuinely new weight-space region (not this genome) before any further sweep is worth running; the writeup and 2026-08-10/16 endgame campaign remain the next scheduled TRACK S/L items.",
+    "note": "Board-checked (kaggle competitions submissions): both tracked refs moved this iteration (54315802 ability-floor 593.4 -> 603.3, 54315565 king-copy 423.5 -> 443.1). The king-copy move is the notable event: it had read exactly 423.5 for six consecutive checks and tools/scout.py episodes had confirmed its newest episode id was frozen at 83757916 across all six, leading to a recorded \"stopped being scheduled\" staleness diagnosis. This check's episode query shows newest id 83768597, well past the old freeze point, so the submission resumed playing. This OVERTURNS the permanence of the prior diagnosis: the freeze was temporary, not a stable submission-lifecycle state as the last several notes concluded. Corrected reclaim_king's note accordingly and will fold the correction into docs/writeup/offline_ladder_transfer.md next writeup pass (not due yet this iteration, five commits since the last writeup-cadence commit 78abc2c, cadence is roughly every 6th). Both readings remain inside the v2 pooled range (396.7-691.5), no new low/high, no PENDING, no change in slot composition. Per L9(c)/(d) TRACK L continues to genuinely HOLD; no new submission spent. No TRACK S coded unit is due (comprehension track fully shipped, U92 closed FAIL, CEM/PRIO conditions a/b/c all exhausted, PLAN FREEZE through 2026-08-16).",
     "ref": "n/a"
   },
   "ledger": [
@@ -597,6 +599,24 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "oracle": "n/a",
       "ref": "54315565",
       "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley (king-copy revert, 2026-07-04)",
+      "ladder": 443.1,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04: 443.1 (up from 423.5, first movement after six consecutive unchanged reads). Re-verified with tools/scout.py episodes: newest completed episode id is now 83768597, up from the long-frozen 83757916 -- this OVERTURNS the prior staleness diagnosis (\"stopped being scheduled for new matches\"). The submission has resumed playing new games; the earlier six-check freeze was a temporary scheduling gap, not a permanent state. Still within the v2 pooled range (396.7-691.5), no new low/high.",
+      "oracle": "n/a",
+      "ref": "54315565",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-ability (floor restoration)",
+      "ladder": 603.3,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04: 603.3 (up from 593.4). Within the v2 pooled range (396.7-691.5), no new low/high. tools/scout.py episodes confirms it is still actively playing (newest episode 83768225, up from 83764623 last check). Ring-gated per L9; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315802",
+      "sample_size": 0
     }
   ],
   "loss_distribution": {
@@ -670,8 +690,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
   ],
   "reclaim_king": {
     "build": "heuristic+trolley",
-    "ladder": "423.5",
-    "note": "Board check 2026-07-04: 423.5 (unchanged for a SIXTH consecutive check now). Re-verified: tools/scout.py episodes 54315565 shows this ref's newest completed episode is still 83757916, identical to every prior check, confirming the staleness diagnosis (submission has stopped being scheduled for new matches) is stable, not a one-off. Still a valid safe-floor build (byte-identical heuristic+trolley), just no longer accumulating fresh games. This finding is now folded into docs/writeup/offline_ladder_transfer.md.",
+    "ladder": "443.1",
+    "note": "Board check 2026-07-04: 443.1 (resumed movement after six unchanged reads at 423.5). CORRECTION to the prior staleness diagnosis: tools/scout.py episodes 54315565 now shows newest completed episode 83768597, well past the previously-frozen 83757916, so the submission has resumed being scheduled for new matches. The earlier finding (\"stable, not a one-off\") is now known to be a temporary scheduling gap rather than a permanent freeze; this correction is folded into docs/writeup/offline_ladder_transfer.md alongside the original staleness note. Still a valid safe-floor build (byte-identical heuristic+trolley).",
     "ref": "54315565"
   },
   "reconciliation": {
@@ -693,7 +713,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
   "shadow_king": {
     "build": "heuristic+trolley-ability",
     "ladder": "n/a (ring-gated, not ladder-gated per L9)",
-    "note": "Per the 2026-07-04 noise recalibration, ladder board reads no longer confirm or refute this build (same-build spread ~396.7-691.5 swamps M=60). The ability build is kept as shadow-king on RING evidence (calibrated bracket ring, tau 0.857, ability +20pp, analysis/ability_ring_check.md), not on the previously-recorded 561.1 ladder WIN (now understood as a noise artifact, findings.md 4D). Board check 2026-07-04: this iteration's reading is 593.4 (drifted from 584.7), still ring-gated not ladder-gated, no action; tools/scout.py episodes confirms it is still actively playing (newest episode 83764623, up from 83763012 last check). RE-CHECKED 2026-07-04 (gauntlet side, LOOP_BRIEF.md L1 process-global-confound caveat, tools/measure_ability_isolated.py): the offline gauntlet's original +4.0pp point estimate is itself noise-dominated (isolated-arm diff_pp +2.5/-0.5/-1.3 across three runs, mean +0.2, no stable sign), independent of the mirror-match confound. RE-CHECKED 2026-07-04 (ring side, analysis/ability_ring_confound_check.md): the ring's clone:<family> opponents (_clone_opponent) never call heuristics.choose() and so never read _ABILITY at all (code-traced and regression-tested, tests/test_opponents.py::test_clone_opponent_ignores_ability_flag_never_reads_it); the ring's +20.0pp was already a genuinely one-sided measurement, unlike the gauntlet's +4.0pp, and needed no deconfounding. Net: ring evidence remains clean and remains the decision gate for the shadow-king disposition.",
+    "note": "Per the 2026-07-04 noise recalibration, ladder board reads no longer confirm or refute this build (same-build spread ~396.7-691.5 swamps M=60). The ability build is kept as shadow-king on RING evidence (calibrated bracket ring, tau 0.857, ability +20pp, analysis/ability_ring_check.md), not on the previously-recorded 561.1 ladder WIN (now understood as a noise artifact, findings.md 4D). Board check 2026-07-04: this iteration's reading is 593.4 (drifted from 584.7), still ring-gated not ladder-gated, no action; tools/scout.py episodes confirms it is still actively playing (newest episode 83764623, up from 83763012 last check). RE-CHECKED 2026-07-04 (gauntlet side, LOOP_BRIEF.md L1 process-global-confound caveat, tools/measure_ability_isolated.py): the offline gauntlet's original +4.0pp point estimate is itself noise-dominated (isolated-arm diff_pp +2.5/-0.5/-1.3 across three runs, mean +0.2, no stable sign), independent of the mirror-match confound. RE-CHECKED 2026-07-04 (ring side, analysis/ability_ring_confound_check.md): the ring's clone:<family> opponents (_clone_opponent) never call heuristics.choose() and so never read _ABILITY at all (code-traced and regression-tested, tests/test_opponents.py::test_clone_opponent_ignores_ability_flag_never_reads_it); the ring's +20.0pp was already a genuinely one-sided measurement, unlike the gauntlet's +4.0pp, and needed no deconfounding. Net: ring evidence remains clean and remains the decision gate for the shadow-king disposition. Board check 2026-07-04 (this iteration): reading is 603.3 (up from 593.4), still ring-gated not ladder-gated, no action; tools/scout.py episodes confirms continued active play (newest episode 83768225, up from 83764623).",
     "ref": "54315802"
   },
   "tag_coverage": {
