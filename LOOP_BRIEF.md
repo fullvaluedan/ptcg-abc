@@ -3,8 +3,48 @@
 You are working UNATTENDED in the ptcg-abc repo, invoked once per iteration by a shell driver.
 Do ONE increment, then STOP. Full autonomy authorized.
 
-SOURCE OF TRUTH: docs/plans/2026-07-02-combined-learned-eval-plan-v2.md
-Read it fully before doing anything.
+SOURCE OF TRUTH for the CURRENT regime: the POSTURE INVERSION block directly below, then the TWO TRACKS
+resume state. The 2026-07-02 combined v2 plan is fully executed (historical reference only).
+
+## POSTURE INVERSION (2026-07-05, verified from the competition's own rules pages; SUPERSEDES any
+## conflicting text below, including every "variance harvest", "keep the luckiest draw", "stop_target",
+## M=60 settlement, and single-read WIN/LOSS narrative)
+Verified live from the Simulation overview: after the Aug 16 lock, Kaggle CONTINUES running games from
+Aug 17 to ~Aug 31 "until the leaderboard has reached convergence", and only then is the leaderboard final.
+So a lucky score snapshot harvested before the deadline DECAYS toward true skill: the luck-harvest endgame
+is DEAD. Verified from the Strategy hackathon pages: eight $30,000 prizes, ~151 submitting teams so far,
+ONE Kaggle Writeup per team (max 2000 words, submitted via the site, drafts do not count), entry/team-merger
+deadline Sep 6, submit by Sep 13 11:59PM UTC, judged 70% model approach / 20% deck / 10% report, leaderboard
+rank is ONE bullet of five inside the 70%, lower-tier teams can win per the page itself, and the Simulation
+track pays $0. THEREFORE:
+P1. TRACK S (the Strategy writeup + the honest-methods story) is the PRIMARY EV line. Writeup milestones:
+    conform ONE writeup to the real format (2000 words, title/subtitle, Track, self-made figures only, no
+    Pokemon artwork, nothing attached we cannot publish), full draft by Aug 20, SUBMITTED by Sep 10.
+P2. TRUE STRENGTH is the only rank lever that survives convergence. U39 DECK EXPLORATION is authorized and
+    is the top offline build priority: mine 800+ rated decklists from the episode dumps, cluster the
+    dominant archetypes, REBUILD the ring's opponent pool from those decks, recalibrate (tau >= 0.7), and
+    only then evaluate deck candidates. Do NOT ladder-test any deck before the rebuilt ring calibrates.
+P3. The Aug 10-16 window becomes LOCK-THE-STRONGEST-PAIR, executed EARLY (by Aug 12-13 so the pair accrues
+    convergence episodes): two copies of the genuinely strongest build (or a within-margin hedge pair).
+    Retire tools/endgame_stopping.py stop_target 611.6 as a decision rule. Ops guards: every campaign
+    tarball passes tests/test_grader_submission.py before upload; confirm COMPLETE before any next roll;
+    after Aug 13 submit nothing that has not already scored COMPLETE under an identical hash (a dead ERROR
+    locked into the final pair is unrecoverable).
+P4. MEASUREMENT: no lever settles from single ladder reads (M refit 240). Fresh reads are inflated vs aged
+    reads: run the age-stratified refit (family means on <48h vs >72h reads) and re-derive the true king
+    estimate from AGED reads before choosing the locked pair. The rebuilt ring is the decision gate.
+P5. USAGE ECONOMY: gate board checks on the newest episode id advancing (tools/scout.py), max 2-4/day; no
+    iteration spent logging an unchanged board; reserve usage headroom for Aug 10-16 and the writeup.
+P6. RULES/COMPLIANCE standing: keep the repo publishable (MIT open-source obligation if we win covers
+    training + inference + reproduction docs); never commit competition card data or Pokemon assets; delete
+    competition data at competition end; episode-dump mining is compliant (rules 2.11 + external-data
+    clause) but dumps stay team-private. One open rules conflict: Simulation Rules 2.2.b says teams "may
+    select up to two Final Submissions" while the overview/FAQ say latest-2-auto; Dan checks the logged-in
+    Submissions page for a selection UI before August (if selection exists, eviction risk relaxes).
+Near-term queue (one unit per iteration): (1) analysis/strategy_prize_rules.md verbatim record, (2) the
+age-stratified refit, (3) daily leaderboard snapshot into data/leaderboard_cache (median/percentile drift
+series), (4) U39 deck mining step 1, (5) board-check gating in the watchdog layer, (6) writeup conformance
+pass, (7) supersession flags on stale M=60/WIN text in state/current.md and below in this file.
 
 ## RESUME STATE (2026-07-03): TWO TRACKS. Do not conflate them.
 An audit found the loop had been optimizing an agent that does NOT ship: the shipped ladder agent is
@@ -329,7 +369,9 @@ the feature set before Phase B.
 ## SUBMISSION (protect the scarce resource)
 - At most ONE Kaggle submission per iteration, only if the new agent MEASURABLY beats the current best,
   respecting the 5/day quota. Board-check FIRST: .venv/Scripts/kaggle.exe competitions submissions -c
-  pokemon-tcg-ai-battle. Never resubmit a build already on the ladder. Keep the ledger in autoloop_status.md.
+  pokemon-tcg-ai-battle. Resubmission of an EXISTING build is allowed for floor maintenance and the P3
+  lock-the-strongest-pair operation (it is the mechanism); what stays forbidden is submitting a NEW lever
+  without its pre-registration and gates. Keep the ledger in autoloop_status.md.
 - search/eval.py and the Phase B search upgrades feed agent_search, which is NOT the shipped ladder agent
   (agent_heuristic ships; search has been ladder-negative, 514.7 vs 569.6). So these units improve the OFFLINE
   search and the Strategy writeup (70% of the Strategy score); they only reach the ladder once a search-revival
