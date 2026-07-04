@@ -338,6 +338,18 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   without new offline work. Same recurring pattern as the other writeup-drift findings above: a document
   correctly describes a fact at the moment it is written, then the underlying state moves on without every
   citing document being walked back over.
+- Board-check "identical reading" streak explained, not just dismissed (2026-07-04): the king-copy ref
+  (54315565) had read exactly 423.5 across five consecutive board checks while its sibling scored slot (the
+  ability ref 54315802) kept drifting normally. Earlier board-check notes guessed this was "the leaderboard's
+  re-scoring cadence running slower than our check cadence" without verifying it. Checked directly with
+  `tools/scout.py episodes <ref>`: the king-copy ref's newest completed episode id is 83757916, while the
+  ability ref's newest is 83762365 (about 4400 higher, i.e. meaningfully more recent on the shared, monotonic
+  cross-competition episode id space). The king-copy submission has simply stopped being scheduled for new
+  matches; its score is frozen because no new episodes are landing, not because of a coincidental cadence
+  gap. This is the first time this project recorded episode-id freshness per tracked ref (no prior baseline
+  existed to compare against), so it cannot yet say whether matchmaking is deprioritizing older submissions
+  in favor of newer ones as the deadline approaches, but it gives future board-checks a concrete, checkable
+  signal (compare newest episode id across checks) instead of guessing.
 
 ---
 
