@@ -227,6 +227,24 @@ hard-won noise margin was still wrong and re-point decision authority
 accordingly) together keep a convenient-but-wrong signal from being promoted to
 a decision rule.
 
+The same discipline (check the instrument instead of trusting a convenient guess)
+surfaced once more in routine board-checking. The scored king-copy slot
+(ref 54315565) read an identical 423.5 across six consecutive board checks
+while its sibling scored slot kept drifting normally. The first-pass guess was
+that the leaderboard's re-scoring cadence for that ref had simply fallen out of
+step with the check cadence. That guess was never verified until it had to be
+repeated a fourth time; at that point `tools/scout.py episodes <ref>` was used
+to compare the newest completed episode id per tracked ref, a monotonic counter
+shared across the whole competition. The frozen ref's newest episode id had not
+moved at all across six checks, while the sibling ref's kept climbing (roughly
+2200 higher at the time of the check, later confirmed still climbing on a
+seventh check). The submission had simply stopped being scheduled for new
+matches; the frozen score is a mechanical consequence of that, not a scoring
+lag. This is a small finding on its own, but it is the same pattern as the
+proxy-ring story above at a much smaller scale: an unverified explanation that
+sounded reasonable was allowed to stand for several iterations before someone
+checked it against a concrete, checkable signal instead of repeating it.
+
 ## A parallel thread: category mining converges on archetype awareness, and a gate closes it
 
 Attempt 2's move-ranking validator did not just surface the ABILITY blind spot;

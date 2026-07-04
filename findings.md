@@ -363,6 +363,10 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   the "too subtle" verdict.
 - Standing decisions: one loop only (rank is quota/slot/noise-bound, parallel loops cannot buy rank); the
   bracket ring is the only calibrated gate; the Aug 10-16 endgame noise campaign is booked.
+- 2026-07-04: the episode-freshness staleness diagnosis (4D) reconfirmed stable across six consecutive
+  board checks (frozen ref's newest episode id never advances while its sibling keeps climbing); folded into
+  docs/writeup/offline_ladder_transfer.md as a small measurement-discipline paragraph alongside the noise-
+  model correction story, since both are instances of verifying a repeated explanation instead of repeating it.
 
 ---
 
