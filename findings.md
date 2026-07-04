@@ -367,6 +367,13 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   diagnosis confirmed six times in a row can still need revising on the seventh, and the correction uses the
   same discipline (check the concrete signal again) rather than either assuming permanence or distrusting the
   original check.
+- Both tracked refs frozen on the SAME check for the first time (2026-07-04): the ability-floor ref (54315802)
+  and the king-copy ref (54315565) both read exactly their prior values (603.3 / 443.1) with `tools/scout.py
+  episodes` confirming neither played a new game since the last check (newest episode ids unchanged for both:
+  83768225 and 83768597). Every prior freeze episode affected only one ref at a time while its sibling kept
+  drifting; a simultaneous freeze of both is more consistent with a temporary platform-wide scheduling lull
+  than a per-submission issue, but one check is not enough to conclude that, only to flag it as a signal worth
+  distinguishing from the earlier per-ref pattern on the next check.
 
 ---
 

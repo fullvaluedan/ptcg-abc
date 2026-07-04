@@ -134,6 +134,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 423.5 | 0 | Board check 2026-07-04: 423.5 (unchanged reading, SIXTH check in a row at this exact value). Re-verified with tools/scout.py episodes: newest completed episode id is still 83757916, identical to every prior check. Staleness diagnosis now confirmed stable across six consecutive checks; folded into docs/writeup/offline_ladder_transfer.md as a small methodology-discipline finding. |
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04: 443.1 (up from 423.5, first movement after six consecutive unchanged reads). Re-verified with tools/scout.py episodes: newest completed episode id is now 83768597, up from the long-frozen 83757916 -- this OVERTURNS the prior staleness diagnosis ("stopped being scheduled for new matches"). The submission has resumed playing new games; the earlier six-check freeze was a temporary scheduling gap, not a permanent state. Still within the v2 pooled range (396.7-691.5), no new low/high. |
 | heuristic+trolley-ability (floor restoration) | n/a | n/a | 603.3 | 0 | Board check 2026-07-04: 603.3 (up from 593.4). Within the v2 pooled range (396.7-691.5), no new low/high. tools/scout.py episodes confirms it is still actively playing (newest episode 83768225, up from 83764623 last check). Ring-gated per L9; no action taken. |
+| heuristic+trolley-ability (floor restoration) | n/a | n/a | 603.3 | 0 | Board check 2026-07-04: 603.3 (unchanged reading from the prior check, matches exactly). tools/scout.py episodes confirms newest episode id is still 83768225, identical to the prior check (no new games played by this ref since last check). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action taken. |
+| heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04: 443.1 (unchanged reading from the prior check, matches exactly). tools/scout.py episodes confirms newest episode id is still 83768597, identical to the prior check (no new games played by this ref since last check either). Within the v2 pooled range (396.7-691.5), no new low/high. Both tracked refs are simultaneously static this check (same score AND same newest episode id as last time), unlike the earlier single-ref freeze episode; one static check is not enough to call this a new staleness pattern, just note it and re-check next iteration. Plain king-copy floor; no action taken. |
 
 ```json STATE
 {
@@ -171,9 +173,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "source": "analysis/final_scoring_semantics.md"
   },
   "in_flight": {
-    "board_reading": "603.3/443.1 (both moved this check; king-copy staleness diagnosis overturned, see per-build ledger)",
+    "board_reading": "603.3/443.1 (both unchanged from the prior check; first simultaneous freeze of both tracked refs)",
     "build": "none (TRACK L HOLDS)",
-    "note": "Board-checked (kaggle competitions submissions): both tracked refs moved this iteration (54315802 ability-floor 593.4 -> 603.3, 54315565 king-copy 423.5 -> 443.1). The king-copy move is the notable event: it had read exactly 423.5 for six consecutive checks and tools/scout.py episodes had confirmed its newest episode id was frozen at 83757916 across all six, leading to a recorded \"stopped being scheduled\" staleness diagnosis. This check's episode query shows newest id 83768597, well past the old freeze point, so the submission resumed playing. This OVERTURNS the permanence of the prior diagnosis: the freeze was temporary, not a stable submission-lifecycle state as the last several notes concluded. Corrected reclaim_king's note accordingly and will fold the correction into docs/writeup/offline_ladder_transfer.md next writeup pass (not due yet this iteration, five commits since the last writeup-cadence commit 78abc2c, cadence is roughly every 6th). Both readings remain inside the v2 pooled range (396.7-691.5), no new low/high, no PENDING, no change in slot composition. Per L9(c)/(d) TRACK L continues to genuinely HOLD; no new submission spent. No TRACK S coded unit is due (comprehension track fully shipped, U92 closed FAIL, CEM/PRIO conditions a/b/c all exhausted, PLAN FREEZE through 2026-08-16).",
+    "note": "Board-checked (kaggle competitions submissions): both tracked refs read exactly the same as the prior check (54315802 ability-floor 603.3, 54315565 king-copy 443.1). Verified with tools/scout.py episodes that this is a real freeze, not just a coincidental score match: newest completed episode id is unchanged for BOTH refs (ability 83768225, king-copy 83768597), meaning neither played a new game since the last check. This differs from the earlier single-ref staleness episode (which was later overturned) in that both refs are frozen together this time, which is more consistent with a temporary platform-wide scheduling lull than a per-submission issue. One check is not enough to diagnose a cause; re-check episode ids next iteration before drawing any conclusion. Both readings remain inside the v2 pooled range (396.7-691.5), no new low/high, no PENDING, no change in slot composition. Per L9(c)/(d) TRACK L continues to genuinely HOLD; no new submission spent. No TRACK L build is awaiting a slot. No TRACK S coded unit is due (comprehension track fully shipped, U92 closed FAIL, CEM/PRIO conditions a/b/c all exhausted; writeup cadence is 2 commits past the last full pass at 78abc2c, not yet at the roughly-every-6th threshold). PLAN FREEZE remains in effect through 2026-08-16.",
     "ref": "n/a"
   },
   "ledger": [
@@ -616,6 +618,24 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "note": "Board check 2026-07-04: 603.3 (up from 593.4). Within the v2 pooled range (396.7-691.5), no new low/high. tools/scout.py episodes confirms it is still actively playing (newest episode 83768225, up from 83764623 last check). Ring-gated per L9; no action taken.",
       "oracle": "n/a",
       "ref": "54315802",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-ability (floor restoration)",
+      "ladder": 603.3,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04: 603.3 (unchanged reading from the prior check, matches exactly). tools/scout.py episodes confirms newest episode id is still 83768225, identical to the prior check (no new games played by this ref since last check). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315802",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley (king-copy revert, 2026-07-04)",
+      "ladder": 443.1,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04: 443.1 (unchanged reading from the prior check, matches exactly). tools/scout.py episodes confirms newest episode id is still 83768597, identical to the prior check (no new games played by this ref since last check either). Within the v2 pooled range (396.7-691.5), no new low/high. Both tracked refs are simultaneously static this check (same score AND same newest episode id as last time), unlike the earlier single-ref freeze episode; one static check is not enough to call this a new staleness pattern, just note it and re-check next iteration. Plain king-copy floor; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315565",
       "sample_size": 0
     }
   ],
