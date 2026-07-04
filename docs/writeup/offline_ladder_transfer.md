@@ -273,6 +273,18 @@ means resolved at the moment it was checked, not resolved permanently; the
 concrete signal (newest episode id per ref) has to be re-checked every time,
 not assumed to hold just because it held once before.
 
+The king-copy ref's second freeze (443.1, starting after the 423.5/443.1
+transition above) ran for ten consecutive board checks before this section was
+last updated, longer than its own first freeze (six checks) and longer than
+the ability-floor ref's one observed freeze (six checks, then resumed). There
+is no evidence yet of a fixed or predictable freeze length for either ref;
+each quiet period has so far ended up a different duration than the last one
+observed. The operational takeaway is narrow but load-bearing for anyone
+reading a single board check as a signal: a static reading of any length,
+including a fairly long one, is not on its own evidence that a submission has
+permanently stopped scoring, only that it was not scheduled for a new match
+between the two checks being compared.
+
 ## A parallel thread: category mining converges on archetype awareness, and a gate closes it
 
 Attempt 2's move-ranking validator did not just surface the ABILITY blind spot;

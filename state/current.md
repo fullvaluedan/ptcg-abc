@@ -152,6 +152,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to all seven prior checks (same episode id 83768597, unchanged again). Eighth consecutive frozen read; per standing discipline this repeat is not re-logged as a fresh findings.md entry (the decoupled-freeze finding was already recorded last iteration). Still a valid safe-floor build; no action taken. |
 | heuristic+trolley-ability (floor restoration) | n/a | n/a | 602.4 | 0 | Board check 2026-07-04 (this iteration): 602.4, IDENTICAL to the two immediately prior checks (same episode id 83776251). Third consecutive frozen read at this value. Ring-gated per L9; no action taken. |
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to all eight prior checks (same episode id 83768597, unchanged again). Ninth consecutive frozen read; per standing discipline this repeat is not re-logged as a fresh findings.md entry. Still a valid safe-floor build; no action taken. |
+| heuristic+trolley-ability (floor restoration) | n/a | n/a | 602.4 | 0 | Board check 2026-07-04: 602.4 (unchanged, fourth consecutive check at this value; episode id still 83776251). Ring-gated per L9; no action taken. This iteration used the freeze data for a writeup update instead of a repeat findings.md note. |
+| heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04: 443.1 (unchanged, tenth consecutive check; episode id still 83768597). Plain king-copy floor; no action taken. Extended freeze-duration comparison (6 vs 10+ checks) folded into docs/writeup/offline_ladder_transfer.md this iteration. |
 
 ```json STATE
 {
@@ -189,9 +191,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "source": "analysis/final_scoring_semantics.md"
   },
   "in_flight": {
-    "board_reading": "602.4/443.1 (ability-floor ref frozen a third consecutive check; king-copy ref frozen a ninth consecutive check)",
+    "board_reading": "602.4/443.1 (ability-floor frozen a fourth consecutive check; king-copy frozen a tenth consecutive check)",
     "build": "none (TRACK L HOLDS)",
-    "note": "Board-checked (kaggle competitions submissions) and cross-verified with tools/scout.py episodes. ability-floor ref 54315802 unchanged at 602.4, newest episode id still 83776251 (matches the prior two checks exactly). king-copy ref 54315565 unchanged at 443.1, newest episode id still 83768597, extending the freeze to nine consecutive checks. Both repeats sit below the re-log threshold already crossed and documented (findings.md Section 4D, docs/writeup/offline_ladder_transfer.md); no new prose added this iteration. TRACK L holds (no lever awaiting a slot); TRACK S has no coded unit due (comprehension track fully shipped, CEM conditions a/b/c exhausted, writeup last synced 3 commits ago). PLAN FREEZE remains in effect through 2026-08-16.",
+    "note": "Board-checked and cross-verified with tools/scout.py episodes. ability-floor ref 54315802 unchanged at 602.4, newest episode id still 83776251 (matches prior three checks). king-copy ref 54315565 unchanged at 443.1, newest episode id still 83768597, extending its freeze to a tenth consecutive check (longer than its first six-check freeze). Per standing discipline this repeat is not a fresh findings.md entry; instead folded the extended freeze-duration data (first freeze 6 checks, second freeze now 10+ checks, no fixed pattern) into docs/writeup/offline_ladder_transfer.md as writeup-cadence content, since board-check itself produced no new information this iteration. TRACK L holds; TRACK S writeup cadence advanced instead of a placeholder ledger row. PLAN FREEZE remains in effect through 2026-08-16.",
     "ref": "n/a"
   },
   "ledger": [
@@ -794,6 +796,24 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "ladder": 443.1,
       "move_agreement_delta": "n/a",
       "note": "Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to all eight prior checks (same episode id 83768597, unchanged again). Ninth consecutive frozen read; per standing discipline this repeat is not re-logged as a fresh findings.md entry. Still a valid safe-floor build; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315565",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-ability (floor restoration)",
+      "ladder": 602.4,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04: 602.4 (unchanged, fourth consecutive check at this value; episode id still 83776251). Ring-gated per L9; no action taken. This iteration used the freeze data for a writeup update instead of a repeat findings.md note.",
+      "oracle": "n/a",
+      "ref": "54315802",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley (king-copy revert, 2026-07-04)",
+      "ladder": 443.1,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04: 443.1 (unchanged, tenth consecutive check; episode id still 83768597). Plain king-copy floor; no action taken. Extended freeze-duration comparison (6 vs 10+ checks) folded into docs/writeup/offline_ladder_transfer.md this iteration.",
       "oracle": "n/a",
       "ref": "54315565",
       "sample_size": 0
