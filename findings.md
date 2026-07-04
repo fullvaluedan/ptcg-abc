@@ -71,11 +71,16 @@ slot beyond the queued revert, so the loop is running the standing writeup caden
 
 ## 3. The single most important number
 
-Same-build ladder noise is roughly 90 to 130 points. The byte-identical king has scored 452, 507, 534, 558,
-600, 648, and 691 across resubmissions of the same code. Any lever smaller than that band is unresolvable in a
-single A/B, and the 5/day + latest-2 scoring means repeated resubmission of the best build (the Aug 10-16
-endgame campaign) is the cheapest source of rank. Source: `state/current.md` noise model,
-`analysis/final_scoring_semantics.md`.
+Same-build ladder noise is the dominant force, and we under-modeled it. The byte-identical king has scored
+452, 476, 494, 507, 534, 558, 600, 648, and 691 across resubmissions of the SAME code, a spread of ~240 points
+(roughly 120 per side), and a single king ref (54282104) alone drifted 691 to 494 on its own re-reads. That is
+WIDER than the M=60 confirmation margin the settlement protocol used, so a single-read ladder A/B cannot
+confirm ANY lever we can build: every real improvement is smaller than the noise. Consequences, adopted
+2026-07-04 (see 4D, noise recalibration): the calibrated bracket ring (tau 0.857), not the ladder, is the
+lever DECISION gate; the recorded "ability WIN" was reclassified a noise artifact; and because 5/day +
+latest-2 scoring lets us keep the luckiest draw, repeated resubmission of the best build (the Aug 10-16 endgame
+variance campaign) is the PRIMARY source of rank, ahead of any build improvement. Source: `state/current.md`
+noise model, `LOOP_BRIEF.md` L9, `analysis/final_scoring_semantics.md`.
 
 ---
 
