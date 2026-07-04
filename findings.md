@@ -303,12 +303,15 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
 - The comprehension track (U90-U94) is fully shipped. Its other candidate, attack-first, SETTLED NEUTRAL on
   the ladder at n=1 read (both offline gates passed, +5.5pp gauntlet / +10.0pp ring); per the noise
   recalibration this NEUTRAL read is itself low-confidence evidence, not a refutation of the ring-gated
-  offline result. A plain king-copy revert for that slot was submitted 2026-07-04 (ref 54315565, before the
-  recalibration correction landed); next quota window the plan is to resubmit the ability build instead so the
-  ring-preferred floor is what actually occupies the scored slot, then hold per the new rules. The
-  CEM/genome-tuning line is closed on all three re-test conditions (Section 4B). No further TRACK L unit is
-  defined without a plan review (freeze through 2026-08-16); ladder submissions are now for floor maintenance
-  and the 2026-08-10/16 endgame variance-harvest campaign only.
+  offline result. A plain king-copy revert for that slot was submitted 2026-07-04 (ref 54315565, settled
+  COMPLETE 476.1) before the recalibration correction landed. FLOOR RESTORED 2026-07-04: this iteration
+  resubmitted the ability build (ref 54315802, PENDING, same tarball as 54282097) into that slot so the
+  ring-preferred build occupies the scored slot instead of a plain king copy, per the new rules; this is floor
+  maintenance, not a fresh ladder A/B, and carries no new pre-registration. The CEM/genome-tuning line is
+  closed on all three re-test conditions (Section 4B). No further TRACK L unit is defined without a plan
+  review (freeze through 2026-08-16); ladder submissions are now for floor maintenance and the 2026-08-10/16
+  endgame variance-harvest campaign only. TRACK L now HOLDS: no further submission is planned until the board
+  drifts off the ring-preferred build or the endgame campaign opens.
 - TRACK S: the offline ML stack and the writeup, assembled continuously; this is now the default per-iteration
   action whenever TRACK L has no build awaiting a slot.
 - Honest outlook: #1 is off the table. Realistic ladder landing with the fixes is the median band

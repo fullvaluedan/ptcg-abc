@@ -18,7 +18,7 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Kings
 
-- **shadow-king** (best live build): heuristic+trolley-ability (ref 54282097, ladder 561.1)
+- **shadow-king** (best live build): heuristic+trolley-ability (ref 54315802, ladder n/a (ring-gated, not ladder-gated per L9))
 - **reclaim-king** (safe floor): heuristic+trolley (ref 54282104, ladder 494.8)
 
 ## Candidates awaiting a ladder slot
@@ -100,7 +100,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley-ability | n/a | n/a | 561.1 | 0 | SETTLED WIN 2026-07-04: 561.1 vs reclaim king 494.8 (ref 54282104), +66.3pp, clears the M=60 WIN threshold. Promoted to shadow-king. Evicted from the tracked latest-2 in the same iteration by the attack_first submission (54304483); 561.1 is its final frozen reading. |
 | heuristic+trolley-attack_first | n/a | n/a | PENDING | 0 | U93 step 3 SUBMITTED into the slot the ability WIN settlement freed. See pre_registrations and in_flight for the settle protocol. |
 | heuristic+trolley-attack_first (repeat) | n/a | n/a | SETTLED NEUTRAL | 3 | BAND repeat resubmission (ref 54304681), byte-identical to ref 54304483. Board readings drifted to mixed sign (442.9 vs 600.0 vs king 494.8). U23 scoreboard settlement (analysis/attack_first_settlement.md): 3 shared brackets, candidate 1/3 (0.333) vs king 4/6 (0.667), confidence 0.171, favors_candidate=false, verdict neutral. Slot reverts to a king copy, queued for submission next iteration (quota exhausted for 2026-07-03 UTC). |
-| heuristic+trolley (king-copy revert) | n/a | n/a | PENDING | 0 | L9 revert SUBMITTED (ref 54315565) once the daily quota reset past ~00:00 UTC 2026-07-04 (real clock confirmed 2026-07-04 02:39 UTC before submitting). Byte-identical heuristic+trolley king copy, reverting the slot per the attack_first build's own pre-registered BAND->NEUTRAL action (analysis/attack_first_settlement.md). Evicts refs 54304483/54304681 from the tracked latest-2 once this clears PENDING. |
+| heuristic+trolley (king-copy revert) | n/a | n/a | 476.1 | 0 | King-copy revert for the settled-NEUTRAL attack_first slot. SETTLED COMPLETE 476.1 (same-build drift, well within the now-corrected ~452-691 spread). Superseded this iteration: evicted from the tracked latest-2 by the ability-build floor restoration (ref 54315802) per the L9 noise-recalibration correction (ladder reads no longer gate lever decisions; the ring does). |
+| heuristic+trolley-ability (floor restoration) | n/a | n/a | PENDING | 0 | SUBMITTED per the L9 noise-recalibration correction: restores the ring-preferred floor (ability +20pp on the calibrated bracket ring) into the scored slot instead of a plain king copy. Same tarball as ref 54282097. Floor maintenance, not a new ladder A/B; no pre-registration added. |
 
 ```json STATE
 {
@@ -139,9 +140,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
   },
   "in_flight": {
     "board_reading": "n/a",
-    "build": "heuristic+trolley (king-copy revert, ref 54315565) -- SUPERSEDED BY A CORRECTION, see note",
-    "note": "A plain king-copy revert (ref 54315565, PENDING) was submitted this iteration for the settled-NEUTRAL attack_first slot, BEFORE discovering that LOOP_BRIEF.md's L9 was corrected mid-iteration by a NOISE RECALIBRATION (commit 72d79bd, landed between this iteration's start and its submission): the observed same-build spread is ~452-691 (wider than the U22 model's ~90-130), so M=60 single-read ladder A/Bs cannot confirm any lever; the 'ability WIN' (561.1 vs 494.8) is reclassified as a noise artifact, not proof. New standing rule: the calibrated bracket ring (tau 0.857), not the ladder board, is the lever decision gate; the ring-preferred floor (heuristic+trolley-ability, ring +20pp) should occupy the scored slot instead of a plain king copy; ladder submissions are now for floor maintenance and the 2026-08-10/16 endgame campaign only. Per the one-submission-per-iteration rule this iteration's slot was already spent on the plain-king-copy revert before the correction was seen, so it was not re-done. NEXT quota window: submit heuristic+trolley-ability (submission_trolley_ability.tar.gz, the same build as ref 54282097) into this slot to restore the ring-preferred floor, then HOLD per the new rules (no further single-read ladder A/Bs on sub-band levers). See findings.md 4D and Section 6 for the full correction writeup.",
-    "ref": "54315565 (plain king copy, to be superseded next window by the ability build per the noise-recalibration correction)"
+    "build": "heuristic+trolley-ability (floor restoration, ref 54315802)",
+    "note": "SUBMITTED this iteration per the L9 noise-recalibration correction: the ability build (same tarball as ref 54282097) resubmitted into the slot the settled-NEUTRAL attack_first king-copy revert (ref 54315565, COMPLETE 476.1) occupied, restoring the ring-preferred floor (ability +20pp on the calibrated bracket ring, analysis/ability_ring_check.md) instead of a plain king copy. This is FLOOR MAINTENANCE, not a new ladder A/B: no pre-registration row added, per rule L9(c)/(d) (stop spending scored slots to confirm sub-band levers via single-read ladder A/Bs; the calibrated ring is the lever decision gate now). Grader test re-verified green (test_grader_submission.py[heuristic-trolley-ability]) immediately before submit. Tracked latest-2 once this clears PENDING: [54315802 ability restore, 54282104 reclaim-king]. Per the new standing rules, TRACK L now HOLDS: no further ladder submissions are planned until either a floor needs re-maintaining or the 2026-08-10/16 endgame variance-harvest campaign begins. Next iterations should default to TRACK S (writeup cadence) unless the board shows a slot has drifted off a ring-preferred build.",
+    "ref": "54315802"
   },
   "ledger": [
     {
@@ -281,11 +282,20 @@ _none calibrated; every proxy gate is refused (default-deny)_
     },
     {
       "build": "heuristic+trolley (king-copy revert)",
-      "ladder": "PENDING",
+      "ladder": 476.1,
       "move_agreement_delta": "n/a",
-      "note": "L9 revert SUBMITTED (ref 54315565) once the daily quota reset past ~00:00 UTC 2026-07-04 (real clock confirmed 2026-07-04 02:39 UTC before submitting). Byte-identical heuristic+trolley king copy, reverting the slot per the attack_first build's own pre-registered BAND->NEUTRAL action (analysis/attack_first_settlement.md). Evicts refs 54304483/54304681 from the tracked latest-2 once this clears PENDING.",
+      "note": "King-copy revert for the settled-NEUTRAL attack_first slot. SETTLED COMPLETE 476.1 (same-build drift, well within the now-corrected ~452-691 spread). Superseded this iteration: evicted from the tracked latest-2 by the ability-build floor restoration (ref 54315802) per the L9 noise-recalibration correction (ladder reads no longer gate lever decisions; the ring does).",
       "oracle": "n/a",
       "ref": "54315565",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-ability (floor restoration)",
+      "ladder": "PENDING",
+      "move_agreement_delta": "n/a",
+      "note": "SUBMITTED per the L9 noise-recalibration correction: restores the ring-preferred floor (ability +20pp on the calibrated bracket ring) into the scored slot instead of a plain king copy. Same tarball as ref 54282097. Floor maintenance, not a new ladder A/B; no pre-registration added.",
+      "oracle": "n/a",
+      "ref": "54315802",
       "sample_size": 0
     }
   ],
@@ -382,9 +392,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
   },
   "shadow_king": {
     "build": "heuristic+trolley-ability",
-    "ladder": "561.1",
-    "note": "WIN settled 2026-07-04 (board check): candidate 561.1 vs reclaim-king 494.8 (ref 54282104), diff +66.3pp, clears the M=60 WIN threshold on the standing instant-settlement rule (tools/loop_state.py auto-settle). Promoted per its own pre-registration's WIN action. Reading is now FROZEN: submitting heuristic+trolley-attack_first (ref 54304483) into the other slot this same iteration evicted 54282097 from the tracked latest-2 (it was the older of the two live submissions by 28s), so this is its last live board reading, not an ongoing one.",
-    "ref": "54282097"
+    "ladder": "n/a (ring-gated, not ladder-gated per L9)",
+    "note": "Per the 2026-07-04 noise recalibration, ladder board reads no longer confirm or refute this build (same-build spread ~452-691 swamps M=60). The ability build is kept as shadow-king on RING evidence (calibrated bracket ring, tau 0.857, ability +20pp, analysis/ability_ring_check.md), not on the previously-recorded 561.1 ladder WIN (now understood as a noise artifact, findings.md 4D). Restored into the scored slot as ref 54315802 (PENDING) this iteration, floor maintenance not a fresh A/B.",
+    "ref": "54315802"
   },
   "tag_coverage": {
     "gate": "no deck-aware build may spend a ladder slot unless deck_covered_100pct(target) is true (advisory until U37/U40 land)",
