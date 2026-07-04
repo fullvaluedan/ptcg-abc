@@ -46,18 +46,19 @@ STATE_DIR = _ROOT / "state"
 CURRENT_PATH = STATE_DIR / "current.md"
 HYPOTHESES_PATH = STATE_DIR / "hypotheses.md"
 
-# Noise model v2 (L9 recalibration, 2026-07-04). The v1 estimate (M=60, basis
-# a single same-behavior pair plus one king resubmission) was falsified by the
-# full board history of byte-identical heuristic+trolley re-submissions: reads
-# for the SAME build have landed anywhere from 396.7 to 691.5 across refs
-# 54215558/54252006/54281812/54282104/54315565 as the ladder keeps replaying
-# them over subsequent days. That is a ~295-point spread (~147 either side of
-# a ~544 center), not the ~30-60 the v1 basis suggested. M=150 is sized against
-# that observed range; margins and the re-fit date live in current.md. Per the
-# L9 correction, the calibrated bracket ring (not a single ladder read) is now
-# the actual lever decision gate; this default only matters if a future
-# pre-registration still wants a ladder-side WIN/LOSS/BAND margin.
-DEFAULT_MARGIN = 150
+# Noise model v3 (tools/refit_noise_model.py statistical refit, 2026-07-04).
+# The v2 estimate (M=150, basis a single eyeballed min/max range on ~6 reads)
+# is superseded by a pooled-residual refit over the full ledger: 57 same-build
+# reads across two families (heuristic+trolley n=30, heuristic+trolley-ability
+# n=27), each family's own mean subtracted out before pooling so a real mean
+# difference between two builds is never counted as noise. Pooled residual
+# stdev is 52.0 and the single worst observed residual is 235.1; M=240 is the
+# larger of a 2-sigma bound and that worst residual, rounded up to the nearest
+# 10 (analysis/noise_model_refit.md). Per the L9 correction, the calibrated
+# bracket ring (not a single ladder read) is still the actual lever decision
+# gate; this default only matters if a future pre-registration still wants a
+# ladder-side WIN/LOSS/BAND margin.
+DEFAULT_MARGIN = 240
 
 # Settlement needs at least this many rated episodes (the pre-committed episode
 # floor N in every pre-registration must be >= this), per the loop protocol.

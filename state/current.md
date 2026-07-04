@@ -27,9 +27,9 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Noise model (U22)
 
-- margin M = 150 (v2): WIN >= king+M, LOSS <= king-M, else BAND.
-- basis: L9 recalibration 2026-07-04: full board history of byte-identical heuristic+trolley re-submissions (refs 54215558/54252006/54281812/54282104/54315565), re-read over subsequent days as the ladder keeps replaying them, spans 396.7 to 691.5 (~295pt spread, ~147 either side of a ~544 center). This supersedes the v1 basis (a single same-behavior pair plus one king resubmission, ~30pt either side). Per L9, the calibrated bracket ring (tau 0.857) is now the actual lever decision gate, not a single ladder read; M=150 only matters if a future pre-registration still wants a ladder-side WIN/LOSS/BAND margin.
-- re-fit by: 2026-07-15
+- margin M = 240 (v3): WIN >= king+M, LOSS <= king-M, else BAND.
+- basis: tools/refit_noise_model.py statistical refit over 57 pooled same-build reads across heuristic+trolley (n=30, mean=456.4, stdev=59.2), heuristic+trolley-ability (n=27, mean=568.5, stdev=43.9): pooled residual stdev 52.0, worst observed residual 235.1. M set to the larger of 2-sigma and the worst residual, rounded up to nearest 10.
+- re-fit by: 2026-07-18
 
 ## Pre-registrations (machine-checked gate, U22)
 
@@ -839,10 +839,10 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "wins": 98
   },
   "noise_model": {
-    "basis": "L9 recalibration 2026-07-04: full board history of byte-identical heuristic+trolley re-submissions (refs 54215558/54252006/54281812/54282104/54315565), re-read over subsequent days as the ladder keeps replaying them, spans 396.7 to 691.5 (~295pt spread, ~147 either side of a ~544 center). This supersedes the v1 basis (a single same-behavior pair plus one king resubmission, ~30pt either side). Per L9, the calibrated bracket ring (tau 0.857) is now the actual lever decision gate, not a single ladder read; M=150 only matters if a future pre-registration still wants a ladder-side WIN/LOSS/BAND margin.",
-    "margin_M": 150,
-    "refit_by": "2026-07-15",
-    "version": 2
+    "basis": "tools/refit_noise_model.py statistical refit over 57 pooled same-build reads across heuristic+trolley (n=30, mean=456.4, stdev=59.2), heuristic+trolley-ability (n=27, mean=568.5, stdev=43.9): pooled residual stdev 52.0, worst observed residual 235.1. M set to the larger of 2-sigma and the worst residual, rounded up to nearest 10.",
+    "margin_M": 240,
+    "refit_by": "2026-07-18",
+    "version": 3
   },
   "pre_registrations": [
     {

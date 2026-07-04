@@ -433,6 +433,14 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   the king-copy ref's second freeze was still holding, so the two refs' quiet periods are decoupled, not one
   shared event. Folded into docs/writeup/offline_ladder_transfer.md as a further caveat: a resolved-scheduling
   diagnosis is only true at the moment it is checked, not permanent immunity to re-freezing.
+- 2026-07-04: `tools/refit_noise_model.py` built and run against the full ledger (57 pooled same-build reads
+  across two families) instead of continuing to eyeball a min/max range every board check. Result: M=150 (v2)
+  was itself undersized, since the worst observed residual (235.1, on `heuristic+trolley`'s own mean) exceeds
+  it; recommended M=240 (v3, larger of a 2-sigma bound and the worst residual). Applied to
+  `state/current.md`'s noise_model block and `tools/loop_state.py`'s `DEFAULT_MARGIN`
+  (analysis/noise_model_refit.md). This is the endgame campaign's named prep step ("refit the noise model on
+  all accumulated same-build reads"), done early while board-check iterations keep supplying data, rather
+  than left until 2026-08-10.
 
 ---
 
