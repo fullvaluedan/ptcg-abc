@@ -427,6 +427,12 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   board checks (frozen ref's newest episode id never advances while its sibling keeps climbing); folded into
   docs/writeup/offline_ladder_transfer.md as a small measurement-discipline paragraph alongside the noise-
   model correction story, since both are instances of verifying a repeated explanation instead of repeating it.
+- 2026-07-04 (follow-up): the king-copy ref (54315565) that had "resumed play" after its first six-check
+  freeze went on to freeze AGAIN, for seven more consecutive checks at 443.1, longer than the original gap.
+  Its sibling scored ref (the ability floor, 54315802) broke its own six-check freeze in the same iteration
+  the king-copy ref's second freeze was still holding, so the two refs' quiet periods are decoupled, not one
+  shared event. Folded into docs/writeup/offline_ladder_transfer.md as a further caveat: a resolved-scheduling
+  diagnosis is only true at the moment it is checked, not permanent immunity to re-freezing.
 
 ---
 

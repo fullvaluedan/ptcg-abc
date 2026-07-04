@@ -259,6 +259,20 @@ revising on the seventh, and the fix is the same discipline applied again
 (re-check the concrete signal) rather than either assuming permanence or
 distrusting the original check.
 
+That correction itself needed a further caveat a few checks later: the same
+ref (54315565) went on to freeze at 443.1 for seven MORE consecutive board
+checks, its newest episode id unmoved the entire time, a longer stretch than
+the original six-check gap that had just resolved. Meanwhile its sibling
+scored slot (the ability-floor ref, 54315802) kept climbing normally, then
+also froze for six checks of its own before resuming play, breaking its
+freeze at the exact moment the king-copy ref's second freeze was still
+holding. The two refs' quiet periods do not move together: a submission can
+stop being scheduled, resume, and stop again, independently of whatever a
+scored sibling submission is doing at the same time. "Resolved" only ever
+means resolved at the moment it was checked, not resolved permanently; the
+concrete signal (newest episode id per ref) has to be re-checked every time,
+not assumed to hold just because it held once before.
+
 ## A parallel thread: category mining converges on archetype awareness, and a gate closes it
 
 Attempt 2's move-ranking validator did not just surface the ABILITY blind spot;
