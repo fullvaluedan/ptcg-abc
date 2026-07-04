@@ -211,6 +211,50 @@ def test_safe_first_legal_index_vetoes_repeatable_ability():
         h._is_once_per_turn_ability = orig_once
 
 
+def test_clone_opponent_ignores_ability_flag_never_reads_it(monkeypatch):
+    # analysis/ability_isolated_confound_check.md found the deck:<name> gauntlet
+    # opponents mirror our pilot's PTCG_ABILITY lever, since _deck_opponent calls
+    # heuristics.choose() directly and _ABILITY is a process-global heuristics
+    # reads fresh on every call. clone:<family> opponents (the calibrated bracket
+    # ring, L9's standing decision gate) route through _clone_opponent /
+    # _safe_first_legal_index instead, which never call heuristics.choose() and so
+    # never read _ABILITY at all. This proves it directly: a safe (once-per-turn)
+    # ability option at index 0 is picked identically whether _ABILITY is True or
+    # False, so the ring's on/off ability arms do not share the gauntlet's
+    # mirror-match confound (analysis/ability_ring_confound_check.md).
+    from agents import heuristics as h
+    from tools import opponents as opp_mod
+
+    sel = {
+        "type": h.SEL_MAIN, "minCount": 1, "maxCount": 1,
+        "option": [
+            {"type": h.OPT_ABILITY, "area": 0, "index": 0},
+            {"type": h.OPT_END},
+        ],
+    }
+    state = {
+        "yourIndex": 0,
+        "players": [
+            {"active": [{"id": None, "hp": 100, "maxHp": 100}], "bench": [],
+             "deckCount": 30, "prize": [None] * 4, "hand": []},
+            {"active": [{"id": None, "hp": 100, "maxHp": 100}], "bench": []},
+        ],
+    }
+    obs = {"select": sel, "current": state}
+
+    monkeypatch.setattr(h, "option_card_id", lambda opt, sel, obs: 1)
+    monkeypatch.setattr(h, "_is_once_per_turn_ability", lambda cid: True)  # safe: not vetoed
+
+    agent = opp_mod._clone_opponent(list(range(60)))
+
+    monkeypatch.setattr(h, "_ABILITY", True)
+    on = agent(obs)
+    monkeypatch.setattr(h, "_ABILITY", False)
+    off = agent(obs)
+
+    assert on == off == [0]
+
+
 def test_gauntlet_vs_deck_opponent_runs_a_full_match():
     # Integration: the heuristic plays the trolley-deck opponent for two matches
     # with zero invalid moves. Needs the local engine + card data (skipped if the

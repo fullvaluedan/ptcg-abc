@@ -135,6 +135,20 @@ same king build's own 452-691 read spread, well inside noise. The ring and the
 gauntlet still agree with each other; the ladder single-read cannot add or
 subtract from that agreement, and is no longer treated as if it could.
 
+Both offline signals were later checked for a specific measurement flaw: the
+`PTCG_ABILITY` flag is a single process-global, and every gauntlet
+`deck:<name>` opponent runs the SAME heuristics module in the SAME process, so
+the "on" arm's opponents played with the ability lever too, not just our
+pilot. Deconfounding the gauntlet (`analysis/ability_isolated_confound_check.md`,
+900 isolated-arm games) found its +4.0pp was noise-dominated regardless, mean
+diff_pp near zero either confounded or not. Checking the ring for the same flaw
+found something different: its clone opponents never call the module's
+decision function at all, so they structurally never read the flag,
+confounded or not (`analysis/ability_ring_confound_check.md`, code-traced and
+regression-tested). The ring's +20.0pp was already a clean, one-sided
+measurement; it is the gauntlet reading, not the ring reading, that turned out
+to be the unreliable one.
+
 U93's `PTCG_ATTACK_FIRST` lever was checked the same way before it spent a
 slot: gauntlet +5.5pp, ring +10.0pp, same direction
 (analysis/attack_first_ring_check.md). Its ladder A/B did not confirm that

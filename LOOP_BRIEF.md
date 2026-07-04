@@ -45,6 +45,14 @@ beats the 569.6 king offline before it spends a slot. Actions in priority order:
       not be read as confirming a real win-rate edge. Does not change the shipped shadow-king
       disposition (L9: ring evidence, not gauntlet or ladder reads, is the standing decision gate;
       the underlying 0/554 blind-spot motivation is untouched). analysis/ability_isolated_confound_check.md.
+      RE-CHECKED 2026-07-04 (offline, the OTHER offline signal): does the calibrated bracket ring's
+      +20.0pp reading (analysis/ability_ring_check.md, L9's standing decision gate) share the
+      gauntlet's mirror-match confound? No: code-traced and test-verified that ring's clone:<family>
+      opponents (_clone_opponent) never call heuristics.choose() and so never read _ABILITY at all
+      (it is read in exactly one place, choose()'s _resolve_ability closure); the ring's +20.0pp was
+      already a genuinely one-sided measurement, unlike the gauntlet's +4.0pp. New regression test
+      tests/test_opponents.py::test_clone_opponent_ignores_ability_flag_never_reads_it.
+      analysis/ability_ring_confound_check.md.
   L2. DONE 2026-07-03 01:00-01:01: trolley_thick settled LOSS and was evicted; slot 1 = king copy 54281812
       (settled 600.0, new best-ever). Standing rule stays: settle any candidate the instant it reads clearly
       outside the M=60 band; a mandatory per-iteration auto-settlement step (compute band position from the

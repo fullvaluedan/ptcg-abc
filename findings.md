@@ -317,6 +317,18 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   untouched), but it is a second independent instance of this project's central methodological finding: weak
   offline win-rate point estimates at n~200-300 are not trustworthy on their own, confound or no confound.
   `analysis/ability_isolated_confound_check.md`.
+- Ring-side ability confound check (2026-07-04): the isolated re-check above only covered the offline
+  gauntlet's +4.0pp; L9's actual standing decision gate is the calibrated bracket ring's +20.0pp
+  (`analysis/ability_ring_check.md`), which was never checked for the same process-global mirror-match
+  confound. Code-traced it instead of re-measuring: the ring's `clone:<family>` opponents resolve to
+  `_clone_opponent` (`tools/opponents.py`), which never calls `heuristics.choose()` and so never reads
+  `_ABILITY` (the flag is read in exactly one place in `agents/heuristics.py`, inside `choose()`'s
+  `_resolve_ability` closure). A new regression test proves it directly
+  (`tests/test_opponents.py::test_clone_opponent_ignores_ability_flag_never_reads_it`: a safe ability
+  option is picked identically whether `_ABILITY` is `True` or `False`). Conclusion: the ring's +20.0pp
+  was already a genuinely one-sided measurement and never needed deconfounding, unlike the gauntlet's
+  +4.0pp. This closes an open question rather than reversing a verdict; the ring remains clean evidence
+  for the shadow-king disposition. `analysis/ability_ring_confound_check.md`.
 - Writeup staleness fix in `docs/writeup/comprehension.md` (2026-07-04, board-check iteration): the claims
   ledger row and closing paragraph still described `PTCG_ATTACK_FIRST` as "staged, not yet submitted", a
   fact that was true when U94 wrote the chapter but was superseded within the same day once the lever was

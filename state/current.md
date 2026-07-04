@@ -118,6 +118,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 436.1 | 0 | Board check 2026-07-04: 436.1 (drifted from 441.7/441.5/456.0 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; reclaim_king ref/reading updated to this build (was stale, pointing at the evicted ref 54282104/494.8 reading). |
 | heuristic+trolley-ability (floor restoration) | n/a | n/a | 486.9 | 0 | Board check 2026-07-04: 486.9 (drifted from 489.7). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action taken. |
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.7 | 0 | Board check 2026-07-04: 443.7 (drifted from 436.1). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; no action taken. |
+| heuristic+trolley-ability (floor restoration) | n/a | n/a | 550.3 | 0 | Board check 2026-07-04: 550.3 (drifted from 486.9). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action taken. |
+| heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 423.5 | 0 | Board check 2026-07-04: 423.5 (drifted from 443.7). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; no action taken. |
 
 ```json STATE
 {
@@ -157,7 +159,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
   "in_flight": {
     "board_reading": "n/a",
     "build": "none (TRACK L HOLDS)",
-    "note": "Board-checked this iteration (kaggle competitions submissions): tracked latest-2 unchanged, ref 54315802 (ability floor restoration) now reads COMPLETE 489.7 (drifted from 470.1) and ref 54315565 (plain king-copy revert) now reads COMPLETE 436.1 (drifted from 441.7). Both readings sit inside the existing v2 pooled range (396.7-691.5), no new low, no drift off the L9-target composition (one ring-preferred build, one plain king copy), so per L9(c)/(d) TRACK L continues to genuinely HOLD; no new submission spent. Re-read docs/writeup/offline_ladder_transfer.md, genome_tuning.md, and comprehension.md's claims-ledger section top to bottom looking for genuinely new source material (not just re-running the same sweep): all three already fold in the v2 noise widening, the U92 kill-test closure, and the attack_first NEUTRAL settlement, so no writeup edit was warranted either. Found and fixed one small real staleness item instead: state/current.md's reclaim_king field still pointed at ref 54282104/494.8, a build evicted from the tracked latest-2 several iterations ago when ref 54315565 took over the floor slot; corrected it to ref 54315565/436.1 (the reading just taken) so the field matches which submission is actually live. No new TRACK S coded unit is defined without a weekly plan review (PLAN FREEZE through 2026-08-16). NEXT: continue board-checking for drift off the ring-preferred/king-copy composition or a reading outside the pooled range (which would force a noise-model refit before 2026-07-15), or the 2026-08-10/16 endgame campaign window.",
+    "note": "Board-checked this iteration (kaggle competitions submissions): tracked latest-2 unchanged, ref 54315802 (ability floor restoration) now reads COMPLETE 550.3 (drifted from 486.9) and ref 54315565 (plain king-copy revert) now reads COMPLETE 423.5 (drifted from 443.7). Both readings sit inside the existing v2 pooled range (396.7-691.5), no new low, no drift off the L9-target composition, so per L9(c)/(d) TRACK L continues to genuinely HOLD; no new submission spent. TRACK S increment: LOOP_BRIEF.md's L1 confound re-check only covered the gauntlet side (analysis/ability_isolated_confound_check.md); the ring's +20.0pp reading (analysis/ability_ring_check.md, L9's standing decision gate) was never checked for the same process-global mirror-match confound. Traced the code path: clone:<family> ring opponents resolve to _clone_opponent (tools/opponents.py), which never calls heuristics.choose() and so never reads _ABILITY (the flag is read in exactly one place, choose()'s _resolve_ability closure). Verified with a new regression test (tests/test_opponents.py::test_clone_opponent_ignores_ability_flag_never_reads_it) and wrote up the finding (analysis/ability_ring_confound_check.md): the ring's +20.0pp was already a genuinely one-sided measurement and needed no deconfounding, unlike the gauntlet's +4.0pp. No change to the shadow-king disposition; this closes an open question rather than reversing a verdict. No new TRACK S coded unit is defined without a weekly plan review (PLAN FREEZE through 2026-08-16). NEXT: continue board-checking for drift off the ring-preferred/king-copy composition or a reading outside the pooled range (which would force a noise-model refit before 2026-07-15), or the 2026-08-10/16 endgame campaign window.",
     "ref": "n/a"
   },
   "ledger": [
@@ -439,6 +441,42 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "oracle": "n/a",
       "ref": "54315565",
       "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-ability (floor restoration)",
+      "ladder": 486.9,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04: 486.9 (drifted from 489.7). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315802",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley (king-copy revert, 2026-07-04)",
+      "ladder": 443.7,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04: 443.7 (drifted from 436.1). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315565",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-ability (floor restoration)",
+      "ladder": 550.3,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04: 550.3 (drifted from 486.9). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315802",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley (king-copy revert, 2026-07-04)",
+      "ladder": 423.5,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04: 423.5 (drifted from 443.7). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315565",
+      "sample_size": 0
     }
   ],
   "loss_distribution": {
@@ -512,8 +550,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
   ],
   "reclaim_king": {
     "build": "heuristic+trolley",
-    "ladder": "436.1",
-    "note": "corrected 2026-07-04: this field had gone stale, still pointing at ref 54282104/494.8 several iterations after that build was evicted from the tracked latest-2 by ref 54315565 (the L9 king-copy revert). Updated to the currently-live floor slot, ref 54315565, at its just-read 436.1 (drifted from 441.7); same-build ladder drift, safe-floor build unchanged (byte-identical heuristic+trolley).",
+    "ladder": "423.5",
+    "note": "Board check 2026-07-04: 423.5 (drifted from 443.7/436.1/441.7). Same-build ladder drift, safe-floor build unchanged (byte-identical heuristic+trolley).",
     "ref": "54315565"
   },
   "reconciliation": {
@@ -535,7 +573,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
   "shadow_king": {
     "build": "heuristic+trolley-ability",
     "ladder": "n/a (ring-gated, not ladder-gated per L9)",
-    "note": "Per the 2026-07-04 noise recalibration, ladder board reads no longer confirm or refute this build (same-build spread ~452-691 swamps M=60). The ability build is kept as shadow-king on RING evidence (calibrated bracket ring, tau 0.857, ability +20pp, analysis/ability_ring_check.md), not on the previously-recorded 561.1 ladder WIN (now understood as a noise artifact, findings.md 4D). Restored into the scored slot as ref 54315802 (PENDING) this iteration, floor maintenance not a fresh A/B. RE-CHECKED 2026-07-04 (LOOP_BRIEF.md L1 process-global-confound caveat, tools/measure_ability_isolated.py): the offline gauntlet's original +4.0pp point estimate is itself noise-dominated (isolated-arm diff_pp +2.5/-0.5/-1.3 across three runs, mean +0.2, no stable sign), independent of the mirror-match confound. Does not change the shadow-king disposition; ring evidence remains the decision gate. analysis/ability_isolated_confound_check.md.",
+    "note": "Per the 2026-07-04 noise recalibration, ladder board reads no longer confirm or refute this build (same-build spread ~396.7-691.5 swamps M=60). The ability build is kept as shadow-king on RING evidence (calibrated bracket ring, tau 0.857, ability +20pp, analysis/ability_ring_check.md), not on the previously-recorded 561.1 ladder WIN (now understood as a noise artifact, findings.md 4D). Board check 2026-07-04: this iteration's reading is 550.3 (drifted from 486.9), still ring-gated not ladder-gated, no action. RE-CHECKED 2026-07-04 (gauntlet side, LOOP_BRIEF.md L1 process-global-confound caveat, tools/measure_ability_isolated.py): the offline gauntlet's original +4.0pp point estimate is itself noise-dominated (isolated-arm diff_pp +2.5/-0.5/-1.3 across three runs, mean +0.2, no stable sign), independent of the mirror-match confound. RE-CHECKED 2026-07-04 (ring side, analysis/ability_ring_confound_check.md): the ring's clone:<family> opponents (_clone_opponent) never call heuristics.choose() and so never read _ABILITY at all (code-traced and regression-tested, tests/test_opponents.py::test_clone_opponent_ignores_ability_flag_never_reads_it); the ring's +20.0pp was already a genuinely one-sided measurement, unlike the gauntlet's +4.0pp, and needed no deconfounding. Net: ring evidence remains clean and remains the decision gate for the shadow-king disposition.",
     "ref": "54315802"
   },
   "tag_coverage": {
