@@ -255,6 +255,19 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   not just written: `tests/test_comprehension_writeup.py` parses the table and asserts every cited source
   path exists on disk, so a future rename or deletion of an analysis file fails a test instead of leaving a
   dangling claim in the writeup.
+- Noise recalibration (2026-07-04, `LOOP_BRIEF.md` L9 correction): the observed same-build ladder spread is
+  wider than previously modeled, ~452 to 691 on a single king ref (54282104) across its own resubmissions, not
+  the ~90-130 the U22 noise model assumed. M=60 is too tight to settle a single-read ladder A/B against that
+  spread. Consequence: the recorded `heuristic+trolley-ability` WIN (561.1 vs a 494.8 low king draw, +66.3pp,
+  Section 4C) is reclassified as a NOISE ARTIFACT, not a confirmed lever; 561.1 sits mid-range of the king's
+  own 452-691 reads. New standing rules: (a) the calibrated bracket ring (tau 0.857) is now the lever DECISION
+  gate, not single-read ladder A/Bs; (b) the ability build (ring +20pp) is kept as the scored floor on ring
+  evidence, not ladder evidence; (c) stop spending scored slots to confirm sub-band levers (the attack_first
+  slots were noise-chasing in hindsight); (d) ladder submissions are now for floor maintenance and the
+  2026-08-10/16 endgame variance-harvest campaign only, which becomes the primary rank lever since the noise
+  band exceeds any offline build gain available. This does not overturn the ring-gated offline verdicts
+  themselves (ability +20pp, attack_first +10pp both still stand as ring evidence); it overturns treating the
+  ladder board reading as able to confirm or refute them at n=1.
 - Archetype-registry shadowing bug fixed (2026-07-04): `classify_family` broke coverage ties alphabetically,
   and `tools/bracket_decks.py`'s harvested `bracket_N` decks sat in the same signature dict as the named
   meta families. Two of the six harvested bracket decks turn out byte-identical, by signature, to a named
@@ -283,14 +296,19 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
 
 ## 6. Current state and open direction (2026-07-04)
 
-- Shadow-king is heuristic+trolley-ability (ref 54282097, settled WIN 561.1 vs reclaim-king 494.8, +66.3pp),
-  promoted 2026-07-04. Byte-identical king resubmissions have read between 452 and 691 across all
-  resubmissions to date.
-- The comprehension track (U90-U94) is fully shipped. Its only other candidate, attack-first, SETTLED NEUTRAL
-  on the ladder (both offline gates passed, +5.5pp gauntlet / +10.0pp ring, but too few decisive shared-bracket
-  games landed before settle-by); a king-copy revert for that slot is built and grader-verified, queued behind
-  Kaggle's daily submission quota. The CEM/genome-tuning line is closed on all three re-test conditions
-  (Section 4B). No further TRACK L unit is defined without a plan review (freeze through 2026-08-16).
+- CORRECTED 2026-07-04 (noise recalibration, see 4D): the "ability WIN" (561.1 vs 494.8) is now understood as
+  a noise artifact, not a confirmed ladder result, given the king's own 452-691 same-build read spread. The
+  ring-gate result (ability +20pp on the calibrated bracket ring) still stands and is the reason the ability
+  build is kept as the scored floor going forward, not the single ladder read.
+- The comprehension track (U90-U94) is fully shipped. Its other candidate, attack-first, SETTLED NEUTRAL on
+  the ladder at n=1 read (both offline gates passed, +5.5pp gauntlet / +10.0pp ring); per the noise
+  recalibration this NEUTRAL read is itself low-confidence evidence, not a refutation of the ring-gated
+  offline result. A plain king-copy revert for that slot was submitted 2026-07-04 (ref 54315565, before the
+  recalibration correction landed); next quota window the plan is to resubmit the ability build instead so the
+  ring-preferred floor is what actually occupies the scored slot, then hold per the new rules. The
+  CEM/genome-tuning line is closed on all three re-test conditions (Section 4B). No further TRACK L unit is
+  defined without a plan review (freeze through 2026-08-16); ladder submissions are now for floor maintenance
+  and the 2026-08-10/16 endgame variance-harvest campaign only.
 - TRACK S: the offline ML stack and the writeup, assembled continuously; this is now the default per-iteration
   action whenever TRACK L has no build awaiting a slot.
 - Honest outlook: #1 is off the table. Realistic ladder landing with the fixes is the median band
