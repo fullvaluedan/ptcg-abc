@@ -181,13 +181,21 @@ at roughly 90 to 130 points, and every pre-registered ladder A/B in this project
 used a margin (M=60, roughly half that band) sized to that estimate. As more
 same-build resubmissions of a single king ref (54282104) accumulated, the true
 spread turned out to be far wider: 452, 507, 534, 558, 600, 648, 691, a range of
-roughly 452 to 691 on byte-identical code. M=60 was too tight by close to an
-order of magnitude; a same-build build can drift more than 200 points on its own
-without any code change at all. The concrete cost of the underestimate showed up
+roughly 452 to 691 on byte-identical code (the first, ref-scoped correction,
+`noise_model` v1-corrected). M=60 was too tight by close to an order of
+magnitude; a same-build build can drift more than 200 points on its own without
+any code change at all. The concrete cost of the underestimate showed up
 immediately: the recorded ABILITY lever "WIN" above (561.1 vs a 494.8 king
 draw, +66.3pp) cleared the old M=60 margin easily but sits squarely inside the
 corrected 452-691 band, so it is now read as a noise artifact rather than a
-confirmed result.
+confirmed result. A further board check then pushed the estimate wider still:
+pooling every byte-identical `heuristic+trolley` reading across its FULL
+resubmission history (five different refs, not just 54282104) rather than one
+ref's own readings, the observed spread is 396.7 to 691.5 (`noise_model` v2,
+`margin_M` 150, `state/current.md`). The direction of the correction has been
+consistent both times, wider rather than narrower, which is itself informative:
+this project's same-build noise has been underestimated on every attempt to
+pin it down so far, not just the first one.
 
 The standing response was not to keep patching M upward and re-trusting single
 ladder reads at a wider margin, but to change which instrument gets to decide:
