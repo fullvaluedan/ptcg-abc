@@ -106,6 +106,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 426.0 | 0 | SETTLED COMPLETE 426.0 (drifted from 476.1; same-build noise, within the ~452-691 corrected band on the low side). Plain king-copy floor, not an experiment; no settlement protocol applies. |
 | heuristic+trolley-ability (floor restoration) | n/a | n/a | 540.9 | 0 | Board check 2026-07-04: 540.9 (drifted from 600.0). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action. |
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 427.8 | 0 | Board check 2026-07-04: 427.8 (drifted from 426.0). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; no action. |
+| heuristic+trolley-ability (floor restoration) | n/a | n/a | 497.0 | 0 | Board check 2026-07-04: 497.0 (drifted from 540.9). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action. |
+| heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 444.8 | 0 | Board check 2026-07-04: 444.8 (drifted from 427.8). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; no action. |
 
 ```json STATE
 {
@@ -145,7 +147,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
   "in_flight": {
     "board_reading": "n/a",
     "build": "none (TRACK L HOLDS)",
-    "note": "Board-checked this iteration (kaggle competitions submissions): tracked latest-2 unchanged, ref 54315802 (ability floor restoration) now reads COMPLETE 540.9 (drifted from 532.3) and ref 54315565 (plain king-copy revert) now reads COMPLETE 427.8 (drifted from 486.3). Both readings sit inside the existing v2 pooled range (396.7-691.5), no new low, no drift off the L9-target composition (one ring-preferred build, one plain king copy), so per L9(c)/(d) TRACK L continues to genuinely HOLD; no new submission spent. Fell back to TRACK S per the prior iteration's note to do a fresh top-to-bottom pass rather than assume the correction round is closed: grepped every writeup chapter, findings.md, and state/hypotheses.md for stale M=60/pre-v2-noise-range references. All hits found (comprehension.md L213, offline_ladder_transfer.md L131-190, findings.md, hypotheses.md L30) are historical narration correctly framed as 'M=60 was the margin used at the time, later found too tight' rather than live claims; offline_ladder_transfer.md's noise-model section already cites the full v1-then-v2 correction sequence (452-691 then 396.7-691.5) accurately. No new staleness found this pass; the correction round remains genuinely closed pending a future noise reading outside the current pooled range.",
+    "note": "Board-checked this iteration (kaggle competitions submissions): tracked latest-2 unchanged, ref 54315802 (ability floor restoration) now reads COMPLETE 497.0 (drifted from 540.9) and ref 54315565 (plain king-copy revert) now reads COMPLETE 444.8 (drifted from 427.8). Both readings sit inside the existing v2 pooled range (396.7-691.5), no new low, no drift off the L9-target composition (one ring-preferred build, one plain king copy), so per L9(c)/(d) TRACK L continues to genuinely HOLD; no new submission spent. Did NOT re-run the writeup staleness sweep: the prior iteration completed a fresh top-to-bottom pass over every writeup chapter, findings.md, and state/hypotheses.md and found nothing new, and explicitly flagged that repeating the same sweep with no new source material would be low-value. No new TRACK S coded unit is defined without a weekly plan review (PLAN FREEZE through 2026-08-16). This iteration's sole increment is recording these two new board-check data points; continue watching for a reading outside the pooled range (which would force a noise-model refit before 2026-07-15) or the 2026-08-10/16 endgame campaign window.",
     "ref": "n/a"
   },
   "ledger": [
@@ -334,6 +336,24 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "ladder": 427.8,
       "move_agreement_delta": "n/a",
       "note": "Board check 2026-07-04: 427.8 (drifted from 426.0/486.3 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315565",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-ability (floor restoration)",
+      "ladder": 497.0,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04: 497.0 (drifted from 540.9/600.0/532.3 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315802",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley (king-copy revert, 2026-07-04)",
+      "ladder": 444.8,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04: 444.8 (drifted from 427.8/426.0/486.3 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; no action taken.",
       "oracle": "n/a",
       "ref": "54315565",
       "sample_size": 0
