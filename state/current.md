@@ -19,7 +19,7 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 ## Kings
 
 - **shadow-king** (best live build): heuristic+trolley-ability (ref 54315802, ladder n/a (ring-gated, not ladder-gated per L9))
-- **reclaim-king** (safe floor): heuristic+trolley (ref 54282104, ladder 494.8)
+- **reclaim-king** (safe floor): heuristic+trolley (ref 54315565, ladder 436.1)
 
 ## Candidates awaiting a ladder slot
 
@@ -114,6 +114,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 441.5 | 0 | Board check 2026-07-04: 441.5 (drifted from 456.0/444.8/427.8 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; no action taken. |
 | heuristic+trolley-ability (floor restoration) | n/a | n/a | 470.1 | 0 | Board check 2026-07-04: 470.1 (drifted from 504.7/526.2/497.0 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action taken. |
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 441.7 | 0 | Board check 2026-07-04: 441.7 (drifted from 441.5/456.0/444.8 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; no action taken. |
+| heuristic+trolley-ability (floor restoration) | n/a | n/a | 489.7 | 0 | Board check 2026-07-04: 489.7 (drifted from 470.1/504.7/526.2 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action taken. Now the current reference reading for the shadow-king floor slot. |
+| heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 436.1 | 0 | Board check 2026-07-04: 436.1 (drifted from 441.7/441.5/456.0 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; reclaim_king ref/reading updated to this build (was stale, pointing at the evicted ref 54282104/494.8 reading). |
 
 ```json STATE
 {
@@ -153,7 +155,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
   "in_flight": {
     "board_reading": "n/a",
     "build": "none (TRACK L HOLDS)",
-    "note": "Board-checked this iteration (kaggle competitions submissions): tracked latest-2 unchanged, ref 54315802 (ability floor restoration) now reads COMPLETE 470.1 (drifted from 504.7) and ref 54315565 (plain king-copy revert) now reads COMPLETE 441.7 (drifted from 441.5). Both readings sit inside the existing v2 pooled range (396.7-691.5), no new low, no drift off the L9-target composition (one ring-preferred build, one plain king copy), so per L9(c)/(d) TRACK L continues to genuinely HOLD; no new submission spent. Did NOT re-run the writeup staleness sweep again: four prior iterations in a row already found nothing left to fix and explicitly flagged that repeating the same sweep with no new source material is low-value; git status is clean and no new analysis/writeup file has been added since the last clean pass. No new TRACK S coded unit is defined without a weekly plan review (PLAN FREEZE through 2026-08-16). This iteration's sole increment is recording these two new board-check data points; continue watching for a reading outside the pooled range (which would force a noise-model refit before 2026-07-15) or the 2026-08-10/16 endgame campaign window.",
+    "note": "Board-checked this iteration (kaggle competitions submissions): tracked latest-2 unchanged, ref 54315802 (ability floor restoration) now reads COMPLETE 489.7 (drifted from 470.1) and ref 54315565 (plain king-copy revert) now reads COMPLETE 436.1 (drifted from 441.7). Both readings sit inside the existing v2 pooled range (396.7-691.5), no new low, no drift off the L9-target composition (one ring-preferred build, one plain king copy), so per L9(c)/(d) TRACK L continues to genuinely HOLD; no new submission spent. Re-read docs/writeup/offline_ladder_transfer.md, genome_tuning.md, and comprehension.md's claims-ledger section top to bottom looking for genuinely new source material (not just re-running the same sweep): all three already fold in the v2 noise widening, the U92 kill-test closure, and the attack_first NEUTRAL settlement, so no writeup edit was warranted either. Found and fixed one small real staleness item instead: state/current.md's reclaim_king field still pointed at ref 54282104/494.8, a build evicted from the tracked latest-2 several iterations ago when ref 54315565 took over the floor slot; corrected it to ref 54315565/436.1 (the reading just taken) so the field matches which submission is actually live. No new TRACK S coded unit is defined without a weekly plan review (PLAN FREEZE through 2026-08-16). NEXT: continue board-checking for drift off the ring-preferred/king-copy composition or a reading outside the pooled range (which would force a noise-model refit before 2026-07-15), or the 2026-08-10/16 endgame campaign window.",
     "ref": "n/a"
   },
   "ledger": [
@@ -417,6 +419,24 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "oracle": "n/a",
       "ref": "54315565",
       "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-ability (floor restoration)",
+      "ladder": 489.7,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04: 489.7 (drifted from 470.1/504.7/526.2 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315802",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley (king-copy revert, 2026-07-04)",
+      "ladder": 436.1,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04: 436.1 (drifted from 441.7/441.5/456.0 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; reclaim_king ref/reading updated to this build, correcting a stale field that still pointed at the long-evicted ref 54282104/494.8 reading.",
+      "oracle": "n/a",
+      "ref": "54315565",
+      "sample_size": 0
     }
   ],
   "loss_distribution": {
@@ -490,9 +510,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
   ],
   "reclaim_king": {
     "build": "heuristic+trolley",
-    "ladder": "494.8",
-    "note": "board check 2026-07-04: 494.8 (was 691.5 first reading 2026-07-03); same-build ladder drift, ref/build unchanged, still the reclaim-king safe floor.",
-    "ref": "54282104"
+    "ladder": "436.1",
+    "note": "corrected 2026-07-04: this field had gone stale, still pointing at ref 54282104/494.8 several iterations after that build was evicted from the tracked latest-2 by ref 54315565 (the L9 king-copy revert). Updated to the currently-live floor slot, ref 54315565, at its just-read 436.1 (drifted from 441.7); same-build ladder drift, safe-floor build unchanged (byte-identical heuristic+trolley).",
+    "ref": "54315565"
   },
   "reconciliation": {
     "census_tier": "FULL (167531 groups >> 2500)",
