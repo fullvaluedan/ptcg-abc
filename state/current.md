@@ -27,8 +27,8 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Noise model (U22)
 
-- margin M = 60 (v1): WIN >= king+M, LOSS <= king-M, else BAND.
-- basis: same-behavior pair 591.9/569.6 + KD2 king resubmission heuristic+trolley 569.6 -> 600.0 byte-identical (same-build spread ~30 either side; true estimate ~585)
+- margin M = 150 (v2): WIN >= king+M, LOSS <= king-M, else BAND.
+- basis: L9 recalibration 2026-07-04: full board history of byte-identical heuristic+trolley re-submissions (refs 54215558/54252006/54281812/54282104/54315565), re-read over subsequent days as the ladder keeps replaying them, spans 396.7 to 691.5 (~295pt spread, ~147 either side of a ~544 center). This supersedes the v1 basis (a single same-behavior pair plus one king resubmission, ~30pt either side). Per L9, the calibrated bracket ring (tau 0.857) is now the actual lever decision gate, not a single ladder read; M=150 only matters if a future pre-registration still wants a ladder-side WIN/LOSS/BAND margin.
 - re-fit by: 2026-07-15
 
 ## Pre-registrations (machine-checked gate, U22)
@@ -143,7 +143,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
   "in_flight": {
     "board_reading": "n/a",
     "build": "none (TRACK L HOLDS)",
-    "note": "Board-checked this iteration: ref 54315802 (heuristic+trolley-ability floor restoration) cleared PENDING -> SubmissionStatus.COMPLETE 600.0; ref 54315565 (king-copy revert) settled COMPLETE 426.0 (drifted from its earlier 476.1 read, still within the ~452-691 same-build band, not an alarm). Tracked latest-2 is now [54315802 ability floor, 54282104 reclaim-king 494.8], matching the L9-corrected target state exactly: one ring-preferred build (ability, ring +20pp) plus one plain king-copy floor. No PENDING submissions remain. Per L9(c)/(d): TRACK L now genuinely HOLDS, no further ladder submission is warranted until either slot drifts off a ring-preferred/king-copy build or the 2026-08-10/16 endgame variance-harvest campaign opens. This iteration's TRACK L action was the board-check + ledger close-out only; no new submission spent.",
+    "note": "Board-checked this iteration (kaggle competitions submissions): tracked latest-2 unchanged, ref 54315802 (ability floor restoration) now reads COMPLETE 594.7 (drifted from 600.0) and ref 54315565 (plain king-copy revert) now reads COMPLETE 396.7 (drifted from 426.0). No PENDING submissions, no drift off the L9-target composition (one ring-preferred build, one plain king copy), so per L9(c)/(d) TRACK L continues to genuinely HOLD; no new submission spent. The 396.7 reading is a NEW LOW for this same-build lineage (below the previously corrected 452 floor), so this iteration folded it into a v2 noise_model (state/current.md, tools/loop_state.py DEFAULT_MARGIN 60 -> 150) instead of letting the state file's own machine-readable noise_model block keep contradicting the L9 prose corrections elsewhere in the same file (shadow_king/in_flight already described the recalibration, but the noise_model JSON itself was never bumped past v1/M=60).",
     "ref": "n/a"
   },
   "ledger": [
@@ -339,10 +339,10 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "wins": 98
   },
   "noise_model": {
-    "basis": "same-behavior pair 591.9/569.6 + KD2 king resubmission heuristic+trolley 569.6 -> 600.0 byte-identical (same-build spread ~30 either side; true estimate ~585)",
-    "margin_M": 60,
+    "basis": "L9 recalibration 2026-07-04: full board history of byte-identical heuristic+trolley re-submissions (refs 54215558/54252006/54281812/54282104/54315565), re-read over subsequent days as the ladder keeps replaying them, spans 396.7 to 691.5 (~295pt spread, ~147 either side of a ~544 center). This supersedes the v1 basis (a single same-behavior pair plus one king resubmission, ~30pt either side). Per L9, the calibrated bracket ring (tau 0.857) is now the actual lever decision gate, not a single ladder read; M=150 only matters if a future pre-registration still wants a ladder-side WIN/LOSS/BAND margin.",
+    "margin_M": 150,
     "refit_by": "2026-07-15",
-    "version": 1
+    "version": 2
   },
   "pre_registrations": [
     {

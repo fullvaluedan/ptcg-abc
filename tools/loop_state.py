@@ -46,12 +46,18 @@ STATE_DIR = _ROOT / "state"
 CURRENT_PATH = STATE_DIR / "current.md"
 HYPOTHESES_PATH = STATE_DIR / "hypotheses.md"
 
-# Noise model v1 (plan U22). The same-behavior pair 591.9/569.6 plus the
-# deliberate king resubmission (heuristic+trolley 569.6 -> 600.0 byte-identical)
-# put the same-build ladder spread near 30 points either side, so a candidate is
-# only a real WIN when it clears the king by M, and a real LOSS when it falls M
-# below. M=60 is that band; margins and the re-fit date live in current.md.
-DEFAULT_MARGIN = 60
+# Noise model v2 (L9 recalibration, 2026-07-04). The v1 estimate (M=60, basis
+# a single same-behavior pair plus one king resubmission) was falsified by the
+# full board history of byte-identical heuristic+trolley re-submissions: reads
+# for the SAME build have landed anywhere from 396.7 to 691.5 across refs
+# 54215558/54252006/54281812/54282104/54315565 as the ladder keeps replaying
+# them over subsequent days. That is a ~295-point spread (~147 either side of
+# a ~544 center), not the ~30-60 the v1 basis suggested. M=150 is sized against
+# that observed range; margins and the re-fit date live in current.md. Per the
+# L9 correction, the calibrated bracket ring (not a single ladder read) is now
+# the actual lever decision gate; this default only matters if a future
+# pre-registration still wants a ladder-side WIN/LOSS/BAND margin.
+DEFAULT_MARGIN = 150
 
 # Settlement needs at least this many rated episodes (the pre-committed episode
 # floor N in every pre-registration must be >= this), per the loop protocol.

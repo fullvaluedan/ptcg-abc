@@ -283,6 +283,21 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   (`analysis/expert_cohort.py`). Confirmed on the real 2026-06-30 dataset (400-episode slice): `meta_archaludon`
   and `meta_grimmsnarl` went from 0 to 219 and 13 real episode counts. Bracket decks with no duplicate
   signature (`bracket_2/3/5/6`) are unaffected.
+- Noise model bumped to v2 (2026-07-04, board-check iteration): a routine TRACK L board check found the
+  plain king-copy revert (ref 54315565) had drifted to a new low of 396.7, below the ~452 floor the L9
+  correction had already widened to. Pooling every byte-identical `heuristic+trolley` board reading across
+  its full resubmission history (refs 54215558/54252006/54281812/54282104/54315565, each re-read multiple
+  times as the ladder keeps replaying the same submitted agent over subsequent days) gives an observed range
+  of 396.7 to 691.5, a ~295-point spread. Separately, `state/current.md`'s own machine-readable `noise_model`
+  JSON block had never actually been updated by the L9 correction: it still asserted v1 (`margin_M: 60`, the
+  stale ~30pt basis) even while the same file's `shadow_king`/`in_flight` prose already described the
+  recalibration, so the file's own source of truth contradicted its own narrative. Fixed both: `noise_model`
+  is now v2 (`margin_M: 150`, basis text citing the pooled 396.7-691.5 range) and `tools/loop_state.py`'s
+  `DEFAULT_MARGIN` constant (the fallback for any future pre-registration's ladder-side margin) moved from
+  60 to 150 to match, with its docstring rewritten to cite the real evidence instead of the falsified v1
+  basis. This does not retroactively change any already-settled pre-registration (each row carries its own
+  hardcoded margin); it only fixes the record and sets a sane default for whatever ladder-side margin a
+  future pre-registration might still want, given the ring is now the actual decision gate per L9.
 
 ---
 
