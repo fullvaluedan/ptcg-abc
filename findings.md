@@ -403,6 +403,13 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   not walked back over" pattern as the earlier writeup-drift findings in this section. Fixed by adding a
   dedicated subsection to the writeup rather than editing the stale sentence in place, so the record shows
   the open-then-closed arc instead of erasing the original framing.
+- Writeup-drift audit run clean (2026-07-04): following up on the genome_tuning.md drift catch above, this
+  iteration audited `docs/writeup/learned_evaluator.md` and `docs/writeup/comprehension.md` against the
+  latest `findings.md`/`state/current.md` entries (L9 noise recalibration, attack_first NEUTRAL settlement).
+  Both were already current: comprehension.md's bottom line already frames the attack_first NEUTRAL correctly
+  as low-confidence rather than a refutation, and learned_evaluator.md makes no ladder-state claims that could
+  go stale in the first place. No edit made. Worth recording because a drift-audit habit only earns trust if
+  it also reports clean passes, not just the one time it found something.
 
 ---
 
