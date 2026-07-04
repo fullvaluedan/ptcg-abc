@@ -393,6 +393,16 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   evidence anything is wrong with the submitted builds; keep checking episode ids each time, but stop treating
   each additional simultaneous-freeze confirmation as newsworthy on its own once the pattern is this
   established, and instead watch for the freeze breaking (either ref's newest episode id advancing again).
+- Writeup drift caught before it went stale for long (2026-07-04): `docs/writeup/genome_tuning.md` still
+  described condition (c) (a genome region with a measured non-flat held-out gradient) as a standing open
+  question, even though it had already been directly checked and closed the same day (`2caccac`,
+  `analysis/cem_gradient_condition_c.md`): the genome IS non-flat (max per-dim delta 0.2738), but every
+  load-bearing dim's shipped default already sits at or above both of its own bound readings, so no
+  single-axis move beats the current default anywhere in the 18-dim space. The commit that closed the
+  condition touched `findings.md` and `state/*` but not the writeup file, the same "correct when written,
+  not walked back over" pattern as the earlier writeup-drift findings in this section. Fixed by adding a
+  dedicated subsection to the writeup rather than editing the stale sentence in place, so the record shows
+  the open-then-closed arc instead of erasing the original framing.
 
 ---
 

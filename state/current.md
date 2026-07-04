@@ -142,6 +142,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to the prior two checks (same episode id 83768597). Third consecutive frozen read, crossing the threshold set by the prior two entries for treating this as a standalone methodological finding (folded into findings.md Section 4D) rather than an ongoing watch item. Plain king-copy floor; no action taken. |
 | heuristic+trolley-ability (floor restoration) | n/a | n/a | 603.3 | 0 | Board check 2026-07-04 (this iteration): 603.3, IDENTICAL to the prior three checks (same episode id 83768225). Fourth consecutive frozen read. Per the prior iteration_s own discipline, not re-logged as a fresh findings.md entry; watching only for the freeze to break. Ring-gated per L9; no action taken. |
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to the prior three checks (same episode id 83768597). Fourth consecutive frozen read. Per the prior iteration_s own discipline, not re-logged as a fresh findings.md entry; watching only for the freeze to break. Plain king-copy floor; no action taken. |
+| heuristic+trolley-ability (floor restoration) | n/a | n/a | 603.3 | 0 | Board check 2026-07-04 (this iteration): 603.3, IDENTICAL to the prior four checks (same episode id 83768225). Fifth consecutive frozen read. Not re-logged as a fresh findings.md entry per standing discipline; watching only for the freeze to break. |
+| heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to the prior four checks (same episode id 83768597). Fifth consecutive frozen read. Not re-logged as a fresh findings.md entry per standing discipline; watching only for the freeze to break. |
 
 ```json STATE
 {
@@ -179,9 +181,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "source": "analysis/final_scoring_semantics.md"
   },
   "in_flight": {
-    "board_reading": "603.3/443.1 (both unchanged for a FOURTH consecutive check; per the established discipline this is no longer logged as a fresh finding, only watched for the freeze breaking)",
+    "board_reading": "603.3/443.1 (both unchanged for a FIFTH consecutive check; TRACK S writeup sync done instead this iteration)",
     "build": "none (TRACK L HOLDS)",
-    "note": "Board-checked (kaggle competitions submissions): both tracked refs read exactly the same as the prior three checks (54315802 ability-floor 603.3, 54315565 king-copy 443.1). Verified with tools/scout.py episodes that newest completed episode id is STILL unchanged for BOTH refs (ability 83768225, king-copy 83768597), identical across all four checks. Per the standing rule set in the immediately prior iteration (findings.md Section 4D, autoloop_status.md), a further simultaneous-freeze repeat is not written up as a fresh methodological finding; only the freeze BREAKING or a reading moving outside the 396.7-691.5 pooled range would warrant new prose. Both readings remain inside that range, no new low/high, no PENDING, no change in slot composition. Per L9(c)/(d) TRACK L continues to genuinely HOLD; no new submission spent. No TRACK L build is awaiting a slot. No TRACK S coded unit is due (comprehension track fully shipped, U92 closed FAIL, CEM/PRIO conditions a/b/c all exhausted; writeup was last fully folded in at e270302, 3 commits ago, not yet at the roughly-every-6th threshold). PLAN FREEZE remains in effect through 2026-08-16.",
+    "note": "Board-checked (kaggle competitions submissions): both tracked refs read exactly the same as the prior four checks (54315802 ability-floor 603.3, 54315565 king-copy 443.1). Verified with tools/scout.py episodes that newest completed episode id is STILL unchanged for BOTH refs (ability 83768225, king-copy 83768597), identical across all five checks. Per the standing rule (findings.md Section 4D), not re-logged as a fresh methodological finding. Since the writeup cadence (roughly every 6th iteration) was due (6 commits since the last full pass at 78abc2c) and a real gap was found (docs/writeup/genome_tuning.md predated the 2026-07-04 CEM condition (c) closure, 2caccac, and still described it as a standing open question), spent this iteration on that TRACK S sync instead of a purely repetitive board-check entry. PLAN FREEZE remains in effect through 2026-08-16.",
     "ref": "n/a"
   },
   "ledger": [
@@ -694,6 +696,24 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "ladder": 443.1,
       "move_agreement_delta": "n/a",
       "note": "Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to the prior three checks (same episode id 83768597). Fourth consecutive frozen read. Per the prior iteration_s own discipline, not re-logged as a fresh findings.md entry; watching only for the freeze to break. Plain king-copy floor; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315565",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-ability (floor restoration)",
+      "ladder": 603.3,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04 (this iteration): 603.3, IDENTICAL to the prior four checks (same episode id 83768225). Fifth consecutive frozen read. Not re-logged as a fresh findings.md entry per standing discipline; watching only for the freeze to break.",
+      "oracle": "n/a",
+      "ref": "54315802",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley (king-copy revert, 2026-07-04)",
+      "ladder": 443.1,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to the prior four checks (same episode id 83768597). Fifth consecutive frozen read. Not re-logged as a fresh findings.md entry per standing discipline; watching only for the freeze to break.",
       "oracle": "n/a",
       "ref": "54315565",
       "sample_size": 0

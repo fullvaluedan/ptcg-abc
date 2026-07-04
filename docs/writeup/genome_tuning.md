@@ -223,7 +223,7 @@ named re-open condition, did not survive the same held-out bar every other
 offline claim in this project has to clear.
 
 The one re-open condition still standing, per `analysis/cem_run_prio_teacher.md`,
-is a genome region with a measured non-flat held-out gradient, checked before a
+was a genome region with a measured non-flat held-out gradient, checked before a
 full sweep is spent on it rather than assumed. At the time this was written the
 comprehension track (U90-U94) was still open and named as the project's live
 source for a candidate lever that might supply one; that track has since run to
@@ -234,7 +234,29 @@ their own offline gates and ladder A/Bs, not as a new region of the 18-dim PRIO
 vector, so neither one is a re-test case for CEM. Separately, U92's kill test
 (same writeup, "The final answer on the objective itself") answered the
 adjacent question of whether a different training objective could recover
-signal from the harvested clone dataset, and it also came back negative. No
-further sweep over this genome is planned; a fourth CEM attempt would need a
-genuinely new source for the still-open re-test condition, not the comprehension
-track, which is now fully accounted for elsewhere.
+signal from the harvested clone dataset, and it also came back negative.
+
+### Condition (c) closed directly, not just left unanswered (2026-07-04)
+
+Rather than wait for a new lever to supply a testable genome region, the
+condition was checked head-on: `analysis/measure_cem_gradient.py` (the same
+per-dim leverage probe that discovered the PRIO genome in the first place) was
+extended with a `--teacher-labels`/`--split` mode so it could run against the
+exact held-out `test` split (n=10689) the three CEM sweeps blocked on, instead
+of a smaller, different sample. Result: the genome IS non-flat on this split
+(max per-dim delta 0.2738, over 5x the original small-sample diagnostic's
+0.0526), so "the genome has no signal at all" is ruled out as the explanation
+for three straight BLOCKED verdicts. But every one of the four load-bearing
+ordering dims (`PRIO_ATTACK`, `PRIO_ATTACH`, `PRIO_PLAY`, `PRIO_EVOLVE`) has
+its shipped default sitting at or above both of that dim's bound readings, so
+no single-axis move anywhere in the 18-dim space beats the current default.
+This is a stronger result than another failed optimizer run: it explains the
+mechanism (the held-out landscape slopes downward away from the shipped
+default along every dim that matters, so any noisy optimizer is more likely to
+step off the peak than climb it further) rather than just adding a fourth
+data point to "still blocked." Full detail: `analysis/cem_gradient_condition_c.md`.
+
+Conditions (a), (b), and (c) are now all closed. No further sweep over this
+genome is planned; a fourth CEM attempt would need a genuinely new weight-space
+region this genome does not currently express (e.g. a card-identity- or
+archetype-aware weight), not a re-run of the existing 18 dims.
