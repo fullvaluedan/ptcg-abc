@@ -441,6 +441,15 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   (analysis/noise_model_refit.md). This is the endgame campaign's named prep step ("refit the noise model on
   all accumulated same-build reads"), done early while board-check iterations keep supplying data, rather
   than left until 2026-08-10.
+- 2026-07-04: `tools/endgame_stopping.py` built to operationalize U48's final-pair optimal-stopping design
+  (docs/plans/2026-07-02-001-feat-unified-number-one-plan.md Phase 4) ahead of the Aug 10-16 window, the same
+  early-prep pattern as the noise-model refit above. It reuses `refit_noise_model.py`'s own family stats to
+  turn "king-true-estimate" into a real number (the shadow-king build's pooled same-build mean, currently
+  569.7 over n=28 reads) and computes stop_target = mean + bonus (609.7 at bonus=40), written into
+  `state/current.md`'s new `endgame_campaign` block along with the pair rule, no-roll buffer, and lock date.
+  Satisfies U48's own verification requirement ("stop target and pair rule in state/current.md before the
+  first re-roll") more than a month before the campaign can start, so the August iterations only need to
+  re-run the tool for a fresh mean, not design the rule from scratch under deadline pressure.
 
 ---
 

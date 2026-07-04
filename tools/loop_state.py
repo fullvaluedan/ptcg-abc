@@ -295,6 +295,24 @@ def _render_current_md(data: dict) -> str:
         )
         lines.append("")
 
+    campaign = data.get("endgame_campaign") or {}
+    if campaign:
+        lines.append("## Endgame stopping rule (U48 prep)")
+        lines.append("")
+        lines.append(
+            f"- stop target = {campaign.get('stop_target', '?')} "
+            f"(king_true_estimate {campaign.get('king_true_estimate', '?')} + "
+            f"bonus {campaign.get('bonus', '?')}, build {campaign.get('build', '?')})"
+        )
+        lines.append(f"- pair rule: {campaign.get('pair_rule', '?')}")
+        lines.append(
+            f"- no-roll buffer {campaign.get('no_roll_buffer', '?')}, "
+            f"lock by {campaign.get('lock_by', '?')}"
+        )
+        if campaign.get("basis"):
+            lines.append(f"- basis: {campaign['basis']}")
+        lines.append("")
+
     scoring = data.get("final_scoring") or {}
     if scoring:
         lines.append("## Final scoring semantics (U29)")

@@ -76,6 +76,13 @@ _none calibrated; every proxy gate is refused (default-deny)_
 - 11 forked contracts each have one binding ruling (docs/design/deck-aware-execution-design.md); recorded 2026-07-02 before any U40 code exists (KD4/KD5).
 - W_generic ruling: DROPPED (fallback = pure ladder; no pooled block) (census tier FULL (167531 groups >> 2500) closes it by data).
 
+## Endgame stopping rule (U48 prep)
+
+- stop target = 609.7 (king_true_estimate 569.7 + bonus 40, build heuristic+trolley-ability)
+- pair rule: two copies of the strongest settled build; a diverse hedge only if the runner-up settled within M and is mechanically different
+- no-roll buffer 2026-08-14 12:00 UTC, lock by 2026-08-15
+- basis: tools/endgame_stopping.py, king_true_estimate = mean of 28 pooled same-build reads for heuristic+trolley-ability (tools/refit_noise_model.py family stats, stdev=43.5); stop_target = mean + bonus (40), per U48 (docs/plans/2026-07-02-001-feat-unified-number-one-plan.md).
+
 ## Final scoring semantics (U29)
 
 - latest-2 tracked and used for final scoring; leaderboard shows best of the 2 (no best-ever net; a 3rd submit evicts the 3rd-newest) (analysis/final_scoring_semantics.md); recorded 2026-07-02, gates U48.
@@ -156,6 +163,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04: 443.1 (unchanged, tenth consecutive check; episode id still 83768597). Plain king-copy floor; no action taken. Extended freeze-duration comparison (6 vs 10+ checks) folded into docs/writeup/offline_ladder_transfer.md this iteration. |
 | heuristic+trolley-ability (floor restoration) | n/a | n/a | 602.4 | 0 | Board check 2026-07-04: 602.4 (unchanged, sixth consecutive check at this value; episode id still 83776251). Ring-gated per L9; no action taken. |
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04: 443.1 (unchanged, twelfth consecutive check; episode id still 83768597). Plain king-copy floor; no action taken. |
+| heuristic+trolley-ability (floor restoration) | n/a | n/a | 602.4 | 0 | Board check 2026-07-04 (this iteration): 602.4, IDENTICAL to the prior six checks (same episode id 83776251). Seventh consecutive frozen read. Ring-gated per L9; no action taken. This iteration's TRACK S slot went to building tools/endgame_stopping.py (U48 prep) instead of a repeat freeze note. |
+| heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to the prior twelve checks (same episode id 83768597). Thirteenth consecutive frozen read. Plain king-copy floor; no action taken. |
 
 ```json STATE
 {
@@ -184,6 +193,17 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "target_family": "meta_grimmsnarl",
     "target_tier": "full"
   },
+  "endgame_campaign": {
+    "basis": "tools/endgame_stopping.py, king_true_estimate = mean of 28 pooled same-build reads for heuristic+trolley-ability (tools/refit_noise_model.py family stats, stdev=43.5); stop_target = mean + bonus (40), per U48 (docs/plans/2026-07-02-001-feat-unified-number-one-plan.md).",
+    "bonus": 40,
+    "build": "heuristic+trolley-ability",
+    "king_true_estimate": 569.7,
+    "lock_by": "2026-08-15",
+    "no_roll_buffer": "2026-08-14 12:00 UTC",
+    "pair_rule": "two copies of the strongest settled build; a diverse hedge only if the runner-up settled within M and is mechanically different",
+    "recorded": "2026-07-04",
+    "stop_target": 609.7
+  },
   "final_scoring": {
     "daily_limit": "5 submissions/day",
     "deadline": "2026-08-16 23:59 UTC",
@@ -193,9 +213,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "source": "analysis/final_scoring_semantics.md"
   },
   "in_flight": {
-    "board_reading": "602.4/443.1 (ability-floor frozen a sixth consecutive check; king-copy frozen a twelfth consecutive check)",
+    "board_reading": "602.4/443.1 (ability-floor frozen a seventh consecutive check; king-copy frozen a thirteenth consecutive check)",
     "build": "none (TRACK L HOLDS)",
-    "note": "Board-checked and cross-verified with tools/scout.py episodes. ability-floor ref 54315802 unchanged at 602.4, newest episode id still 83776251. king-copy ref 54315565 unchanged at 443.1, newest episode id still 83768597. No new pattern (freeze-duration variability and the noise-model refit were already folded into the writeup and state last iteration), so this check adds only minimal ledger rows, no fresh findings.md prose. TRACK L holds; PLAN FREEZE remains in effect through 2026-08-16.",
+    "note": "Board-checked and cross-verified with tools/scout.py episodes. ability-floor ref 54315802 unchanged at 602.4, newest episode id still 83776251. king-copy ref 54315565 unchanged at 443.1, newest episode id still 83768597. No new freeze pattern (already documented); per standing discipline this repeat is not a fresh findings.md entry. Instead this iteration's TRACK S slot built tools/endgame_stopping.py, operationalizing the U48 final-pair optimal-stopping design ahead of the Aug 10-16 campaign (same early-prep pattern as the noise-model refit): it computes king_true_estimate from the shadow-king's own pooled same-build reads (mean 569.7, n=28) and writes the stop_target (609.7 = mean + 40) and pair rule into state/current.md's new endgame_campaign block, satisfying U48's own verification requirement ('stop target and pair rule in state/current.md before the first re-roll') over a month before the campaign window opens. TRACK L holds; PLAN FREEZE remains in effect through 2026-08-16.",
     "ref": "n/a"
   },
   "ledger": [
@@ -837,6 +857,24 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "oracle": "n/a",
       "ref": "54315565",
       "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-ability (floor restoration)",
+      "ladder": 602.4,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04 (this iteration): 602.4, IDENTICAL to the prior six checks (same episode id 83776251). Seventh consecutive frozen read. Ring-gated per L9; no action taken. This iteration's TRACK S slot went to building tools/endgame_stopping.py (U48 prep) instead of a repeat freeze note.",
+      "oracle": "n/a",
+      "ref": "54315802",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley (king-copy revert, 2026-07-04)",
+      "ladder": 443.1,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to the prior twelve checks (same episode id 83768597). Thirteenth consecutive frozen read. Plain king-copy floor; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315565",
+      "sample_size": 0
     }
   ],
   "loss_distribution": {
@@ -911,7 +949,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
   "reclaim_king": {
     "build": "heuristic+trolley",
     "ladder": "443.1",
-    "note": "Board check 2026-07-04 (this iteration): 443.1, unchanged for a SEVENTH consecutive check (episode id still 83768597). This is a NEW freeze episode on the same ref, distinct from the one that resolved after six checks and then moved to 443.1: it has now sat at 443.1, un-scheduled, for seven checks in a row while its sibling ref (the ability-floor build) resumed play this same iteration. Folded into docs/writeup/offline_ladder_transfer.md as a follow-up caveat (a resolved freeze is not immunity from re-freezing) rather than repeating the original staleness paragraph. Still a valid safe-floor build (byte-identical heuristic+trolley).",
+    "note": "Board check 2026-07-04 (this iteration): 443.1, unchanged for a THIRTEENTH consecutive check (episode id still 83768597). Still a valid safe-floor build (byte-identical heuristic+trolley); no action taken.",
     "ref": "54315565"
   },
   "reconciliation": {
@@ -933,7 +971,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
   "shadow_king": {
     "build": "heuristic+trolley-ability",
     "ladder": "n/a (ring-gated, not ladder-gated per L9)",
-    "note": "Per the 2026-07-04 noise recalibration, ladder board reads no longer confirm or refute this build (same-build spread ~396.7-691.5 swamps M=60). The ability build is kept as shadow-king on RING evidence (calibrated bracket ring, tau 0.857, ability +20pp, analysis/ability_ring_check.md), not on the previously-recorded 561.1 ladder WIN (now understood as a noise artifact, findings.md 4D). Board check 2026-07-04: this iteration's reading is 593.4 (drifted from 584.7), still ring-gated not ladder-gated, no action; tools/scout.py episodes confirms it is still actively playing (newest episode 83764623, up from 83763012 last check). RE-CHECKED 2026-07-04 (gauntlet side, LOOP_BRIEF.md L1 process-global-confound caveat, tools/measure_ability_isolated.py): the offline gauntlet's original +4.0pp point estimate is itself noise-dominated (isolated-arm diff_pp +2.5/-0.5/-1.3 across three runs, mean +0.2, no stable sign), independent of the mirror-match confound. RE-CHECKED 2026-07-04 (ring side, analysis/ability_ring_confound_check.md): the ring's clone:<family> opponents (_clone_opponent) never call heuristics.choose() and so never read _ABILITY at all (code-traced and regression-tested, tests/test_opponents.py::test_clone_opponent_ignores_ability_flag_never_reads_it); the ring's +20.0pp was already a genuinely one-sided measurement, unlike the gauntlet's +4.0pp, and needed no deconfounding. Net: ring evidence remains clean and remains the decision gate for the shadow-king disposition. Board check 2026-07-04 (this iteration): reading is 602.4, BREAKING a six-check freeze (down a hair from 603.3); tools/scout.py episodes confirms it resumed active play (newest episode 83776251, up from the long-frozen 83768225) in the same iteration its sibling king-copy ref stayed frozen for a seventh check. Still ring-gated not ladder-gated, no action.",
+    "note": "Per the 2026-07-04 noise recalibration, ladder board reads no longer confirm or refute this build (same-build spread ~396.7-691.5 swamps M=60). The ability build is kept as shadow-king on RING evidence (calibrated bracket ring, tau 0.857, ability +20pp, analysis/ability_ring_check.md), not on the previously-recorded 561.1 ladder WIN (now understood as a noise artifact, findings.md 4D). Board check 2026-07-04: this iteration's reading is 593.4 (drifted from 584.7), still ring-gated not ladder-gated, no action; tools/scout.py episodes confirms it is still actively playing (newest episode 83764623, up from 83763012 last check). RE-CHECKED 2026-07-04 (gauntlet side, LOOP_BRIEF.md L1 process-global-confound caveat, tools/measure_ability_isolated.py): the offline gauntlet's original +4.0pp point estimate is itself noise-dominated (isolated-arm diff_pp +2.5/-0.5/-1.3 across three runs, mean +0.2, no stable sign), independent of the mirror-match confound. RE-CHECKED 2026-07-04 (ring side, analysis/ability_ring_confound_check.md): the ring's clone:<family> opponents (_clone_opponent) never call heuristics.choose() and so never read _ABILITY at all (code-traced and regression-tested, tests/test_opponents.py::test_clone_opponent_ignores_ability_flag_never_reads_it); the ring's +20.0pp was already a genuinely one-sided measurement, unlike the gauntlet's +4.0pp, and needed no deconfounding. Net: ring evidence remains clean and remains the decision gate for the shadow-king disposition. Board check 2026-07-04 (this iteration): reading is 602.4, BREAKING a six-check freeze (down a hair from 603.3); tools/scout.py episodes confirms it resumed active play (newest episode 83776251, up from the long-frozen 83768225) in the same iteration its sibling king-copy ref stayed frozen for a seventh check. Still ring-gated not ladder-gated, no action. Board check 2026-07-04 (this iteration): reading is 602.4, IDENTICAL to the prior check (episode id still 83776251, unchanged). Seventh consecutive frozen read. Still ring-gated not ladder-gated, no action; this iteration's TRACK S work built tools/endgame_stopping.py (U48 final-pair optimal-stopping prep), which used this build's own 28-read family mean (569.7) as the king_true_estimate now recorded in state/current.md's endgame_campaign block.",
     "ref": "54315802"
   },
   "tag_coverage": {
