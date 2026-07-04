@@ -102,6 +102,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley-attack_first (repeat) | n/a | n/a | SETTLED NEUTRAL | 3 | BAND repeat resubmission (ref 54304681), byte-identical to ref 54304483. Board readings drifted to mixed sign (442.9 vs 600.0 vs king 494.8). U23 scoreboard settlement (analysis/attack_first_settlement.md): 3 shared brackets, candidate 1/3 (0.333) vs king 4/6 (0.667), confidence 0.171, favors_candidate=false, verdict neutral. Slot reverts to a king copy, queued for submission next iteration (quota exhausted for 2026-07-03 UTC). |
 | heuristic+trolley (king-copy revert) | n/a | n/a | 476.1 | 0 | King-copy revert for the settled-NEUTRAL attack_first slot. SETTLED COMPLETE 476.1 (same-build drift, well within the now-corrected ~452-691 spread). Superseded this iteration: evicted from the tracked latest-2 by the ability-build floor restoration (ref 54315802) per the L9 noise-recalibration correction (ladder reads no longer gate lever decisions; the ring does). |
 | heuristic+trolley-ability (floor restoration) | n/a | n/a | PENDING | 0 | SUBMITTED per the L9 noise-recalibration correction: restores the ring-preferred floor (ability +20pp on the calibrated bracket ring) into the scored slot instead of a plain king copy. Same tarball as ref 54282097. Floor maintenance, not a new ladder A/B; no pre-registration added. |
+| heuristic+trolley-ability (floor restoration) | n/a | n/a | 600.0 | 0 | SETTLED COMPLETE 600.0. Confirms the L9 floor-restoration landed cleanly; ring-gated, not ladder-gated (per L9, single ladder reads no longer decide lever verdicts). No further action tied to this reading. |
+| heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 426.0 | 0 | SETTLED COMPLETE 426.0 (drifted from 476.1; same-build noise, within the ~452-691 corrected band on the low side). Plain king-copy floor, not an experiment; no settlement protocol applies. |
 
 ```json STATE
 {
@@ -140,9 +142,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
   },
   "in_flight": {
     "board_reading": "n/a",
-    "build": "heuristic+trolley-ability (floor restoration, ref 54315802)",
-    "note": "SUBMITTED this iteration per the L9 noise-recalibration correction: the ability build (same tarball as ref 54282097) resubmitted into the slot the settled-NEUTRAL attack_first king-copy revert (ref 54315565, COMPLETE 476.1) occupied, restoring the ring-preferred floor (ability +20pp on the calibrated bracket ring, analysis/ability_ring_check.md) instead of a plain king copy. This is FLOOR MAINTENANCE, not a new ladder A/B: no pre-registration row added, per rule L9(c)/(d) (stop spending scored slots to confirm sub-band levers via single-read ladder A/Bs; the calibrated ring is the lever decision gate now). Grader test re-verified green (test_grader_submission.py[heuristic-trolley-ability]) immediately before submit. Tracked latest-2 once this clears PENDING: [54315802 ability restore, 54282104 reclaim-king]. Per the new standing rules, TRACK L now HOLDS: no further ladder submissions are planned until either a floor needs re-maintaining or the 2026-08-10/16 endgame variance-harvest campaign begins. Next iterations should default to TRACK S (writeup cadence) unless the board shows a slot has drifted off a ring-preferred build.",
-    "ref": "54315802"
+    "build": "none (TRACK L HOLDS)",
+    "note": "Board-checked this iteration: ref 54315802 (heuristic+trolley-ability floor restoration) cleared PENDING -> SubmissionStatus.COMPLETE 600.0; ref 54315565 (king-copy revert) settled COMPLETE 426.0 (drifted from its earlier 476.1 read, still within the ~452-691 same-build band, not an alarm). Tracked latest-2 is now [54315802 ability floor, 54282104 reclaim-king 494.8], matching the L9-corrected target state exactly: one ring-preferred build (ability, ring +20pp) plus one plain king-copy floor. No PENDING submissions remain. Per L9(c)/(d): TRACK L now genuinely HOLDS, no further ladder submission is warranted until either slot drifts off a ring-preferred/king-copy build or the 2026-08-10/16 endgame variance-harvest campaign opens. This iteration's TRACK L action was the board-check + ledger close-out only; no new submission spent.",
+    "ref": "n/a"
   },
   "ledger": [
     {
@@ -296,6 +298,24 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "note": "SUBMITTED per the L9 noise-recalibration correction: restores the ring-preferred floor (ability +20pp on the calibrated bracket ring) into the scored slot instead of a plain king copy. Same tarball as ref 54282097. Floor maintenance, not a new ladder A/B; no pre-registration added.",
       "oracle": "n/a",
       "ref": "54315802",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-ability (floor restoration)",
+      "ladder": 600.0,
+      "move_agreement_delta": "n/a",
+      "note": "SETTLED COMPLETE 600.0. Confirms the L9 floor-restoration landed cleanly; ring-gated, not ladder-gated (per L9, single ladder reads no longer decide lever verdicts). No further action tied to this reading.",
+      "oracle": "n/a",
+      "ref": "54315802",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley (king-copy revert, 2026-07-04)",
+      "ladder": 426.0,
+      "move_agreement_delta": "n/a",
+      "note": "SETTLED COMPLETE 426.0 (drifted from 476.1; same-build noise, within the ~452-691 corrected band on the low side). Plain king-copy floor, not an experiment; no settlement protocol applies.",
+      "oracle": "n/a",
+      "ref": "54315565",
       "sample_size": 0
     }
   ],

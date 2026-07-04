@@ -304,14 +304,21 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   the ladder at n=1 read (both offline gates passed, +5.5pp gauntlet / +10.0pp ring); per the noise
   recalibration this NEUTRAL read is itself low-confidence evidence, not a refutation of the ring-gated
   offline result. A plain king-copy revert for that slot was submitted 2026-07-04 (ref 54315565, settled
-  COMPLETE 476.1) before the recalibration correction landed. FLOOR RESTORED 2026-07-04: this iteration
-  resubmitted the ability build (ref 54315802, PENDING, same tarball as 54282097) into that slot so the
-  ring-preferred build occupies the scored slot instead of a plain king copy, per the new rules; this is floor
-  maintenance, not a fresh ladder A/B, and carries no new pre-registration. The CEM/genome-tuning line is
-  closed on all three re-test conditions (Section 4B). No further TRACK L unit is defined without a plan
-  review (freeze through 2026-08-16); ladder submissions are now for floor maintenance and the 2026-08-10/16
-  endgame variance-harvest campaign only. TRACK L now HOLDS: no further submission is planned until the board
-  drifts off the ring-preferred build or the endgame campaign opens.
+  COMPLETE 476.1) before the recalibration correction landed. FLOOR RESTORED 2026-07-04: the resubmitted
+  ability build (ref 54315802, same tarball as 54282097) into that slot cleared PENDING this iteration at
+  SubmissionStatus.COMPLETE 600.0, confirming the ring-preferred build now occupies the scored slot instead of
+  a plain king copy; this was floor maintenance, not a fresh ladder A/B, and carried no new pre-registration.
+  The CEM/genome-tuning line is closed on all three re-test conditions (Section 4B). No further TRACK L unit
+  is defined without a plan review (freeze through 2026-08-16); ladder submissions are now for floor
+  maintenance and the 2026-08-10/16 endgame variance-harvest campaign only. TRACK L now HOLDS: no further
+  submission is planned until the board drifts off the ring-preferred build or the endgame campaign opens.
+- Writeup sync 2026-07-04: `docs/writeup/offline_ladder_transfer.md` still described the ability lever's
+  ladder read as an unqualified WIN that "the ring, the gauntlet, and the ladder all agreed" on, and gave the
+  noise band as the stale ~90-130pt estimate with M=60 presented as sized correctly against it. Both were
+  stale claims once the L9 noise recalibration landed (see 4D); corrected the WIN paragraph to note it is now
+  read as a mid-band noise artifact, and rewrote the noise-model section to report the ~452-691pt corrected
+  band, the M=60 undersizing, and the resulting hand-off of decision authority to the calibrated ring, as an
+  explicit in-the-open correction rather than a quiet patch.
 - TRACK S: the offline ML stack and the writeup, assembled continuously; this is now the default per-iteration
   action whenever TRACK L has no build awaiting a slot.
 - Honest outlook: #1 is off the table. Realistic ladder landing with the fixes is the median band

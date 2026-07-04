@@ -127,9 +127,13 @@ U74 re-scored the already-staged `PTCG_ABILITY` lever through the ring
 (20 games/arm) and got the same directional answer as the original weak-bot
 gauntlet, off 65.0% vs on 85.0% (+20.0pp), agreeing in direction with the
 gauntlet's own +4.0pp reading and with the pending pre-registered ladder A/B
-(analysis/ability_ring_check.md). That ladder A/B has since settled: **WIN**,
+(analysis/ability_ring_check.md). That ladder A/B first read as a **WIN**,
 561.1 vs the 494.8 king, +66.3pp, clearing the M=60 margin cleanly
-(state/current.md). Here the ring, the gauntlet, and the ladder all agreed.
+(state/current.md). A subsequent noise recalibration (below) reclassified that
+single reading as inconclusive, not confirming: 561.1 sits mid-range of the
+same king build's own 452-691 read spread, well inside noise. The ring and the
+gauntlet still agree with each other; the ladder single-read cannot add or
+subtract from that agreement, and is no longer treated as if it could.
 
 U93's `PTCG_ATTACK_FIRST` lever was checked the same way before it spent a
 slot: gauntlet +5.5pp, ring +10.0pp, same direction
@@ -168,18 +172,38 @@ had a chance regardless of how the gate math itself was computed, because they
 were all measuring performance against the wrong field.
 
 This pattern only has teeth because of a second piece of measurement discipline
-built earlier: the same-build noise model. Two byte-identical resubmissions of
-the same king build read 600.0 then 594.7 in successive board checks
-(state/current.md), and the wider unified plan calibrated a same-build spread of
-roughly 90 to 130 points from repeated draws of near-identical builds. Every
-pre-registered ladder A/B in this project uses a margin (M=60, roughly half that
-band) precisely so that ordinary same-build noise cannot masquerade as a real
-result. Without that noise floor already in place, a proxy reading "close enough"
-on a handful of ladder games could have been mistaken for a working gate instead
-of correctly identified as a failure; the two pieces of discipline (a hard
-retrodiction bar for proxies, a hard noise margin for ladder verdicts) work
-together to keep a convenient-but-wrong signal from being promoted to a decision
-rule.
+built earlier: the same-build noise model, and that model itself went through an
+honest correction worth reporting alongside the four proxy attempts above.
+
+The original estimate, from two byte-identical resubmissions of the same king
+build (600.0 then 594.7 in successive board checks), put the same-build spread
+at roughly 90 to 130 points, and every pre-registered ladder A/B in this project
+used a margin (M=60, roughly half that band) sized to that estimate. As more
+same-build resubmissions of a single king ref (54282104) accumulated, the true
+spread turned out to be far wider: 452, 507, 534, 558, 600, 648, 691, a range of
+roughly 452 to 691 on byte-identical code. M=60 was too tight by close to an
+order of magnitude; a same-build build can drift more than 200 points on its own
+without any code change at all. The concrete cost of the underestimate showed up
+immediately: the recorded ABILITY lever "WIN" above (561.1 vs a 494.8 king
+draw, +66.3pp) cleared the old M=60 margin easily but sits squarely inside the
+corrected 452-691 band, so it is now read as a noise artifact rather than a
+confirmed result.
+
+The standing response was not to keep patching M upward and re-trusting single
+ladder reads at a wider margin, but to change which instrument gets to decide:
+the calibrated bracket ring (tau 0.857, Attempt 4 above), not a single ladder
+board reading, is now the gate that lever decisions defer to. Ladder
+submissions still matter, but for two narrower jobs: holding the best
+ring-supported build in the scored floor slot, and, from 2026-08-10 to 08-16,
+an explicit endgame variance-harvest campaign that treats the wide same-build
+band as the cheapest source of rank points remaining, rather than something to
+fight with tighter margins. Without the ring already existing as an
+independently calibrated backstop, this correction would have left the project
+with no trustworthy way to decide lever questions at all; the two pieces of
+discipline (a hard retrodiction bar for proxies, and being willing to admit a
+hard-won noise margin was still wrong and re-point decision authority
+accordingly) together keep a convenient-but-wrong signal from being promoted to
+a decision rule.
 
 ## A parallel thread: category mining converges on archetype awareness, and a gate closes it
 
@@ -241,10 +265,13 @@ move-ranking validator's category gaps, chased down through U82's mining and
 tested directly via U9a/U9b's archetype classifier) applied the same
 no-lowering-the-bar discipline to a promising capability idea and recorded an
 honest, narrow gate FAIL (+4.3pp vs a required +5.0pp) rather than shipping it
-regardless. Combined with the pre-registration protocol and the fitted
-same-build noise band, this is the project's account of what does, and does
-not, transfer from offline testing to a real competitive ladder: most offline
-proxies fail, the ones that fail can often be diagnosed and sometimes fixed,
-and even a well-motivated, carefully-measured capability idea can still miss
-its own bar, and each of those outcomes is reported as evidence in its own
-right rather than smoothed over on the way to a cleaner narrative.
+regardless. Combined with the pre-registration protocol and the same-build
+noise band (itself openly re-fit once real resubmission data showed the first
+estimate was roughly five times too narrow), this is the project's account of
+what does, and does not, transfer from offline testing to a real competitive
+ladder: most offline proxies fail, the ones that fail can often be diagnosed
+and sometimes fixed, a hard-won measurement of noise can itself turn out wrong
+and still be worth correcting in the open rather than quietly patched, and even
+a well-motivated, carefully-measured capability idea can still miss its own
+bar; each of those outcomes is reported as evidence in its own right rather
+than smoothed over on the way to a cleaner narrative.
