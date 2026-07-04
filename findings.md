@@ -374,6 +374,11 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   drifting; a simultaneous freeze of both is more consistent with a temporary platform-wide scheduling lull
   than a per-submission issue, but one check is not enough to conclude that, only to flag it as a signal worth
   distinguishing from the earlier per-ref pattern on the next check.
+- CONFIRMATION (2026-07-04, next board check): the simultaneous freeze above held a second consecutive time,
+  same episode ids (83768225 / 83768597) and same scores (603.3 / 443.1) for both refs. Two checks in a row
+  with both refs stalled at the identical episode is stronger evidence for a genuine simultaneous scheduling
+  gap than a single observation, though still not proof of cause; will keep comparing episode ids each check
+  rather than declaring this settled, per the same discipline the overturned single-ref diagnosis above taught.
 
 ---
 
