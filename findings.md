@@ -379,6 +379,20 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   with both refs stalled at the identical episode is stronger evidence for a genuine simultaneous scheduling
   gap than a single observation, though still not proof of cause; will keep comparing episode ids each check
   rather than declaring this settled, per the same discipline the overturned single-ref diagnosis above taught.
+- THIRD CONSECUTIVE CONFIRMATION (2026-07-04, next board check again): the same simultaneous freeze held a
+  third time in a row, still the exact same episode ids (83768225 / 83768597) and the exact same scores
+  (603.3 / 443.1) for both tracked refs. This crosses the threshold the prior two entries set for treating it
+  as a standalone methodological finding rather than an ongoing watch item: three checks, spread across
+  however many hours of real wall-clock time separate them, with neither submission scheduled for a single
+  new game, points at an account-or-platform-wide scheduling gap rather than anything about either submission
+  itself (a per-submission cause would be a striking coincidence to hit both refs at once three times running).
+  This does not change any lever decision (the calibrated bracket ring stays the decision gate per L9, not
+  ladder reads) and does not move either score outside the 396.7-691.5 pooled noise range, so no noise-model
+  refit is triggered. The actionable takeaway for future board-checks: a long simultaneous freeze is
+  consistent with normal scoring-platform behavior near a competition's slower period and is not, by itself,
+  evidence anything is wrong with the submitted builds; keep checking episode ids each time, but stop treating
+  each additional simultaneous-freeze confirmation as newsworthy on its own once the pattern is this
+  established, and instead watch for the freeze breaking (either ref's newest episode id advancing again).
 
 ---
 

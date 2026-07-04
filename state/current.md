@@ -138,6 +138,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04: 443.1 (unchanged reading from the prior check, matches exactly). tools/scout.py episodes confirms newest episode id is still 83768597, identical to the prior check (no new games played by this ref since last check either). Within the v2 pooled range (396.7-691.5), no new low/high. Both tracked refs are simultaneously static this check (same score AND same newest episode id as last time), unlike the earlier single-ref freeze episode; one static check is not enough to call this a new staleness pattern, just note it and re-check next iteration. Plain king-copy floor; no action taken. |
 | heuristic+trolley-ability (floor restoration) | n/a | n/a | 603.3 | 0 | Board check 2026-07-04 (this iteration): 603.3, IDENTICAL to the immediately prior check (same episode id 83768225). Second consecutive frozen read. Ring-gated per L9; no action taken. |
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to the immediately prior check (same episode id 83768597). Second consecutive frozen read, confirming this is a genuine simultaneous freeze of both tracked refs rather than a one-off coincidence. Plain king-copy floor; no action taken. |
+| heuristic+trolley-ability (floor restoration) | n/a | n/a | 603.3 | 0 | Board check 2026-07-04 (this iteration): 603.3, IDENTICAL to the prior two checks (same episode id 83768225). Third consecutive frozen read. Ring-gated per L9; no action taken. |
+| heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to the prior two checks (same episode id 83768597). Third consecutive frozen read, crossing the threshold set by the prior two entries for treating this as a standalone methodological finding (folded into findings.md Section 4D) rather than an ongoing watch item. Plain king-copy floor; no action taken. |
 
 ```json STATE
 {
@@ -175,9 +177,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "source": "analysis/final_scoring_semantics.md"
   },
   "in_flight": {
-    "board_reading": "603.3/443.1 (both unchanged for a SECOND consecutive check; simultaneous freeze confirmed, not a one-off)",
+    "board_reading": "603.3/443.1 (both unchanged for a THIRD consecutive check; simultaneous freeze now a standalone finding, not just a watch item)",
     "build": "none (TRACK L HOLDS)",
-    "note": "Board-checked (kaggle competitions submissions): both tracked refs read exactly the same as the prior two checks (54315802 ability-floor 603.3, 54315565 king-copy 443.1). Verified with tools/scout.py episodes that this is a real freeze, not a coincidental score match: newest completed episode id is STILL unchanged for BOTH refs (ability 83768225, king-copy 83768597), identical to the immediately prior check. This is now the SECOND consecutive check where both refs are frozen together at the exact same episode ids, which is stronger evidence for a genuine simultaneous scheduling gap (platform-wide or account-wide) than the single prior single-ref freeze episode that later turned out to be temporary. Still not conclusive on cause; will re-check episode ids again next iteration. Both readings remain inside the v2 pooled range (396.7-691.5), no new low/high, no PENDING, no change in slot composition. Per L9(c)/(d) TRACK L continues to genuinely HOLD; no new submission spent. No TRACK L build is awaiting a slot. No TRACK S coded unit is due (comprehension track fully shipped, U92 closed FAIL, CEM/PRIO conditions a/b/c all exhausted; writeup cadence is 3 commits past the last full pass at 78abc2c, not yet at the roughly-every-6th threshold). PLAN FREEZE remains in effect through 2026-08-16.",
+    "note": "Board-checked (kaggle competitions submissions): both tracked refs read exactly the same as the prior two checks (54315802 ability-floor 603.3, 54315565 king-copy 443.1). Verified with tools/scout.py episodes that this is a real freeze, not a coincidental score match: newest completed episode id is STILL unchanged for BOTH refs (ability 83768225, king-copy 83768597), identical across all three checks. This is now the THIRD consecutive check where both refs are frozen together at the exact same episode ids, crossing the threshold the prior two board-check entries flagged for treating this as a standalone methodological finding: an account-or-platform-wide scheduling gap is far more likely than coincidence hitting both refs three times running. Folded into findings.md Section 4D as a THIRD CONSECUTIVE CONFIRMATION entry with the actionable takeaway (stop treating further freeze confirmations as newsworthy on their own; watch instead for the freeze breaking). Both readings remain inside the v2 pooled range (396.7-691.5), no new low/high, no PENDING, no change in slot composition. Per L9(c)/(d) TRACK L continues to genuinely HOLD; no new submission spent. No TRACK L build is awaiting a slot. No TRACK S coded unit is due (comprehension track fully shipped, U92 closed FAIL, CEM/PRIO conditions a/b/c all exhausted; writeup cadence is 4 commits past the last full pass at 78abc2c, not yet at the roughly-every-6th threshold). PLAN FREEZE remains in effect through 2026-08-16.",
     "ref": "n/a"
   },
   "ledger": [
@@ -654,6 +656,24 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "ladder": 443.1,
       "move_agreement_delta": "n/a",
       "note": "Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to the immediately prior check (same episode id 83768597). Second consecutive frozen read, confirming this is a genuine simultaneous freeze of both tracked refs rather than a one-off coincidence. Plain king-copy floor; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315565",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-ability (floor restoration)",
+      "ladder": 603.3,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04 (this iteration): 603.3, IDENTICAL to the prior two checks (same episode id 83768225). Third consecutive frozen read. Ring-gated per L9; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315802",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley (king-copy revert, 2026-07-04)",
+      "ladder": 443.1,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to the prior two checks (same episode id 83768597). Third consecutive frozen read, crossing the threshold set by the prior two entries for treating this as a standalone methodological finding (folded into findings.md Section 4D) rather than an ongoing watch item. Plain king-copy floor; no action taken.",
       "oracle": "n/a",
       "ref": "54315565",
       "sample_size": 0
