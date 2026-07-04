@@ -1,0 +1,152 @@
+{
+  "baseline": {
+    "agreement": 0.8210309664140706,
+    "n": 10689
+  },
+  "rows": [
+    {
+      "dim": "PTCG_W_THIN_BENCH",
+      "low": 1,
+      "high": 4,
+      "agr_low": 0.8084947141921601,
+      "agr_high": 0.8141079614557021,
+      "delta": 0.005613247263541954
+    },
+    {
+      "dim": "PTCG_W_RETREAT_HP_RATIO",
+      "low": 0.1,
+      "high": 0.6,
+      "agr_low": 0.8198147628403031,
+      "agr_high": 0.8211245205351295,
+      "delta": 0.0013097576948264411
+    },
+    {
+      "dim": "PTCG_W_DECKOUT_THRESHOLD",
+      "low": 2,
+      "high": 12,
+      "agr_low": 0.8210309664140706,
+      "agr_high": 0.8210309664140706,
+      "delta": 0.0
+    },
+    {
+      "dim": "PTCG_W_DRAW_CONSERVE_THRESHOLD",
+      "low": 3,
+      "high": 15,
+      "agr_low": 0.8205631958087753,
+      "agr_high": 0.8198147628403031,
+      "delta": 0.0007484329684722679
+    },
+    {
+      "dim": "PTCG_W_PRIO_CANDY",
+      "low": 0.0,
+      "high": 10.0,
+      "agr_low": 0.8210309664140706,
+      "agr_high": 0.8210309664140706,
+      "delta": 0.0
+    },
+    {
+      "dim": "PTCG_W_PRIO_EVOLVE",
+      "low": 0.0,
+      "high": 10.0,
+      "agr_low": 0.7895032276171765,
+      "agr_high": 0.8210309664140706,
+      "delta": 0.03152773879689408
+    },
+    {
+      "dim": "PTCG_W_PRIO_PLAY",
+      "low": 0.0,
+      "high": 10.0,
+      "agr_low": 0.6637664889138366,
+      "agr_high": 0.8042847787445037,
+      "delta": 0.14051828983066705
+    },
+    {
+      "dim": "PTCG_W_PRIO_ATTACH",
+      "low": 0.0,
+      "high": 10.0,
+      "agr_low": 0.8201889793245393,
+      "agr_high": 0.6365422396856582,
+      "delta": 0.18364673963888112
+    },
+    {
+      "dim": "PTCG_W_PRIO_ABILITY",
+      "low": 0.0,
+      "high": 10.0,
+      "agr_low": 0.8210309664140706,
+      "agr_high": 0.8210309664140706,
+      "delta": 0.0
+    },
+    {
+      "dim": "PTCG_W_PRIO_RETREAT",
+      "low": 0.0,
+      "high": 10.0,
+      "agr_low": 0.8210309664140706,
+      "agr_high": 0.8180372345401815,
+      "delta": 0.0029937318738890717
+    },
+    {
+      "dim": "PTCG_W_PRIO_ATTACK",
+      "low": 0.0,
+      "high": 10.0,
+      "agr_low": 0.8210309664140706,
+      "agr_high": 0.547198054074282,
+      "delta": 0.27383291233978857
+    },
+    {
+      "dim": "PTCG_W_PRIZE_SHAPING",
+      "low": 0.2,
+      "high": 0.9,
+      "agr_low": 0.8210309664140706,
+      "agr_high": 0.8210309664140706,
+      "delta": 0.0
+    },
+    {
+      "dim": "PTCG_W_HP_SHAPING",
+      "low": 0.0,
+      "high": 0.4,
+      "agr_low": 0.8210309664140706,
+      "agr_high": 0.8210309664140706,
+      "delta": 0.0
+    },
+    {
+      "dim": "PTCG_W_ACTIVE_HP_WEIGHT",
+      "low": 0.3,
+      "high": 0.9,
+      "agr_low": 0.8210309664140706,
+      "agr_high": 0.8210309664140706,
+      "delta": 0.0
+    },
+    {
+      "dim": "PTCG_W_BOARD_SHAPING",
+      "low": 0.0,
+      "high": 0.2,
+      "agr_low": 0.8210309664140706,
+      "agr_high": 0.8210309664140706,
+      "delta": 0.0
+    },
+    {
+      "dim": "PTCG_W_ENERGY_SHAPING",
+      "low": 0.0,
+      "high": 0.2,
+      "agr_low": 0.8210309664140706,
+      "agr_high": 0.8210309664140706,
+      "delta": 0.0
+    },
+    {
+      "dim": "PTCG_W_BENCH_FLOOR_SHAPING",
+      "low": 0.0,
+      "high": 0.2,
+      "agr_low": 0.8210309664140706,
+      "agr_high": 0.8210309664140706,
+      "delta": 0.0
+    },
+    {
+      "dim": "PTCG_W_BENCH_TARGET",
+      "low": 1,
+      "high": 5,
+      "agr_low": 0.8210309664140706,
+      "agr_high": 0.8210309664140706,
+      "delta": 0.0
+    }
+  ]
+}

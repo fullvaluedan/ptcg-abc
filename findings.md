@@ -138,7 +138,16 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   (-0.0022), and full-population train agreement went backwards too. Diagnosis: the sweep's own best fitness
   was dominated by a noisy 6-game ring-win-rate read, not a real agreement gradient, the same
   proxy-metric-moves-backwards failure the second attempt found. `analysis/cem_run_prio.md`,
-  `analysis/cem_run_prio_pooled.md`, `analysis/cem_run_prio_teacher.md`.
+  `analysis/cem_run_prio_pooled.md`, `analysis/cem_run_prio_teacher.md`. 2026-07-04: the one remaining named
+  re-open condition, "a genome region with a measured non-flat held-out gradient", was checked directly (no
+  fourth sweep) by extending `analysis/measure_cem_gradient.py` with a teacher-labels held-out mode and
+  running it against the exact 10689-decision test split the three sweeps blocked on. The genome IS non-flat
+  (max per-dim delta 0.2738, 5x the original 2026-07-01 diagnostic), but every load-bearing ordering dim's
+  shipped default already sits at or above both of its own bound readings, so no single-axis move beats the
+  current default anywhere in the 18-dim space. This mechanistically explains all three blocked sweeps (the
+  landscape slopes downward away from the default on every dim that matters, so any optimizer noise pushes
+  off the peak rather than up it) and fully exhausts conditions (a), (b), and (c) together.
+  `analysis/cem_gradient_condition_c.md`.
 - clone_imitation_beats_first_legal (U92 step 0, 2026-07-04): the known-good pairwise RankNet (U26 spike) WAS
   finally rerun on the clone dataset, changing only the training objective (pairwise ranking loss instead of
   the pointwise per-row log-loss all three prior clone attempts used) while holding the feature set and split

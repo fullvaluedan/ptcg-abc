@@ -75,3 +75,48 @@ def test_none_agreement_yields_none_delta():
     """A scorer that returns no agreement (None) propagates a None delta, not a crash."""
     res = mg.sweep("ignored", score=lambda env: (None, 0))
     assert all(r["delta"] is None for r in res["rows"])
+
+
+# --- teacher-labels source (condition (c), LOOP_BRIEF L7/U83) ---------------
+
+def test_teacher_labels_source_needs_no_replays_argument(monkeypatch):
+    """`replays` is optional now; teacher_labels alone must build a working scorer."""
+    calls = []
+
+    def fake_score_env_teacher(env_overrides, teacher_labels, split, limit, python):
+        calls.append((dict(env_overrides), teacher_labels, split, limit))
+        return (0.5, 100)
+
+    monkeypatch.setattr(mg, "_score_env_teacher", fake_score_env_teacher)
+    res = mg.sweep(teacher_labels="data/training", split="test", limit=999)
+    assert res["baseline"] == {"agreement": 0.5, "n": 100}
+    assert calls[0] == ({}, "data/training", "test", 999)
+    # one baseline call plus low+high per genome dim
+    assert len(calls) == 1 + 2 * len(ws.PARAM_SPACE)
+
+
+def test_teacher_labels_takes_priority_over_replays_when_both_given(monkeypatch):
+    def fake_score_env_teacher(env_overrides, teacher_labels, split, limit, python):
+        return (0.7, 10)
+
+    def fail_score_env(*a, **k):
+        raise AssertionError("replay scorer must not run when teacher_labels is set")
+
+    monkeypatch.setattr(mg, "_score_env_teacher", fake_score_env_teacher)
+    monkeypatch.setattr(mg, "_score_env", fail_score_env)
+    res = mg.sweep("some_replays_dir", teacher_labels="data/training")
+    assert res["baseline"]["agreement"] == 0.7
+
+
+def test_replays_only_path_still_uses_the_replay_scorer(monkeypatch):
+    """Regression guard: the original real-replay path must survive the refactor."""
+    calls = []
+
+    def fake_score_env(env_overrides, replays, teams, limit, python):
+        calls.append((dict(env_overrides), replays))
+        return (0.4, 8)
+
+    monkeypatch.setattr(mg, "_score_env", fake_score_env)
+    res = mg.sweep("some_replays_dir")
+    assert res["baseline"] == {"agreement": 0.4, "n": 8}
+    assert calls[0] == ({}, "some_replays_dir")
