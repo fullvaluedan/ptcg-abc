@@ -279,8 +279,15 @@ docs/plans/2026-07-02-003-feat-offline-match-scale-topplayer-mining-plan.md (all
   reads well before then.
 
 ### Shared rules
+- ANTI-CHURN (2026-07-05): do NOT spend an iteration board-checking a FROZEN board or logging another
+  "board-check holds / Nth freeze" entry. Board-check at most ONCE per quota window (or when a pre-registered
+  in-flight A/B is due to settle). If nothing on the board changed and no TRACK L build is awaiting a slot,
+  spend the iteration on TRACK S (writeup) or a deck-exploration candidate, or do nothing. Repetitive freeze
+  logging burns premium-model usage for zero value; the floor is held and the endgame is booked, so there is
+  nothing to watch minute to minute.
 - ONE loop only. Do NOT run parallel sessions: the ladder is quota-bound (5/day), slot-bound (2 scored slots),
-  and noise-bound (~90-130pt same-build band), so more compute cannot buy rank, only more offline infra.
+  and noise-bound (observed same-build spread ~452-691, M refit to ~240), so more compute cannot buy rank,
+  only more offline infra.
 - STOP re-deriving early_collapse (settled: deck-density-bound). No new empty-bench/collapse analyses unless a
   genuinely NEW mechanism is tested.
 - Each iteration: if a ladder slot is free and a TRACK L action is ready, do TRACK L (it is the rank lever);
