@@ -17,9 +17,11 @@ ONE Kaggle Writeup per team (max 2000 words, submitted via the site, drafts do n
 deadline Sep 6, submit by Sep 13 11:59PM UTC, judged 70% model approach / 20% deck / 10% report, leaderboard
 rank is ONE bullet of five inside the 70%, lower-tier teams can win per the page itself, and the Simulation
 track pays $0. THEREFORE:
-P1. TRACK S (the Strategy writeup + the honest-methods story) is the PRIMARY EV line. Writeup milestones:
-    conform ONE writeup to the real format (2000 words, title/subtitle, Track, self-made figures only, no
-    Pokemon artwork, nothing attached we cannot publish), full draft by Aug 20, SUBMITTED by Sep 10.
+P1. TRACK S (the Strategy writeup + the honest-methods story) is the PRIMARY EV line. Writeup milestones
+    (Dan, 2026-07-05): all drafting stays IN THIS REPO and gets pushed to GitHub; conform ONE writeup to the
+    real format (2000 words, title/subtitle, Track, self-made figures only, no Pokemon artwork, nothing
+    attached we cannot publish); full draft by Aug 10; SUBMITTED on Kaggle by SEP 1 (Dan's hard deadline,
+    12-day buffer to the official Sep 13; a reminder is scheduled).
 P2. TRUE STRENGTH is the only rank lever that survives convergence. U39 DECK EXPLORATION is authorized and
     is the top offline build priority: mine 800+ rated decklists from the episode dumps, cluster the
     dominant archetypes, REBUILD the ring's opponent pool from those decks, recalibrate (tau >= 0.7), and
@@ -41,10 +43,40 @@ P6. RULES/COMPLIANCE standing: keep the repo publishable (MIT open-source obliga
     clause) but dumps stay team-private. One open rules conflict: Simulation Rules 2.2.b says teams "may
     select up to two Final Submissions" while the overview/FAQ say latest-2-auto; Dan checks the logged-in
     Submissions page for a selection UI before August (if selection exists, eviction risk relaxes).
-Near-term queue (one unit per iteration): (1) analysis/strategy_prize_rules.md verbatim record, (2) the
-age-stratified refit, (3) daily leaderboard snapshot into data/leaderboard_cache (median/percentile drift
-series), (4) U39 deck mining step 1, (5) board-check gating in the watchdog layer, (6) writeup conformance
-pass, (7) supersession flags on stale M=60/WIN text in state/current.md and below in this file.
+P7. DAN'S DIRECTIVES (2026-07-05), three standing objectives, all offline and quota-free until their gates:
+    U100 RULES-AS-IMPLEMENTED: understand how and when to play every card by probing the LOCAL engine
+        itself (cg.api forward model), mechanic by mechanic: damage math with weakness/resistance, energy
+        and retreat costs, status effects, prize flow, on-evolve and once-per-turn ability semantics,
+        sub-select (CARD/COUNT/YES_NO) meanings, turn structure. Deliverables: docs/rules_as_implemented.md
+        (plain-language, card-play oriented) plus tests/test_engine_mechanics.py pinning each VERIFIED
+        mechanic as an executable test. The engine's behavior, not the printed text, is the real rulebook.
+    U101 INVARIANT FUZZER (glitch hunt, part 1): run massive random-legal-play games across the 20 cores
+        (reuse tools/parallel_gauntlet.py) asserting conservation invariants every step: total cards in
+        deck+hand+discard+board+prizes, HP bounds, prize-count transitions, turn alternation, energy
+        attached vs attached-this-turn flags. EVERY violation is logged to analysis/engine_quirks.md with a
+        minimal reproduction. Dan's thesis: mistakes in the engine are opportunities, possibly by design.
+    U102 CARD-TEXT DIFFERENTIAL AUDIT (glitch hunt, part 2): for every card and attack in the two meta
+        decks plus our own deck (then widen), set up controlled forward-model states and compare the
+        engine's actual outcome vs the printed text and damage. Catalog every divergence: engine does MORE
+        than text says = candidate exploit; engine does LESS = trap to avoid. Exploits are LEGAL play-level
+        moves (the engine is the rules; no platform manipulation, no egress); any exploitable quirk the
+        shipped pilot can use ships as a flag-gated rule through the normal gates.
+    U103 MIRROR BENCHMARK (Dan's success criterion: beat the top players with their own deck, because that
+        proves we learned to play better). Metric ladder, in order: (i) move-agreement with the deck
+        OWNERS' held-out games on their deck (baseline 21.6% overall; report per-deck and target a material
+        rise using U100 knowledge + playbooks); (ii) our-pilot-on-kazuki-Grimmsnarl must OUTPERFORM
+        our-pilot-on-trolley against the REBUILT meta-archetype ring (that is the deck ceiling unlocking,
+        impossible today: 409 vs 570 on the ladder historically); (iii) only after (ii) passes and the
+        rebuilt ring calibrates, a convergence-aware ladder run of the mirror deck, judged against the
+        owner's ~1185 converged rating. This folds in the meta_deck_copy re-test (its recorded condition,
+        a real deck-aware differentiator, is what U100-U102 build).
+
+Near-term queue (one unit per iteration): (1) the age-stratified refit, (2) daily leaderboard snapshot into
+data/leaderboard_cache (median/percentile drift series), (3) U100 rules-as-implemented (start now, it feeds
+everything), (4) U39 deck mining step 1 + ring rebuild, (5) U101 fuzzer, (6) U102 differential audit,
+(7) board-check gating in the watchdog layer, (8) writeup conformance pass toward the Sep 1 submit,
+(9) supersession flags on stale M=60/WIN text in state/current.md and below in this file, (10) U103 mirror
+benchmark once the ring is rebuilt. analysis/strategy_prize_rules.md is DONE (2026-07-05).
 
 ## RESUME STATE (2026-07-03): TWO TRACKS. Do not conflate them.
 An audit found the loop had been optimizing an agent that does NOT ship: the shipped ladder agent is
