@@ -298,6 +298,15 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   basis. This does not retroactively change any already-settled pre-registration (each row carries its own
   hardcoded margin); it only fixes the record and sets a sane default for whatever ladder-side margin a
   future pre-registration might still want, given the ring is now the actual decision gate per L9.
+- Writeup staleness fix in `docs/writeup/comprehension.md` (2026-07-04, board-check iteration): the claims
+  ledger row and closing paragraph still described `PTCG_ATTACK_FIRST` as "staged, not yet submitted", a
+  fact that was true when U94 wrote the chapter but was superseded within the same day once the lever was
+  actually submitted (refs 54304483/54304681), settled NEUTRAL via the U23 scoreboard tiebreak, and reverted
+  to a king copy. Corrected both spots to state the real settled-NEUTRAL outcome and note both offline gates
+  (+5.5pp gauntlet, +10.0pp ring) still stand unchanged, so the lever remains re-eligible for a future slot
+  without new offline work. Same recurring pattern as the other writeup-drift findings above: a document
+  correctly describes a fact at the moment it is written, then the underlying state moves on without every
+  citing document being walked back over.
 
 ---
 

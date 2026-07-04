@@ -244,7 +244,7 @@ test instead of silently leaving a dangling claim.
 | PTCG_ATTACK_FIRST confirmed live, not inert | 3/20 real positions flipped (8/20 had a positive-value attack) | `analysis/attack_first_flip_check.md` |
 | PTCG_ATTACK_FIRST offline gauntlet gate | 71.5% to 77.0%, +5.5pp | `analysis/attack_first_ab.md` |
 | PTCG_ATTACK_FIRST bracket-ring gate | 75.0% to 85.0%, +10.0pp | `analysis/attack_first_ring_check.md` |
-| PTCG_ATTACK_FIRST pre-registered, staged, not yet submitted | M=60, N=30, settle-by 2026-07-11 | `state/current.md` |
+| PTCG_ATTACK_FIRST submitted, settled NEUTRAL (single-read verdict, not a refutation) | first reading +32.0pp BAND, repeat resubmission mixed sign, U23 scoreboard 1/3 vs 4/6 decisive, confidence 0.171 | `analysis/attack_first_settlement.md` |
 
 ## Bottom line for the Strategy prize
 
@@ -261,5 +261,12 @@ per-decision imitation question was asked one final time with a genuinely
 different training objective and got a clean, converged, negative answer,
 closing four independent attempts rather than leaving the question open to
 be re-tried a fifth time on a hunch. One real, gated, ladder-ready lever
-(`PTCG_ATTACK_FIRST`) came out of this track; it is staged and will submit
-the instant a slot frees, per TRACK L's standing priority.
+(`PTCG_ATTACK_FIRST`) came out of this track. It was submitted and settled
+NEUTRAL on a single ladder read (the U23 scoreboard tiebreak on shared
+brackets, confidence 0.171, favors_candidate=false), which is a low-confidence
+verdict, not a refutation, once the 2026-07-04 noise recalibration is taken
+into account (a single ladder read cannot distinguish a real lever from
+same-build noise; see `docs/writeup/offline_ladder_transfer.md`). Both of its
+offline gates still pass unchanged (+5.5pp gauntlet, +10.0pp calibrated
+bracket ring), so it remains re-eligible for a future ladder slot without new
+offline work; the slot it briefly held now carries a plain king copy.
