@@ -108,6 +108,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 427.8 | 0 | Board check 2026-07-04: 427.8 (drifted from 426.0). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; no action. |
 | heuristic+trolley-ability (floor restoration) | n/a | n/a | 497.0 | 0 | Board check 2026-07-04: 497.0 (drifted from 540.9). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action. |
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 444.8 | 0 | Board check 2026-07-04: 444.8 (drifted from 427.8). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; no action. |
+| heuristic+trolley-ability (floor restoration) | n/a | n/a | 526.2 | 0 | Board check 2026-07-04: 526.2 (drifted from 497.0/540.9/600.0 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action taken. |
+| heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 456.0 | 0 | Board check 2026-07-04: 456.0 (drifted from 444.8/427.8/426.0 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; no action taken. |
 
 ```json STATE
 {
@@ -147,7 +149,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
   "in_flight": {
     "board_reading": "n/a",
     "build": "none (TRACK L HOLDS)",
-    "note": "Board-checked this iteration (kaggle competitions submissions): tracked latest-2 unchanged, ref 54315802 (ability floor restoration) now reads COMPLETE 497.0 (drifted from 540.9) and ref 54315565 (plain king-copy revert) now reads COMPLETE 444.8 (drifted from 427.8). Both readings sit inside the existing v2 pooled range (396.7-691.5), no new low, no drift off the L9-target composition (one ring-preferred build, one plain king copy), so per L9(c)/(d) TRACK L continues to genuinely HOLD; no new submission spent. Did NOT re-run the writeup staleness sweep: the prior iteration completed a fresh top-to-bottom pass over every writeup chapter, findings.md, and state/hypotheses.md and found nothing new, and explicitly flagged that repeating the same sweep with no new source material would be low-value. No new TRACK S coded unit is defined without a weekly plan review (PLAN FREEZE through 2026-08-16). This iteration's sole increment is recording these two new board-check data points; continue watching for a reading outside the pooled range (which would force a noise-model refit before 2026-07-15) or the 2026-08-10/16 endgame campaign window.",
+    "note": "Board-checked this iteration (kaggle competitions submissions): tracked latest-2 unchanged, ref 54315802 (ability floor restoration) now reads COMPLETE 526.2 (drifted from 497.0) and ref 54315565 (plain king-copy revert) now reads COMPLETE 456.0 (drifted from 444.8). Both readings sit inside the existing v2 pooled range (396.7-691.5), no new low, no drift off the L9-target composition (one ring-preferred build, one plain king copy), so per L9(c)/(d) TRACK L continues to genuinely HOLD; no new submission spent. Did NOT re-run the writeup staleness sweep again: two prior iterations in a row already found nothing left to fix and explicitly flagged that repeating the same sweep with no new source material is low-value; today's date has not advanced past that check. No new TRACK S coded unit is defined without a weekly plan review (PLAN FREEZE through 2026-08-16). This iteration's sole increment is recording these two new board-check data points; continue watching for a reading outside the pooled range (which would force a noise-model refit before 2026-07-15) or the 2026-08-10/16 endgame campaign window.",
     "ref": "n/a"
   },
   "ledger": [
@@ -354,6 +356,24 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "ladder": 444.8,
       "move_agreement_delta": "n/a",
       "note": "Board check 2026-07-04: 444.8 (drifted from 427.8/426.0/486.3 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315565",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-ability (floor restoration)",
+      "ladder": 526.2,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04: 526.2 (drifted from 497.0/540.9/600.0 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315802",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley (king-copy revert, 2026-07-04)",
+      "ladder": 456.0,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04: 456.0 (drifted from 444.8/427.8/426.0 prior reads). Within the v2 pooled range (396.7-691.5), no new low/high. Plain king-copy floor; no action taken.",
       "oracle": "n/a",
       "ref": "54315565",
       "sample_size": 0
