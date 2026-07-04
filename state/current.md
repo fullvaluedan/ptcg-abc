@@ -146,8 +146,10 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to the prior four checks (same episode id 83768597). Fifth consecutive frozen read. Not re-logged as a fresh findings.md entry per standing discipline; watching only for the freeze to break. |
 | heuristic+trolley-ability (floor restoration) | n/a | n/a | 603.3 | 0 | Board check 2026-07-04 (this iteration): 603.3, IDENTICAL to the prior five checks (same episode id 83768225). Sixth consecutive frozen read. Not re-logged as a fresh findings.md entry per standing discipline; watching only for the freeze to break. |
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to the prior five checks (same episode id 83768597). Sixth consecutive frozen read. Not re-logged as a fresh findings.md entry per standing discipline; watching only for the freeze to break. |
-| heuristic+trolley-ability (floor restoration) | n/a | n/a | 602.4 | 0 | Board check 2026-07-04 (this iteration): 602.4, BREAKS the six-check freeze (down a hair from 603.3). tools/scout.py episodes confirms new games played: newest episode id advanced from the frozen 83768225 to 83776251 (two new completed episodes). Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action taken. |
-| heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to all six prior checks (same episode id 83768597, unchanged again). Seventh consecutive frozen read; this ref has now been stuck longer than the earlier six-check freeze that resolved itself. NEW finding: the two tracked refs' freezes were not the same event, they have decoupled -- the ability-floor ref just resumed play this same check while this king-copy ref has not, so whatever stopped this ref's scheduling is either a separate cause or has a longer duration than the precedent. Folded into docs/writeup/offline_ladder_transfer.md and findings.md (the "resolved, not permanent" framing needed a further caveat: a submission can re-freeze, or two simultaneously-frozen refs can un-freeze at different times). Still a valid safe-floor build; no action taken (floor maintenance only, per L9). |
+| heuristic+trolley-ability (floor restoration) | n/a | n/a | 602.4 | 0 | Board check 2026-07-04 (this iteration): 602.4, BREAKS the six-check freeze (down a hair from 603.3). tools/scout.py episodes confirms new games played: newest episode id advanced from the frozen 83768225 to 83776251. Within the v2 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action taken. |
+| heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to all six prior checks (same episode id 83768597, unchanged again). Seventh consecutive frozen read, now stuck longer than the earlier six-check freeze that resolved itself. The two refs' freezes have decoupled: the ability-floor ref resumed play this same check while this ref has not. Folded into docs/writeup/offline_ladder_transfer.md and findings.md. |
+| heuristic+trolley-ability (floor restoration) | n/a | n/a | 602.4 | 0 | Board check 2026-07-04 (this iteration): 602.4, IDENTICAL to the immediately prior check (same episode id 83776251). Second consecutive frozen read at this value. Ring-gated per L9; no action taken. |
+| heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 443.1 | 0 | Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to all seven prior checks (same episode id 83768597, unchanged again). Eighth consecutive frozen read; per standing discipline this repeat is not re-logged as a fresh findings.md entry (the decoupled-freeze finding was already recorded last iteration). Still a valid safe-floor build; no action taken. |
 
 ```json STATE
 {
@@ -185,9 +187,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "source": "analysis/final_scoring_semantics.md"
   },
   "in_flight": {
-    "board_reading": "602.4/443.1 (ability-floor ref BROKE its six-check freeze this iteration; king-copy ref hit a SEVENTH consecutive frozen read)",
+    "board_reading": "602.4/443.1 (ability-floor ref frozen a second consecutive check; king-copy ref frozen an eighth consecutive check)",
     "build": "none (TRACK L HOLDS)",
-    "note": "Board-checked (kaggle competitions submissions): ability-floor ref 54315802 moved 603.3 -> 602.4, and tools/scout.py episodes confirms it played new games (newest episode id 83768225 -> 83776251). King-copy ref 54315565 remained EXACTLY 443.1 with an unchanged newest episode id (83768597), identical to all six prior checks -- a seventh consecutive frozen read, now stuck longer than the earlier single-ref freeze that resolved itself after six checks. New finding this iteration: the two refs' freezes have DECOUPLED (one resumed, the other has not), which the writeup's existing episode-staleness narrative did not anticipate; folded a follow-up paragraph into docs/writeup/offline_ladder_transfer.md and a dated one-liner into findings.md Section 4D rather than repeating a bare board-check log. PLAN FREEZE remains in effect through 2026-08-16.",
+    "note": "Board-checked (kaggle competitions submissions) and cross-verified with tools/scout.py episodes. ability-floor ref 54315802 unchanged at 602.4, newest episode id still 83776251 (matches the prior check exactly). king-copy ref 54315565 unchanged at 443.1, newest episode id still 83768597, extending the freeze first flagged two iterations ago to eight consecutive checks. Both repeats sit below the re-log threshold already crossed and documented (findings.md Section 4D, docs/writeup/offline_ladder_transfer.md); no new prose added this iteration. TRACK L holds (no lever awaiting a slot); TRACK S has no coded unit due (comprehension track fully shipped, CEM conditions a/b/c exhausted, writeup last synced 2 commits ago). PLAN FREEZE remains in effect through 2026-08-16.",
     "ref": "n/a"
   },
   "ledger": [
@@ -754,6 +756,24 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "ladder": 443.1,
       "move_agreement_delta": "n/a",
       "note": "Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to all six prior checks (same episode id 83768597, unchanged again). Seventh consecutive frozen read, now stuck longer than the earlier six-check freeze that resolved itself. The two refs' freezes have decoupled: the ability-floor ref resumed play this same check while this ref has not. Folded into docs/writeup/offline_ladder_transfer.md and findings.md.",
+      "oracle": "n/a",
+      "ref": "54315565",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley-ability (floor restoration)",
+      "ladder": 602.4,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04 (this iteration): 602.4, IDENTICAL to the immediately prior check (same episode id 83776251). Second consecutive frozen read at this value. Ring-gated per L9; no action taken.",
+      "oracle": "n/a",
+      "ref": "54315802",
+      "sample_size": 0
+    },
+    {
+      "build": "heuristic+trolley (king-copy revert, 2026-07-04)",
+      "ladder": 443.1,
+      "move_agreement_delta": "n/a",
+      "note": "Board check 2026-07-04 (this iteration): 443.1, IDENTICAL to all seven prior checks (same episode id 83768597, unchanged again). Eighth consecutive frozen read; per standing discipline this repeat is not re-logged as a fresh findings.md entry (the decoupled-freeze finding was already recorded last iteration). Still a valid safe-floor build; no action taken.",
       "oracle": "n/a",
       "ref": "54315565",
       "sample_size": 0
