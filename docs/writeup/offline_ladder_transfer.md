@@ -287,71 +287,136 @@ between the two checks being compared.
 
 ## A parallel thread: category mining converges on archetype awareness, and a gate closes it
 
-Attempt 2's move-ranking validator did not just surface the ABILITY blind spot;
-it also named RETREAT and the post-knockout PROMOTE decision as low-agreement
-categories worth root-causing. U82's category mining chased both, along with a
-deck-search-pick check, to see whether any of them hid a cheap, shippable rule
-the way ABILITY did. None did, and each was closed for a specific, measured
-reason rather than abandoned on a hunch:
+Attempt 2's move-ranking validator (analysis/move_ranking_diverges_ability_gap.md)
+did not just surface the ABILITY blind spot; analyzing the same 4,524 real top-
+player decisions, it also named RETREAT and the post-knockout PROMOTE decision
+as low-agreement categories (0.0% and 0.4% vs the 0.770 ATTACK agreement),
+worth root-causing to check whether they hid a cheap, shippable rule the way
+ABILITY did. U82 (analysis/category_mining_v2.md) chased both, along with a
+deck-search-pick check, against the real expert corpus to see whether any of
+them could be explained by a single pilot-missing decision rule. None could,
+and each was closed for a specific, measured reason rather than abandoned on a
+hunch:
 
-- **RETREAT** (analysis/retreat_gap_conditional.md): 89.1% of real expert
-  retreat decisions are a genuine threshold_miss, not an ordering artifact, and
-  75.6% of those happen when the active is at 90-100% HP, i.e. barely hurt. A
-  plausible follow-on theory, that top players are swapping to a better bench
-  matchup regardless of HP, was then measured directly against which bench mon
-  they actually bring in and refuted: only 22.9% of those high-HP retreat
-  targets have a better type matchup than the outgoing active.
-- **PROMOTE** (analysis/promote_gap_conditional.md): the pilot has no rule at
-  all for post-knockout promotion (pure `_first_legal`). Six candidate signals
-  were checked against 91 real expert picks, including type matchup via the new
-  `analysis/matchup_delta.py` primitive and an immediate-knockout check; the
-  best of them (a combined energy-then-matchup signal) explains only 40.7% of
-  real picks, not a majority, and the knockout check never even applies in this
-  population (0/91).
-- **Deck-search picks**: found to be category-explained by existing logic
-  rather than a distinct pilot gap, so no further mining was needed there.
+- **RETREAT** (analysis/retreat_gap_conditional.md, 163 real expert decisions
+  analyzed): 89.1% of expert retreat decisions are a genuine threshold-miss on
+  active HP, not an ordering artifact, and 75.6% of those happen when the
+  active is at 90-100% HP (barely hurt), a condition the pilot checks correctly.
+  A plausible follow-on theory, that top players swap to a better bench matchup
+  regardless of active HP, was measured directly: when experts retreat a high-HP
+  active, they bring in a new active only 22.9% of the time with a better type
+  matchup than the outgoing one (analysis/matchup_delta.py). The missing signal
+  is not a simple energy/HP/matchup field but something about the game state
+  context the five measurable fields do not capture.
 
-Every one of these threads independently pointed at the same missing
-capability: knowing the current game plan or archetype the hand is building
-toward, not any single HP/energy/matchup field in isolation. That is exactly
-what U9a/U9b (docs/plans/2026-07-03-addendum-u9-archetype-detection-v1.md)
-tested head-on: an early-turn archetype classifier trained on 140 real ladder
-games' silver labels. Its own pre-registered gate required the held-out
-accuracy margin over a majority-class baseline to clear +5.0 percentage points,
-averaged across five held-out splits to avoid a single lucky split deciding the
-verdict; it landed at **+4.3 points** (analysis/archetype_prior_train.md), a
-narrow, unambiguous miss. Per the addendum's own rule, a failed U9b gate blocks
-U9c: no archetype-prior model was exported, and nothing was wired into search
-on the strength of it. This closes the specific, most-obvious version of the
-"teach the pilot the game plan" idea that three independent mining threads
-converged on; it is not evidence the general idea is wrong, only that this
-implementation, trained on this much data, did not clear the bar that was set
-for it before a genuinely different angle is worth trying.
+- **PROMOTE** (analysis/promote_gap_conditional.md, 91 post-knockout decisions):
+  the pilot has no rule for promotion after opponent knockout (pure `_first_legal`).
+  Six candidate signals (type matchup, bench energy, combined energy-then-matchup,
+  immediate-knockout check, and others) were checked against real expert picks.
+  The best of them (energy-then-matchup) explains only 40.7% of real choices,
+  not a majority, and the immediate-knockout check never applies (0/91 decisions
+  in this dataset). Like the RETREAT miss, the gap is not a single measurable field
+  but something about the decision context.
+
+- **Deck-search picks** (analysis/category_mining_v2.md): checked whether the
+  pilot's card-pick decisions during deck-construction differ from expert plays,
+  a potential gap if experts have a game-plan-aware search strategy. Analysis
+  found the picks were category-explained by the pilot's existing weighted-random
+  search logic rather than revealing a distinct gap; no further mining was needed.
+
+Every one of these threads independently converged on the same diagnosis: the
+pilot lacks high-level awareness of the current game plan or archetype the hand
+is building toward, and tries to solve context-dependent decisions (which bench
+to promote, which active to retreat) with isolated state fields (HP, energy,
+matchup) instead. The missing capability is not in any individual card mechanic
+but in state aggregation at the game-plan level. U9a/U9b
+(docs/plans/2026-07-03-addendum-u9-archetype-detection-v1.md) tested this idea
+head-on: building an early-turn archetype classifier that could feed game-plan
+state to higher-level decisions, trained on 140 real ladder games labeled with
+the deck family they were playing (analysis/archetype_prior_train.md). The
+pre-registered gate required the held-out accuracy margin over a majority-class
+baseline to clear +5.0 percentage points, averaged across five held-out splits;
+it landed at **+4.3 points**, a narrow, unambiguous miss.
+
+Per the addendum's own rule, a failed gate blocks downstream work: no archetype-
+prior model was exported, and nothing was wired into the search on the strength
+of it. This closes the specific, most-obvious version of the "teach the pilot
+the game plan" idea that mining independently converged on; it is not evidence
+that the general idea is wrong, only that this implementation (a shallow
+classifier trained on 140 games) did not meet the bar that was set for it.
+Future work on this capability would need a different approach: more training
+data, a richer feature set, or a fundamentally different state-aggregation
+architecture, each of which would require a fresh pre-registration and gate.
 
 ## Bottom line for the Strategy prize
 
-The differentiated claim here is no longer "we tried three times and none of
-them worked," though that remains an honest and reportable part of the record.
-It is now: the project built a machine-enforced rule for admitting proxy
-failure in advance (proxies are refused by default and earn only the right to
-block, never promote, and only after clearing a pre-registered tau bar),
-applied it consistently across four structurally distinct designs, reported
-three real failures with named, specific diagnoses (non-predictive by
-construction; real but uncalibrated; a same-deck mirror confound compounded by
-the wrong opponent pool), and then, on the fourth attempt, fixed exactly the
-diagnosed flaw and passed (tau 0.857), earning the project's first working
-offline gate. In parallel, a second, independent line of investigation (the
-move-ranking validator's category gaps, chased down through U82's mining and
-tested directly via U9a/U9b's archetype classifier) applied the same
-no-lowering-the-bar discipline to a promising capability idea and recorded an
-honest, narrow gate FAIL (+4.3pp vs a required +5.0pp) rather than shipping it
-regardless. Combined with the pre-registration protocol and the same-build
-noise band (itself openly re-fit once real resubmission data showed the first
-estimate was roughly five times too narrow), this is the project's account of
-what does, and does not, transfer from offline testing to a real competitive
-ladder: most offline proxies fail, the ones that fail can often be diagnosed
-and sometimes fixed, a hard-won measurement of noise can itself turn out wrong
-and still be worth correcting in the open rather than quietly patched, and even
-a well-motivated, carefully-measured capability idea can still miss its own
-bar; each of those outcomes is reported as evidence in its own right rather
-than smoothed over on the way to a cleaner narrative.
+The differentiated claim is not "we tried three times and none of them worked,"
+though that remains an honest part of the record. It is: the project built and
+enforced a machine-checkable discipline for proxy development (proxies refused
+by default, earning only the right to block and only after clearing a
+pre-registered tau >= 0.7 retrodiction bar against known ladder outcomes),
+and applied it consistently across four structurally distinct proxy designs.
+The first three failed with named, specific diagnoses:
+
+1. **Attempt 1**: Weak-bot gauntlet, refused by construction (non-predictive
+   before any gate was even attempted).
+2. **Attempt 2**: Move-ranking validator, a real signal of expert play
+   agreement but never calibrated as a gate (and explicitly documented why it
+   should not be trusted as one).
+3. **Attempt 3**: Top-20 clone ring, the most rigorous attempt yet, still
+   landing at tau 0.429, failing clearly. Post-hoc diagnosis: the ring's
+   opponents were clones of the top-20 leaderboard, not the ~450-750 rating
+   band the ladder actually pairs us against; one opponent happened to mirror a
+   build-under-test's own deck, dragging that build's win rate toward 50%
+   regardless of true quality.
+
+On the **fourth attempt**, the project fixed exactly the diagnosed flaw: instead
+of top-20 clones, harvested real opponents from our own ~450-750 bracket
+(tools/bracket_decks.py, tools/bracket_select.py), built a nine-clone ring,
+re-ran the identical gate math, and passed at **tau 0.857**, clearing the 0.7
+bar decisively (analysis/ring_calibration.md). This is the first offline proxy
+in the project's history to earn gate authority: it can block a candidate
+(refuse to ship it) but never promote one, and only after real Kaggle matches
+confirm or refute the ring's ranking.
+
+In parallel, a second, independent discipline line (U82 category mining followed
+by U9a/U9b's archetype classifier) applied the same "hard gate, no lowering the
+bar" rule to a well-motivated capability hypothesis. Every named single-field
+gap the move-ranking validator surfaced (RETREAT, PROMOTE, deck-search picks)
+was chased to its root; each analysis converged on the same missing capability:
+game-plan awareness at the archetype level, not any individual card mechanic.
+U9a trained an early-turn archetype classifier on 140 real ladder games;
+U9b's pre-registered gate required +5.0pp held-out accuracy margin over
+majority-class baseline, averaged across five splits. Result: **+4.3pp**, a
+narrow, unambiguous miss. Per the addendum's rule, nothing was shipped, and the
+gate blocks U9c unless future work approaches the idea differently (more data,
+richer features, different architecture). This is not evidence the idea is
+wrong, only that this implementation did not meet its own bar.
+
+Combined with the pre-registration protocol and the same-build noise band
+(itself openly re-fit when real resubmission data showed the initial estimate
+was roughly five times too narrow), this is the project's account of what does
+and does not transfer from offline testing to a competitive ladder:
+
+- **Offline proxies are not predictors by default**: Most fail, and failing is
+  not evidence they are measuring the wrong thing; they may be measuring
+  something real but under the wrong conditions (weak bots, wrong opponent
+  pool, wrong sample size).
+- **Diagnosis of failure often names a fixable flaw**: The top-20 clone ring
+  failed not because cloning was the wrong idea but because the ring used the
+  wrong bracket; fixing that one variable made the same ring structure pass.
+- **A hard-won noise model can itself turn out wrong**: The initial same-build
+  spread estimate (90-130 points) was roughly five times too narrow. Correcting
+  it in the open, instead of quietly patching tighter margins into the protocol,
+  is itself reportable evidence about how robust the noise estimate is.
+- **A well-motivated capability idea can miss its own gate**: U9b did not fail
+  because archetype awareness is not important, only because this specific
+  implementation, trained on this much data, did not clear the bar. Future work
+  remains possible, just contingent on a different approach and a fresh gate.
+
+Each of these outcomes—three failures with diagnoses, then a pass, then an
+honest gate-FAIL on a capability hypothesis—is reported as evidence rather than
+smoothed over toward a cleaner narrative. The Strategy prize criterion (70%
+model approach) is not whether the model is perfect, but whether the project's
+approach to testing and admitting failure is trustworthy; that is what the
+record demonstrates.
