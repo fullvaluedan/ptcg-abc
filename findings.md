@@ -480,6 +480,7 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   explicit in-the-open correction rather than a quiet patch.
 - TRACK S: the offline ML stack and the writeup, assembled continuously; this is now the default per-iteration
   action whenever TRACK L has no build awaiting a slot.
+- Age-stratified refit (2026-07-05, U4 Item 1): P4 hypothesis (aged reads more accurate than fresh) contradicted by data. Fresh trolley-king reads (437.2, n=29) run LOWER than aged (600.0, n=1), opposite direction; using aged-only estimate was premature. Impact: refit uses pooled estimate (456.4, n=57) as baseline, not aged-only. This reinforces the central finding: same-build noise band (~452-691) is much wider than build-level deltas, so ladder reads at n~30 per arm are not trustworthy for deciding between builds on their own; the calibrated bracket ring (ring test, not ladder points) is the decision gate. (analysis/noise_model_age_stratified.md)
 - Honest outlook: #1 is off the table. Realistic ladder landing with the fixes is the median band
   (~600-700 score, roughly #1500-2200 from ~#2980). The Strategy prize is the stronger bet: the differentiated
   story is the pre-registration machinery, the quantified noise model, the offline-to-ladder transfer record
