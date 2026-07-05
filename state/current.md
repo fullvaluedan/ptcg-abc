@@ -41,6 +41,8 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
 | heuristic+trolley-ability | PTCG_ABILITY on (once-per-turn ability activation) improves ladder win rate; pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md) | up | 60 | 30 | 2026-07-08 | yes |
 | heuristic+trolley-attack_first | PTCG_ATTACK_FIRST on (take an already-legal positive-value attack over a discretionary attach) improves ladder win rate; U91 mined winners attach-before-attack 3.4pp less than losers, and the shipped pilot over-attaches relative to both cohorts (analysis/gameplan_claims_bracket_4.md) | up | 60 | 30 | 2026-07-11 | yes |
 
+**SUPERSESSION NOTE (2026-07-05)**: The M=60 thresholds in the pre-registrations table above are stale. Per L9 noise recalibration, M is now 240 (v3). These pre-registrations' M and settle-by fields remain for reference but no longer govern settlement protocol (ladder reads no longer gate decisions; the calibrated bracket ring is the decision gate). The three builds are shelved pending new design judgment calls; they do not currently occupy ladder slots.
+
 - **heuristic+trolley_thick** filters: mirror empty-bench collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md); tarball grader-verified
   - WIN: promote heuristic+trolley_thick to shadow-king; reclaim-king stays heuristic+trolley
   - LOSS: evict trolley_thick, revert slot 2 to a king copy
@@ -82,6 +84,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
 - pair rule: two copies of the strongest settled build; a diverse hedge only if the runner-up settled within M and is mechanically different
 - no-roll buffer 2026-08-14 12:00 UTC, lock by 2026-08-15
 - basis: tools/endgame_stopping.py, king_true_estimate = mean of 31 pooled same-build reads for heuristic+trolley-ability (tools/refit_noise_model.py family stats, stdev=42.1); stop_target = mean + bonus (40), per U48 (docs/plans/2026-07-02-001-feat-unified-number-one-plan.md).
+- **SUPERSESSION (2026-07-05)**: The hard-stop regime (stop_target 611.6 as a decision rule) is retired per P3 POSTURE INVERSION. New strategy: LOCK-THE-STRONGEST-PAIR EARLY (by Aug 12-13), using the ring as the decision gate, not a fixed ladder-read threshold. This block remains for reference but does not govern endgame decisions.
 
 ## Final scoring semantics (U29)
 
