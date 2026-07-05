@@ -167,6 +167,29 @@ substitute for the N=30 the ladder verdict itself still requires, and this is
 the project's first concrete example of that gap: a passing offline gate does
 not guarantee the ladder produces a confirming sample in time.
 
+U39 (deck exploration, 2026-07-05) tested a ring-promoted candidate deck
+(`candidate_yushin_ito`) mined from high-rated 800+-decklists. The ring
+predicted a +0.100 win-rate advantage vs trolley (calibrated stable across
+n=20/40/40 independent runs, analysis/candidate_decks_ring_gate.md). The
+ladder outcome contradicted this directly: the candidate settled at 496.4
+rating, underperforming the trolley revert at 520.5 by 24.1 rating points
+(47.1% vs 46.2% win rate on 41 vs 42 fresh episodes respectively). This is
+the strongest ring-to-ladder transfer failure observed: a +0.100 ring delta
+predicted a win that the ladder reported as a 24pp loss. Possible causes
+include small ring sample size (n=20/40 initial confirmation), opponent-pool
+mismatch (ring uses bracket clones, ladder has broad live opponents), or
+meta drift (mining was from 2026-06-30 data, ladder runs on current patches).
+The failure prompted a critical re-evaluation of how ring evidence should
+weigh in ladder decisions: per L9 recalibration (2026-07-05), ring predictions
+are now the primary decision gate (not ladder A/B reads), and ladder
+submissions are reserved for floor maintenance and the endgame variance-harvest
+campaign. The candidate remains ring-promoted (ring evidence stands independent
+of ladder noise) and is eligible for future resubmission; this outcome
+demonstrates that small-sample ring predictions require larger validation
+samples or broader gauntlets before ladder submission, not that the ring's
+decision authority should be revoked (analysis/candidate_decks_ring_gate.md,
+state/current.md L9 protocol).
+
 ## What four attempts, three failures and one pass, actually mean
 
 The loop's response to the first three failures was not to lower the bar (drop
@@ -379,6 +402,24 @@ in the project's history to earn gate authority: it can block a candidate
 (refuse to ship it) but never promote one, and only after real Kaggle matches
 confirm or refute the ring's ranking.
 
+When this passed ring was then used to promote a new candidate deck (U39,
+2026-07-05), the ladder outcome contradicted the ring's prediction strongly:
+ring delta +0.100, ladder delta -24.1pp. This prompted a critical recalibration
+(L9, 2026-07-05): the response was not to revoke the ring's authority or to
+lower the ring's tau threshold, but to formally escalate the ring's role and
+demote ladder single-reads. The ladder's M=240 noise band (six-fold wider than
+the initial M=60 estimate) is incompatible with using it to confirm or refute
+small-sample ring predictions. The new protocol makes the calibrated ring the
+primary gate for lever decisions, reserves ladder submissions for two narrower
+jobs (holding the best ring-supported build in the floor slot, and an endgame
+variance-harvest campaign from 2026-08-10 to 08-16), and treats the candidate
+as ring-promoted but pending broader validation before future submission. This
+is the discipline working as intended: when real ladder data revealed a gap
+between an offline proxy's predictions and what the ladder measured, the gap
+was diagnosed (small sample size, opponent-pool mismatch, meta drift), and the
+decision authority was re-pointed to the more stable instrument (the ring at
+tau 0.857), not abandoned in favor of ladder noise.
+
 In parallel, a second, independent discipline line (U82 category mining followed
 by U9a/U9b's archetype classifier) applied the same "hard gate, no lowering the
 bar" rule to a well-motivated capability hypothesis. Every named single-field
@@ -395,8 +436,9 @@ wrong, only that this implementation did not meet its own bar.
 
 Combined with the pre-registration protocol and the same-build noise band
 (itself openly re-fit when real resubmission data showed the initial estimate
-was roughly five times too narrow), this is the project's account of what does
-and does not transfer from offline testing to a competitive ladder:
+was roughly five times too narrow, and re-fit again when further resubmissions
+pushed it even wider), this is the project's account of what does and does not
+transfer from offline testing to a competitive ladder:
 
 - **Offline proxies are not predictors by default**: Most fail, and failing is
   not evidence they are measuring the wrong thing; they may be measuring
@@ -405,18 +447,25 @@ and does not transfer from offline testing to a competitive ladder:
 - **Diagnosis of failure often names a fixable flaw**: The top-20 clone ring
   failed not because cloning was the wrong idea but because the ring used the
   wrong bracket; fixing that one variable made the same ring structure pass.
-- **A hard-won noise model can itself turn out wrong**: The initial same-build
-  spread estimate (90-130 points) was roughly five times too narrow. Correcting
-  it in the open, instead of quietly patching tighter margins into the protocol,
-  is itself reportable evidence about how robust the noise estimate is.
+  When that passing ring then failed to predict a new candidate, the diagnosis
+  led to a different fix: not to rebuild the ring, but to escalate its authority
+  and demote ladder reads.
+- **A hard-won noise model can itself turn out wrong, repeatedly**: The
+  initial same-build spread estimate (90-130 points) was roughly five times too
+  narrow. Correcting it in the open and then re-correcting it when further
+  resubmissions pushed it wider still is itself reportable evidence about the
+  actual noise scale and the danger of single-read decisions.
 - **A well-motivated capability idea can miss its own gate**: U9b did not fail
   because archetype awareness is not important, only because this specific
   implementation, trained on this much data, did not clear the bar. Future work
   remains possible, just contingent on a different approach and a fresh gate.
+- **Small-sample offline predictions require validation at scale before ladder
+  submission**: A ring prediction at n=20/40 sample size, even with a stable
+  delta across independent runs, may not generalize to broad ladder matchmaking.
 
-Each of these outcomes—three failures with diagnoses, then a pass, then an
-honest gate-FAIL on a capability hypothesis—is reported as evidence rather than
-smoothed over toward a cleaner narrative. The Strategy prize criterion (70%
-model approach) is not whether the model is perfect, but whether the project's
-approach to testing and admitting failure is trustworthy; that is what the
-record demonstrates.
+Each of these outcomes—three failures with diagnoses, a pass, a subsequent
+ladder test that contradicted the pass, and a re-pointing of decision authority
+in response—is reported as evidence rather than smoothed over toward a cleaner
+narrative. The Strategy prize criterion (70% model approach) is not whether the
+model is perfect, but whether the project's approach to testing and admitting
+failure is trustworthy; that is what the record demonstrates.
