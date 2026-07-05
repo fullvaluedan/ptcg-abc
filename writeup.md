@@ -1,11 +1,13 @@
 # A heuristic hardened by real-engine search and ladder forensics
 
+**Track:** Strategy (Model Approach)
+
 A Pokemon TCG agent built on three commitments: decide by the competition's exact
 rules, refuse to lose to its own blunders, and tune by real ladder loss data, not
 guesswork. It runs fully offline and never crashes. Two findings from our own
-replays shaped the climb: that the scored engine at first would not let our search run,
-and the recovery that got it running again, over a heuristic floor that carries every
-match search cannot yet win.
+replays shaped the climb: the scored engine at first would not let our search run,
+and the recovery that restored it, over a heuristic floor that carries every match
+search cannot yet win.
 
 ## The core idea, and the constraint that reshaped it
 
@@ -83,31 +85,16 @@ line but what made the next levers worth pulling.
 
 ## Strengthening the recovered search
 
-With search live, a stack of changes targets why it does not yet beat its own floor. The
-largest leak was self-inflicted: a searched MAIN move bypassed the heuristic's bench guard,
-so search boarded itself out and lost most ladder games to empty-bench collapse; the fix
-defers thin-bench turns to that guard and searches only when the bench is healthy. The
-determinization prior now models the real field from the opening turn: the highest-adoption
-ladder archetypes are embedded, so before any reveal the hidden zones are dealt from the
-modal opponent rather than a mirror of our own deck, and once a distinctive card shows,
-belief sharpens to that archetype. The argmax is hardened against
-strategy fusion: a candidate is scored by its mean rollout value minus a penalty on the
-world-to-world spread, demoting a move that wins only in a favorable and possibly wrong
-hidden world. And the clock is used, not hoarded: prior matches spent about 130 of the
-600-second bank, so the per-move caps were raised and tiered, with the endgame
-and closing prize race sampling more worlds than an ordinary turn, under a reserve guard
-that keeps cumulative time clear of a timeout. Because the heuristic is also the rollout policy, teaching it to drive an evolution line with
-Rare Candy toward its Stage 2 payoff deepens every rollout for free. Two further changes are
-built but dormant on the shipped stack, and it is worth being precise about that rather than
-claiming them as wins: an energy-attach resequencing that steers surplus energy onto a benched
-attacker, and a richer leaf evaluation (an attached-energy term, an active-weighted health
-term, and a convex empty-bench cushion). The leaf terms are read only at a rollout leaf, but
-the shipped policy rolls every line to a terminal result, so a leaf is reached only at the
-engine's step cap and the terms never fire. Activating them needs a positive rollout depth
-cut-off, which we measured and rejected: at the depths that made the cushion bite, the
-depth-cut argmax diverged from the faithful terminal argmax, so the cut cost more accuracy than
-the leaf terms bought. They stay off until a rollout policy cheap enough to justify cutting
-depth makes them pay.
+With search live, changes targeted why it does not yet beat the heuristic floor. The
+largest leak: searched MAIN moves bypassed the bench guard, so search boarded itself out.
+The fix defers thin-bench turns to the guard and searches only when the bench is healthy.
+The prior now embeds real ladder archetypes instead of self-mirrors, sharpening belief
+once a card reveals archetype. The argmax is hardened against strategy fusion: moves scoring
+well only in favorable hidden worlds are demoted by a spread penalty. Clock allocation was
+raised from 130 to the full 600-second bank, with endgame and prize-race turns sampling
+more rollout worlds. Most improvements stay measured offline; two dormant changes
+(energy-attachment resequencing and richer leaf terms) were tested, measured, and kept off
+because depth-cuts needed to activate them degraded the terminal-rollout accuracy we rely on.
 
 ## Tuned by real loss data, not by guessing
 
@@ -126,31 +113,19 @@ falsified attempts: trading energy for a Basic lost more to reduced damage than 
 and an Ultra Ball fetch measured even but was retired, its discard cost unaffordable by
 turn three when the collapse lands.
 
-## The measurement problem, and the discipline it forced
+## The measurement discipline
 
-Every claim above rests on a harder question than the changes themselves: how do you
-know a change helped? The obvious answer, a self-play gauntlet, is a trap here. Offline
-gauntlets run against the SDK's built-in bots, and they are not ladder-predictive: the
-trolley deck beats the Archaludon engine 77 percent to 68 in the gauntlet, yet on the
-scored ladder Archaludon lands below trolley, not above. The only honest oracle is the
-ladder itself, and it is rationed: five submissions a day, and only the two most recent
-count toward the standing. A noisy, rate-limited, latest-two-scored oracle is the real
-environment, and pretending the gauntlet was the oracle would have burned the whole
-climb on changes that only looked good against weak bots.
+How do you know a change helped? The obvious answer, a self-play gauntlet, is a trap:
+gauntlets run against built-in bots, not ladder-predictive. In the gauntlet, trolley
+beats Archaludon 77% to 68%; on the real ladder, Archaludon lands below trolley. The
+only oracle is the ladder itself, and it is rationed: five submissions a day, two score.
 
-Three rules fell out of that. First, measure mechanisms, not outcomes. A win-rate delta
-from an offline mirror means nothing, but a loss-bucket shift is a real, reproducible
-fact about behavior: the deckout guard drove self-deckout from the top loss to near
-zero, and the bench guard cut our empty-bench collapse from 43 to 34 percent, both
-measured offline and both trusted precisely because they are counts of a named failure,
-not a rating. Second, never spend a scarce ladder slot on a lever the ladder cannot
-judge before it ships: a staged flag that only changes behavior under an environment
-toggle would land inert and waste a slot, so those stay off until a default-on version
-earns the test. Third, because only the latest two submissions score, a known-good
-build has to be reclaimed: after an experiment pushes it out of the scored pair, the
-floor is re-submitted to re-enter it, so the standing tracks our best verified build
-rather than our most recent guess. Most teams will read the gauntlet as truth; the
-result that mattered most was learning not to.
+Three rules fell out of that. First, measure mechanisms, not outcomes. Loss-bucket
+shifts are real facts about behavior; win-rate deltas from mirrors mean nothing. Second,
+never spend a scarce slot on a lever the ladder cannot judge: flags that only activate
+under a toggle stay off until they can prove themselves. Third, a known-good build must
+be reclaimed to re-enter the scored pair after an experiment pushes it out. This tracking
+of our best verified build—not our most recent guess—is what most teams will miss.
 
 ## Deck and pilot are one lever: the coupling result
 
@@ -182,36 +157,12 @@ free, filling the empty bench exactly when the collapse fires. On its scored slo
 heuristic band. It stays the deployable deck until a stronger pilot proves it can extract
 more from a harder one.
 
-## Design tradeoffs and why they are defensible
+## Design tradeoffs
 
-**Reuse the native model instead of reimplementing the rules.** It trades a custom
-simulator's freedom for exactness and removes the class of bug that ruins search agents; its
-early dormancy on the scored engine was the cost of that bet, and naming the cost then
-engineering the recovery is the point.
+**Reuse the native model.** Using the engine's forward model removes the risk of silent divergence from true rules. The early dormancy was the cost of that bet; the recovery was the point.
 
-**Bench maintenance is a first-class behavior.** The dominant loss was an empty bench, so
-keeping a Basic in reserve is priced across every layer: the pilot benches one before other
-plays, search hands thin-bench turns to that guard, the leaf values a bench convexly, and
-the deck raises Basic density. One loss mode, attacked on four fronts. The pilot guard was
-then measured in isolation: in a controlled test where both seats pilot the same deck, the
-opponent's thin-bench pressure is pinned on, and only our seat's guard is toggled, our
-empty-bench early collapse fell from 43 percent to 34 percent of games, a 21 percent relative
-reduction at n=100 per setting. The confidence intervals overlap, but the point estimate and
-direction match the mechanism, and the measurement itself carried a methodology lesson: a
-symmetric mirror that toggles the guard on both seats at once misreports it as adverse, so a
-pilot lever has to be measured on our seat alone. No win rate is claimed from an offline
-mirror, which meta.md shows is not ladder-predictive; the claim is only that the guard does
-what it was built to do to the loss bucket it targets.
+**Bench maintenance is first-class.** Empty-bench collapse was the top loss mode, so keeping a Basic in reserve is priced across every layer: the pilot benches one first, search defers thin-bench turns to the guard, and the deck raises Basic density. Measured in isolation, the guard cut empty-bench collapse from 43% to 34% (n=100 per setting). A key lesson: a symmetric mirror misreports this as adverse, so a pilot lever must be measured on one side only.
 
-**Optimize for low variance, not margin.** Most engineering went into the floor of outcomes,
-not the ceiling: no network or model calls run at match time, every decision path terminates
-in a legal move, and unknown option types are treated as a safe pass against
-mid-competition rule additions.
+**Optimize for low variance.** No models run at match time. Every decision path terminates in a legal move, protecting against crashes that forfeit the match.
 
-**Let the simulator decide, always.** A council of LLMs was a development-time aid, but it
-never votes on what ships. Every change is kept only if a gauntlet, then the real ladder,
-says it is an improvement. That discipline caught the falsified energy trade and reported
-the deck-copy shortcut as the honest failure it was, not the win we hoped for. The
-result is an agent forged in self-play, recovered onto the ladder when the grader hid its
-forward model, and improved by reading its own replays, including the one that told us our
-cleverest machinery was asleep.
+**Let the ladder decide.** Every shipped change passed a gauntlet and then the real ladder. This caught the falsified energy trade and reported the deck-copy shortcut as the honest failure it was. The result: an agent improved by reading its own replays, including the one that told us our search was asleep on the scored ladder.
