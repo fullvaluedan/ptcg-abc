@@ -37,6 +37,13 @@ P4. MEASUREMENT: no lever settles from single ladder reads (M refit 240). Fresh 
     estimate from AGED reads before choosing the locked pair. The rebuilt ring is the decision gate.
 P5. USAGE ECONOMY: gate board checks on the newest episode id advancing (tools/scout.py), max 2-4/day; no
     iteration spent logging an unchanged board; reserve usage headroom for Aug 10-16 and the writeup.
+    MODEL NOTE (2026-07-05): this loop now runs on HAIKU to stretch usage limits. Bias every iteration
+    toward small, mechanical, well-specified increments (data jobs, tests, ledger upkeep, applying a spec
+    exactly as written). If a unit requires genuine design judgment (a new architecture, an ambiguous
+    verdict call, rewriting a protocol), do NOT attempt it: write the question + context into
+    autoloop_status.md under "NEEDS ESCALATION" and move to the next mechanical unit. Compute-heavy work
+    (fuzzing, gauntlets, mining) belongs in plain Python via tmux (see ptcgcompute pattern), never inside
+    an LLM iteration.
 P6. RULES/COMPLIANCE standing: keep the repo publishable (MIT open-source obligation if we win covers
     training + inference + reproduction docs); never commit competition card data or Pokemon assets; delete
     competition data at competition end; episode-dump mining is compliant (rules 2.11 + external-data

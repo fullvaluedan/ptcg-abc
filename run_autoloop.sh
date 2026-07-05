@@ -35,7 +35,7 @@ while true; do
     "$PY" "$PROJ/tools/daily_refresh.py" >> "$LOG" 2>&1
   fi
   MSYS_NO_PATHCONV=1 "$CLAUDE" -p "$(cat "$PROJ/LOOP_BRIEF.md")" \
-      --model claude-sonnet-5 \
+      --model claude-haiku-4-5-20251001 \
       --dangerously-skip-permissions >> "$LOG" 2>&1
   code=$?
   dur=$(( $(date +%s) - start ))
