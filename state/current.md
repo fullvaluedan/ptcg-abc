@@ -6,15 +6,15 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Top loss bucket (what this iteration targets)
 
-**early_collapse** over 745 classified replays (W/D/L 332/1/412).
+**early_collapse** over 787 classified replays (W/D/L 353/1/433).
 
 | bucket | losses |
 | --- | --- |
-| early_collapse | 273 |
-| deckout | 67 |
-| bad_determinization | 31 |
+| early_collapse | 289 |
+| deckout | 69 |
+| bad_determinization | 33 |
 | deck_matchup | 29 |
-| endgame_misplay | 12 |
+| endgame_misplay | 13 |
 
 ## Kings
 
@@ -32,8 +32,6 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 - re-fit by: 2026-07-18
 
 ## Pre-registrations (machine-checked gate, U22)
-
-**L9 SUPERSESSION (2026-07-05, POSTURE INVERSION):** The three pre-registrations below all settled before this correction. Per L9 noise recalibration, the **calibrated bracket ring** (tau=0.857, analysis/ring_calibration.md) is now the binding decision gate for future TRACK L submissions, not single ladder reads and M=60 margins. The three listed pre-registrations remain as historical record: thin_bench_threshold SETTLED LOSS 2026-07-03 (evicted), ability SETTLED WIN 2026-07-04 (ring +20pp confirmed, active as shadow-king), attack_first SETTLED NEUTRAL 2026-07-03 (ring data inconclusive, evicted). Any new pre-registration in the renewed loop must specify ring gate authority, not M/N ladder margins.
 
 A build may not be submitted without a complete row here (tools/loop_state.py check-submit --build <name>).
 
@@ -922,22 +920,22 @@ _none calibrated; every proxy gate is refused (default-deny)_
   ],
   "loss_distribution": {
     "buckets": {
-      "bad_determinization": 31,
+      "bad_determinization": 33,
       "deck_matchup": 29,
-      "deckout": 67,
-      "early_collapse": 273,
-      "endgame_misplay": 12,
+      "deckout": 69,
+      "early_collapse": 289,
+      "endgame_misplay": 13,
       "slow_search": 0
     },
     "draws": 1,
-    "games": 745,
-    "losses": 412,
-    "sample_size": 745,
+    "games": 787,
+    "losses": 433,
+    "sample_size": 787,
     "sources": [
       "data/replays"
     ],
     "top_bucket": "early_collapse",
-    "wins": 332
+    "wins": 353
   },
   "noise_model": {
     "basis": "tools/refit_noise_model.py statistical refit over 57 pooled same-build reads across heuristic+trolley (n=30, mean=456.4, stdev=59.2), heuristic+trolley-ability (n=27, mean=568.5, stdev=43.9): pooled residual stdev 52.0, worst observed residual 235.1. M set to the larger of 2-sigma and the worst residual, rounded up to nearest 10.",
