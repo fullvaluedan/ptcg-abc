@@ -432,13 +432,25 @@ class Calibration:
         never calibrated at all, so enforcement skips rather than guesses.
         """
         key = (seat, context)
+        base = None
         if key in self.allowed_totals:
-            return self.allowed_totals[key]
-        union = set()
-        for (s, c), vals in self.allowed_totals.items():
-            if c == context:
-                union |= vals
-        return union or None
+            base = set(self.allowed_totals[key])
+        else:
+            union = set()
+            for (s, c), vals in self.allowed_totals.items():
+                if c == context:
+                    union |= vals
+            base = union or None
+        # Effect-resolution states are STRUCTURALLY bimodal: the context card
+        # sits in no zone while an effect resolves (total 59) or the effect
+        # holds no card out of zone (total 60). Verified during bring-up
+        # (analysis/engine_quirks.md). Per-shard calibration samples are too
+        # small (4-8 effect states) to always observe both modes, which
+        # produced 850 false I1 violations in the first 4000-game hunt. Encode
+        # the proven mechanism instead of trusting an undersampled calibration.
+        if context == "effect":
+            return (base or set()) | {59, 60}
+        return base
 
 
 class FuzzChecker:
