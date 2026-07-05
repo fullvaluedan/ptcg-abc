@@ -18,14 +18,15 @@ import sys
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[1]
-for _p in (str(_ROOT), str(_ROOT / "src")):
+# data/ goes on the path so the vendored engine imports under its CANONICAL
+# module identity "cg". Never import it as data.cg: a second module identity
+# re-runs the native once-per-process GameInitialize and breaks the singleton
+# for every other engine test in the same pytest process (110 failures).
+for _p in (str(_ROOT), str(_ROOT / "src"), str(_ROOT / "data")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-try:
-    from cg import api
-except ImportError:
-    from data.cg import api
+from cg import api  # noqa: E402
 
 
 # Mechanics:
