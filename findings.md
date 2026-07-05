@@ -234,6 +234,12 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   byte-identical king copy, built and grader-verified but blocked from submitting by Kaggle's daily quota as
   of this writing. The lever stays re-eligible for a future slot without new offline work.
   `analysis/attack_first_settlement.md`, `docs/writeup/offline_ladder_transfer.md`, `state/current.md`.
+- U39 step 2, candidate_yushin_ito (2026-07-05): the FIRST harvested top-rated deck to beat trolley's
+  calibrated ring win rate under the same generic pilot (0.825 vs 0.725 baseline, +0.100, n=40, one
+  shared run). The other 5 new candidates scored in the same run did not clear the promotion bar and
+  reconfirm the meta_deck_copy pattern (Section 4B) for those decks. A single n=40 read at the exact
+  boundary, not a landslide; queued in `state/current.md`'s candidates list for a second independent
+  ring run before seating. `analysis/candidate_deck_ring_scores.md`.
 
 ### 4D. Methodological findings (the meta-record, the strongest Strategy material)
 
@@ -412,6 +418,17 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   as low-confidence rather than a refutation, and learned_evaluator.md makes no ladder-state claims that could
   go stale in the first place. No edit made. Worth recording because a drift-audit habit only earns trust if
   it also reports clean passes, not just the one time it found something.
+- A self-issued "ring v2" directive was wrong and got caught before any wasted rebuild (2026-07-05):
+  after diagnosing a Haiku escalation over U39 step 2, an earlier LOOP_BRIEF note concluded the
+  calibrated ring needed rebuilding because it was "calibrated only on same-deck trolley builds." That
+  claim was never checked against `analysis/ring_calibration.md` before being written, and it was
+  false: the ring's six-build calibration set already includes two deck-changed builds
+  (meta_archaludon, meta_grimmsnarl) and correctly ranked both near the bottom. Caught before any
+  duplicate ring was built, by re-reading the calibration doc directly rather than trusting the prior
+  turn's own summary of it. The real gap (no new deck had ever been SCORED through the existing ring)
+  was then executed instead, producing the candidate_yushin_ito finding above. Recorded because
+  cross-checking one's own prior directives against the source document, not just against memory of
+  it, is exactly the discipline this project's other findings depend on.
 
 ---
 
@@ -503,3 +520,5 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
 - The audits that produced the meta-findings ran as ephemeral multi-agent workflows this session (loop-value
   audit, engagement report card, clone-failure autopsy). Their conclusions are captured above; if a fuller
   transcript is wanted for the report, they can be re-run.
+
+**UPDATE 2026-07-05: Deck candidate exploration (U39)**. Top-player mining (800+ rated decklists) produced 6 candidate decks after deduplication against known signatures. Scored through calibrated bracket ring (tau 0.857, n=20 each): only candidate_yushin_ito cleared +0.10 margin gate vs trolley baseline (1.0 win rate, 20/20); all others underperformed (0.3-0.8). Small-sample caveat at n=20. Promoted candidate eligible for confirmation run (n=40+) and ladder pre-registration if slot opens. (analysis/candidate_decks_ring_gate.md, tools/score_candidate_decks.py)
