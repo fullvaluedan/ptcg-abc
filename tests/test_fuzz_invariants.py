@@ -158,10 +158,18 @@ def test_i1_calibration_is_context_keyed():
     assert i1[0]["detail"]["context"] == "plain"
 
 
-def test_i1_uncalibrated_context_is_skipped_not_flagged():
+def test_i1_uncalibrated_effect_context_enforces_structural_bimodal():
+    # Effect contexts are verified structurally bimodal on the real engine
+    # (own-side total 59 while the context card is held out of zone, else 60),
+    # so even with NO effect calibration the checker enforces {59, 60} instead
+    # of skipping: a real effect state totaling far outside that band is
+    # exactly the anomaly the fuzzer exists to catch. This supersedes the old
+    # skip-when-uncalibrated contract for the effect context specifically
+    # (run-1's 850 false positives came from undersampled effect calibration).
     calib = fz.Calibration()
     calib.observe(make_state(), 0)  # plain only
     calib.finalize()
+    assert calib.allowed_for(0, "effect") == {59, 60}
     checker = fz.FuzzChecker(calibration=calib)
     checker.enforce()
     effect_obs = {
@@ -169,8 +177,9 @@ def test_i1_uncalibrated_context_is_skipped_not_flagged():
         "select": {"contextCard": {"id": 5, "serial": 9999, "playerIndex": 0}},
     }
     checker.observe(effect_obs, fz.GameTracker())
-    assert [v for v in checker.violations if v["invariant"] == "I1"] == []
-    assert checker.enforce_skips["uncalibrated_context_effect"] == 1
+    i1 = [v for v in checker.violations if v["invariant"] == "I1"]
+    assert len(i1) == 1
+    assert sorted(i1[0]["detail"]["expected"]) == [59, 60]
 
 
 def test_select_context_detection():
