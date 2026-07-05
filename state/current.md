@@ -33,6 +33,8 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Pre-registrations (machine-checked gate, U22)
 
+**L9 SUPERSESSION (2026-07-05, POSTURE INVERSION):** The three pre-registrations below all settled before this correction. Per L9 noise recalibration, the **calibrated bracket ring** (tau=0.857, analysis/ring_calibration.md) is now the binding decision gate for future TRACK L submissions, not single ladder reads and M=60 margins. The three listed pre-registrations remain as historical record: thin_bench_threshold SETTLED LOSS 2026-07-03 (evicted), ability SETTLED WIN 2026-07-04 (ring +20pp confirmed, active as shadow-king), attack_first SETTLED NEUTRAL 2026-07-03 (ring data inconclusive, evicted). Any new pre-registration in the renewed loop must specify ring gate authority, not M/N ladder margins.
+
 A build may not be submitted without a complete row here (tools/loop_state.py check-submit --build <name>).
 
 | build | hypothesis | dir | M | N | settle-by | complete |
