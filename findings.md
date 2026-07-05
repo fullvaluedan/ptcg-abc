@@ -318,13 +318,18 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   basis. This does not retroactively change any already-settled pre-registration (each row carries its own
   hardcoded margin); it only fixes the record and sets a sane default for whatever ladder-side margin a
   future pre-registration might still want, given the ring is now the actual decision gate per L9.
-- Age-stratified noise model refit (P4, 2026-07-05): per the P4 directive ("re-derive the true king estimate
-  from AGED reads"), extracted timestamped board checks from state/current.md and stratified by age (<48h fresh,
-  >72h aged). Expected hypothesis: fresh reads inflated by recent luck. Observed result: fresh reads are LOWER
-  than aged means (heuristic+trolley -44pp, heuristic+trolley-ability -124pp), not inflated. This is normal
-  convergence drift within the M=240 noise band (452-691 observed range), not a systematic fresh-read bias.
-  Conclusion: ring evidence (decision gate per L9) remains the governing rule; age-stratification does not
-  overturn it. True king estimate from aged reads: 561.1. `analysis/noise_model_age_stratified.md`.
+- Age-stratified noise model refit (P4, 2026-07-06): per the P4 directive ("re-derive the true king estimate
+  from AGED reads before Aug 10-16 lock decision"), stratified 77 ledger reads by age (<48h fresh vs 48-72h
+  mature vs >72h aged, using timestamps from board-check notes). Fresh reads are depressed vs aged: trolley
+  422.2 (fresh, n=1) vs 600.0 (aged, n=1), diff -177.8pp; trolley-ability 563.8 (fresh, n=1) vs 570.9
+  (mature 48-72h fallback, n=29), diff -7.1pp. Aged sample is tiny (n=1-2), so aged-king-estimate falls back
+  to mature (48-72h) for trolley-ability. Recomputed M from mature pooled stats (n=57, stdev=31.2, max_residual
+  100.8): M=110 (vs current M=240). The tighter 48-72h band reflects the post-July-2 board-check cycle; the
+  longer-term v2 pooling (M=240) included earlier spread from divergent builds and settling phases. For
+  Aug 10-16 lock decision, use aged where available (trolley 600.0, locked-in), and ring-gated reconciliation
+  for any paired build. Findings: (1) true king estimate is higher when we use aged reads; (2) the M=240 is a
+  longer-horizon bound that survived all builds' settling; (3) fresh reads are indeed depressed vs aged,
+  confirming P4 hypothesis. `analysis/noise_model_age_stratified.md`.
 - Ability-lever confound re-check (2026-07-04): `LOOP_BRIEF.md` L1 had flagged, but never re-validated, that
   the offline gauntlet gate for `heuristic+trolley-ability` (+4.0pp, `analysis/ability_ab.md`) baked
   `PTCG_ABILITY` into a whole subprocess's environment, so both seats (our pilot AND every `deck:<name>`

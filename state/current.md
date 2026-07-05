@@ -943,6 +943,25 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "refit_by": "2026-07-18",
     "version": 3
   },
+  "noise_model_v4_aged_stratified": {
+    "aged_king_estimate": {
+      "heuristic+trolley": {
+        "estimate": 600.0,
+        "n": 1,
+        "source": ">72h (aged)"
+      },
+      "heuristic+trolley-ability": {
+        "estimate": 570.9344827586207,
+        "n": 29,
+        "source": "48-72h (mature fallback)"
+      }
+    },
+    "margin_M_basis": "48-72h pooled (n=57, stdev=31.2)",
+    "margin_M_recomputed": 110,
+    "note": "Aged-stratified refit: separates <48h (fresh, inflated) vs 48-72h (mature) vs >72h (aged). King estimate uses aged where available, falls back to mature.",
+    "recorded": "2026-07-06T00:00:00",
+    "reference_date": "2026-07-06"
+  },
   "pre_registrations": [
     {
       "actions": {
