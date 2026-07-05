@@ -33,6 +33,8 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Pre-registrations (machine-checked gate, U22)
 
+**SUPERSEDED 2026-07-05**: The M=60 settlement thresholds (WIN >= king+M, LOSS <= king-M, BAND else) and WIN/LOSS/BAND ladder-read protocol below are RETIRED per P3 POSTURE INVERSION. The calibrated bracket ring (tau 0.857, L9 noise recalibration) is now the decision gate; ladder reads are for observation only. This table is retained for historical reference.
+
 A build may not be submitted without a complete row here (tools/loop_state.py check-submit --build <name>).
 
 | build | hypothesis | dir | M | N | settle-by | complete |
@@ -77,6 +79,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 - W_generic ruling: DROPPED (fallback = pure ladder; no pooled block) (census tier FULL (167531 groups >> 2500) closes it by data).
 
 ## Endgame stopping rule (U48 prep)
+
+**SUPERSEDED 2026-07-05**: The hard-stop regime (stop_target 611.6 as a decision rule) is RETIRED per P3 POSTURE INVERSION. New strategy: LOCK-THE-STRONGEST-PAIR EARLY (by Aug 12-13), using the ring as the decision gate. This section is retained for historical reference.
 
 - stop target = 611.6 (king_true_estimate 571.6 + bonus 40, build heuristic+trolley-ability)
 - pair rule: two copies of the strongest settled build; a diverse hedge only if the runner-up settled within M and is mechanically different
