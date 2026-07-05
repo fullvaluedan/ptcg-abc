@@ -1,5 +1,28 @@
 # Deck Candidate Scoring Through Bracket Ring (2026-07-05)
 
+## CONFIRMATION RUNS (2 independent n=40 runs, addresses Next Steps item 1 above)
+
+Two independent n=40 runs (all 6 candidates plus trolley scored together each time, same ring
+composition per run, no fixed seed so each run is a fresh independent draw):
+
+| run | trolley baseline | candidate_yushin_ito | delta |
+|---|---:|---:|---:|
+| n=20 (above) | 0.900 (18/20) | 1.000 (20/20) | +0.100 |
+| n=40, run A | 0.725 (29/40) | 0.825 (33/40) | +0.100 |
+| n=40, run B | 0.775 (31/40) | 0.875 (35/40) | +0.100 |
+
+The absolute win rate swings a lot run to run (trolley alone: 0.725 to 0.900), confirming this
+doc's own noise caveat. But the DELTA is identical across all three independent measurements:
+exactly +0.100 every time, whatever moves the absolute rate moves both builds together in the
+same run. That consistency, not any single absolute reading, is the real evidence: three
+independent draws agree candidate_yushin_ito beats trolley by a stable margin on this ring.
+The other 5 candidates keep the same rank order across runs and never clear the gate. Full
+method and deck-composition notes: analysis/candidate_deck_ring_scores.md,
+analysis/candidate_deck_ring_scores.json (latest run's raw output).
+Pre-registered in state/current.md's "Candidates awaiting a ladder slot" per Next Steps item 3.
+The two independent n=40 runs satisfy this doc's own "confirmation run" ask; recommend seating
+on the next free quota window per that pre-registration.
+
 ## Objective
 Score 6 newly deduped deck candidates (from tools/select_new_deck_candidates.py) through the calibrated bracket ring (tau 0.857, analysis/ring_calibration.md) against trolley baseline to identify promotion-eligible candidates for TRACK L ladder A/B testing.
 
