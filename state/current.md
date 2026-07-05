@@ -33,6 +33,8 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Pre-registrations (machine-checked gate, U22)
 
+**NOTE (L9 POSTURE INVERSION, 2026-07-05): The M=60 settlement rules and settle-by dates recorded below are SUPERSEDED by noise recalibration to M=240 and decision-gate change to the calibrated bracket ring (tau 0.857, analysis/ring_calibration.md). Single-read ladder A/Bs no longer decide lever verdicts; the ring does. Pre-registrations retained for reference and for tools/loop_state.py check-submit validation, but historical M/settle-by rules no longer govern lever verdicts.**
+
 A build may not be submitted without a complete row here (tools/loop_state.py check-submit --build <name>).
 
 | build | hypothesis | dir | M | N | settle-by | complete |
