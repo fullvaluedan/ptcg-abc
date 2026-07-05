@@ -1,0 +1,2 @@
+usage: ring_calibrate.py [-h] [-n MATCHES]
+ring_calibrate.py: error: unrecognized arguments: heuristic+shumpeinomura heuristic+bluezlee heuristic+third_ptcg_club heuristic+maher_el_ouahabi heuristic+kashiwashira --decks shumpeinomura bluezlee third_ptcg_club maher_el_ouahabi kashiwashira --n 20
