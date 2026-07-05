@@ -80,10 +80,12 @@ correction) was itself superseded once the 396.7 low turned up on a later ref. B
 than the M=60 confirmation margin the settlement protocol originally used, so a single-read ladder A/B cannot
 confirm ANY lever we can build: every real improvement is smaller than the noise. Consequences, adopted
 2026-07-04 (see 4D, noise recalibration and its v2 bump entry): the calibrated bracket ring (tau 0.857), not
-the ladder, is the lever DECISION gate; the recorded "ability WIN" was reclassified a noise artifact; and
-because 5/day + latest-2 scoring lets us keep the luckiest draw, repeated resubmission of the best build (the
-Aug 10-16 endgame variance campaign) is the PRIMARY source of rank, ahead of any build improvement. Source:
-`state/current.md` noise model (v2, margin_M 150), `LOOP_BRIEF.md` L9, `analysis/final_scoring_semantics.md`.
+the ladder, is the lever DECISION gate; the recorded "ability WIN" was reclassified a noise artifact. NOTE
+(2026-07-05 posture inversion, supersedes the sentence that previously ended this section): the luck-harvest
+reading of the endgame was OVERTURNED by the verified rules text (games continue ~2 weeks post-deadline until
+the leaderboard converges, so lucky draws decay); the Aug 10-16 window is now a lock-the-two-strongest-builds
+operation, and TRUE STRENGTH plus the Strategy writeup carry the EV. Source: `state/current.md` noise model,
+`LOOP_BRIEF.md` POSTURE INVERSION, `analysis/final_scoring_semantics.md`, `analysis/strategy_prize_rules.md`.
 
 ---
 

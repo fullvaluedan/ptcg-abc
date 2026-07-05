@@ -23,9 +23,17 @@ P1. TRACK S (the Strategy writeup + the honest-methods story) is the PRIMARY EV 
     attached we cannot publish); full draft by Aug 10; SUBMITTED on Kaggle by SEP 1 (Dan's hard deadline,
     12-day buffer to the official Sep 13; a reminder is scheduled).
 P2. TRUE STRENGTH is the only rank lever that survives convergence. U39 DECK EXPLORATION is authorized and
-    is the top offline build priority: mine 800+ rated decklists from the episode dumps, cluster the
-    dominant archetypes, REBUILD the ring's opponent pool from those decks, recalibrate (tau >= 0.7), and
-    only then evaluate deck candidates. Do NOT ladder-test any deck before the rebuilt ring calibrates.
+    is the top offline build priority. ESCALATION RESOLVED (2026-07-05): the existing BRACKET ring (tau
+    0.857, calibrated 2026-07-03 on same-deck trolley builds at our rating band) is NOT the ring this unit
+    builds; it is structurally blind to DECK changes because every build it was calibrated on played the
+    same deck. U39 step 2 builds RING V2, the DECK-CAPABLE ring: opponent pool = the dominant archetypes
+    clustered from the 800+ rated decklists already mined (analysis/top_rated_mining.md, queue item 4,
+    DONE), pilots = the best available per-deck models, then RECALIBRATE tau against our settled builds
+    INCLUDING the two meta-copy builds (382.5/510.1), which the bracket ring never had to rank. Ring v2
+    gets deck-judging gate authority only at tau >= 0.7 on that widened build set. The bracket ring keeps
+    its existing authority for same-deck pilot levers. Do NOT ladder-test any deck before ring v2
+    calibrates. Queue items 5 and 6 (fuzzer, differential audit) are being built by the lead session, not
+    the loop; item 10 (mirror benchmark) waits on ring v2.
 P3. The Aug 10-16 window becomes LOCK-THE-STRONGEST-PAIR, executed EARLY (by Aug 12-13 so the pair accrues
     convergence episodes): two copies of the genuinely strongest build (or a within-margin hedge pair).
     Retire tools/endgame_stopping.py stop_target 611.6 as a decision rule. Ops guards: every campaign
