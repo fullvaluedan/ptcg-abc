@@ -1,0 +1,79 @@
+{
+  "results": {
+    "trolley": {
+      "win_rate": 0.9,
+      "wins": 18,
+      "draws": 0,
+      "losses": 2,
+      "n": 20
+    },
+    "candidate_btk15049": {
+      "win_rate": 0.8,
+      "wins": 16,
+      "draws": 0,
+      "losses": 4,
+      "n": 20
+    },
+    "candidate_easonyanyan": {
+      "win_rate": 0.55,
+      "wins": 11,
+      "draws": 0,
+      "losses": 9,
+      "n": 20
+    },
+    "candidate_nasuo445": {
+      "win_rate": 0.65,
+      "wins": 13,
+      "draws": 0,
+      "losses": 7,
+      "n": 20
+    },
+    "candidate_windecks": {
+      "win_rate": 0.75,
+      "wins": 15,
+      "draws": 0,
+      "losses": 5,
+      "n": 20
+    },
+    "candidate_yushin_ito": {
+      "win_rate": 1.0,
+      "wins": 20,
+      "draws": 0,
+      "losses": 0,
+      "n": 20
+    },
+    "candidate_zoroark190": {
+      "win_rate": 0.3,
+      "wins": 6,
+      "draws": 0,
+      "losses": 14,
+      "n": 20
+    }
+  },
+  "verdicts": {
+    "candidate_btk15049": {
+      "delta": -0.09999999999999998,
+      "promote": false
+    },
+    "candidate_easonyanyan": {
+      "delta": -0.35,
+      "promote": false
+    },
+    "candidate_nasuo445": {
+      "delta": -0.25,
+      "promote": false
+    },
+    "candidate_windecks": {
+      "delta": -0.15000000000000002,
+      "promote": false
+    },
+    "candidate_yushin_ito": {
+      "delta": 0.09999999999999998,
+      "promote": true
+    },
+    "candidate_zoroark190": {
+      "delta": -0.6000000000000001,
+      "promote": false
+    }
+  }
+}
