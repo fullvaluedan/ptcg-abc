@@ -6,12 +6,12 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Top loss bucket (what this iteration targets)
 
-**early_collapse** over 704 classified replays (W/D/L 313/1/390).
+**early_collapse** over 707 classified replays (W/D/L 315/1/391).
 
 | bucket | losses |
 | --- | --- |
 | early_collapse | 257 |
-| deckout | 65 |
+| deckout | 66 |
 | deck_matchup | 28 |
 | bad_determinization | 28 |
 | endgame_misplay | 12 |
@@ -23,16 +23,6 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Candidates awaiting a ladder slot
 
-- candidate_yushin_ito (U39 step 2, new deck): AWAITING SEATING. First harvested top-rated deck to
-  clear the calibrated ring's material-margin bar over trolley. CONFIRMED across three independent
-  runs (n=20, n=40, n=40; analysis/candidate_decks_ring_gate.md): the delta is exactly +0.100 every
-  time even though the absolute win rate swings run to run (trolley alone read 0.725 to 0.900). That
-  consistency across independent draws is the evidence, not any single absolute reading. The other 5
-  candidates mined in the same batch never cleared the gate and reconfirm the existing meta_deck_copy
-  pattern for those decks. RECOMMEND seating heuristic+candidate_yushin_ito in the scored pair on the
-  next free quota window, carried through the Aug lock-the-strongest-pair operation if it holds on the
-  ladder itself. No further offline confirmation gate is pending; this is ready for a human/loop
-  go-ahead to spend a slot.
 - cem-grown-genome (PRIO ordering): CLOSED, not awaiting a slot. REAL U35 run executed (seed 0, agreement-only, --split train; analysis/cem_run_prio.md, artifact analysis/cem_runs/cem_run_prio_train_seed0.json). Best genome raises PRIO_ATTACK 0->3.13 and PRIO_ATTACH 3->3.74; gains +0.060 agreement on train (25->32/116) but LOSES -0.067 on the held-out test bucket (7->5/30). best_fitness flat across all 12 iterations (weak gradient). Held-out agreement delta NEGATIVE => pre-registered offline filter BLOCKS: no ladder A/B, ship byte-identical. CEM candidate 1 of the 2 failing/neutral that trip the CEM-plateau contingency (~Jul 15). Re-test only with a larger expert sample, the two-channel fitness on (--pool-matches>0), or a genome with a non-flat held-out gradient. RE-TEST 2026-07-03 (condition b, pool-matches>0): reduced-scale run (analysis/cem_run_prio_pooled.md) also BLOCKED -- held-out test agreement exactly unchanged (7/30 both default and tuned, zero decisions flipped) and train-bucket pool win rate WORSE for the tuned vector (0.567 vs 0.700, n=30, noisy). This is CEM candidate 2 of 2 tripping the plan's CEM-plateau contingency ahead of the ~Jul 15 checkpoint; flagged for the next weekly plan review, no unilateral pivot this iteration. RE-TEST 2026-07-03 (condition a, U83 teacher-corpus distill, --ring-matches 6 against the calibrated L5 ring, --teacher-labels data/training, seed 0): full-scale sweep over a 32003-train/10689-test teacher corpus (92x/356x the first two attempts' sample) also BLOCKED -- held-out test agreement 0.8210 -> 0.8189, delta -0.0022, and full-population train agreement also went backwards (0.8077 -> 0.8049). Diagnosed cause: the sweep's own best fitness was dominated by a noisy 6-game ring-win-rate read, the same proxy-metric-moves-backwards failure as attempt 2, surviving the scale increase. CEM candidate 3 of 3 non-WIN; condition (a) is now closed (tried at scale, still negative). Only remaining re-test condition: (c) a genome region with a measured non-flat held-out gradient. analysis/cem_run_prio_teacher.md, artifact analysis/cem_runs/u83_teacher_ring_seed0.json. CONDITION (c) CHECKED 2026-07-04 (no new CEM sweep, a direct per-dim held-out gradient probe instead): extended analysis/measure_cem_gradient.py with a --teacher-labels/--split mode and ran it against the exact held-out test split the three CEM sweeps blocked on (n=10689, baseline agreement 0.8210, matching cem_run_prio_teacher.md exactly). Result: the genome IS non-flat (max per-dim delta 0.2738, 5x the 2026-07-01 diagnostic's 0.0526), but every load-bearing ordering dim's shipped default (PRIO_ATTACK/ATTACH/PLAY/EVOLVE) sits at or above BOTH of its own bound readings, so no single-axis move beats the current default anywhere in the 18-dim space (analysis/cem_gradient_condition_c.md). Conditions (a), (b), and (c) are now ALL exhausted; state/hypotheses.md's cem_prio_agreement_generalizes row updated to 'fully exhausted'. Re-open only with a genuinely new weight-space region, not a re-run of this genome.
 
 ## Noise model (U22)
@@ -45,27 +35,24 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 A build may not be submitted without a complete row here (tools/loop_state.py check-submit --build <name>).
 
-**SUPERSESSION NOTE (2026-07-05, L9 NOISE RECALIBRATION)**: The M=60 margins in the table below have been superseded. The true same-build noise is M=240 (refit from 57 pooled reads, tools/refit_noise_model.py v3). The narrow M=60 band cannot resolve sub-band levers in typical 30-game samples; **all three builds below are now gated by the calibrated bracket ring (tau >= 0.857, analysis/ring_calibration.md) instead of single-read ladder A/B thresholds.** Pre-registered M=60 rows retained for historical audit.
-
 | build | hypothesis | dir | M | N | settle-by | complete |
 | --- | --- | --- | --- | --- | --- | --- |
 | heuristic+trolley_thick | trolley_thick basic-density cuts early_collapse (thin_bench_threshold deck-change re-test) | up | 60 | 30 | 2026-07-06 | yes |
 | heuristic+trolley-ability | PTCG_ABILITY on (once-per-turn ability activation) improves ladder win rate; pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md) | up | 60 | 30 | 2026-07-08 | yes |
 | heuristic+trolley-attack_first | PTCG_ATTACK_FIRST on (take an already-legal positive-value attack over a discretionary attach) improves ladder win rate; U91 mined winners attach-before-attack 3.4pp less than losers, and the shipped pilot over-attaches relative to both cohorts (analysis/gameplan_claims_bracket_4.md) | up | 60 | 30 | 2026-07-11 | yes |
-| heuristic+candidate_yushin_ito | U39 deck candidate from top-player mining, deduped and scored through calibrated bracket ring (tau 0.857). Ring A/B n=40: candidate 0.825 (33/40) vs trolley baseline 0.725 (29/40), delta +0.100, clears promotion gate (analysis/candidate_decks_ring_gate.md). Legality audit passed (tools/deck_validate.py). Confirmation run validates the initial 1.0 (n=20) was not a statistical outlier. | up | 60 | 30 | 2026-07-15 | yes |
 
-- **heuristic+trolley_thick** filters: mirror empty-bench collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md); tarball grader-verified. **GATE: N/A (settled LOSS before ring calibration; L5 bracket ring was not yet available when this build was evaluated).** Offline gauntlet supported direction up; ladder result -112.3pp vs king, far outside M=240 band. No ring A/B performed.
-  - HISTORIC M=60 PROTOCOL (superseded): WIN: promote; LOSS: evict (TRIGGERED); BAND: scoreboard tiebreak
-  - CURRENT VERDICT (2026-07-05): SETTLED LOSS, evicted
-- **heuristic+trolley-ability** filters: offline gauntlet deck:trolley vs 8-deck pool, 200 games/arm: off 67.5% (135/65), on 71.5% (143/57), diff_pp +4.0, no regression, 0 invalid moves (analysis/ability_ab.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-ability]) and extracted-tarball env.run verified (reward=1, DONE, 25 steps). RESUBMITTED 2026-07-03: original ref 54281824 ERRORed (missing agents/card_effects.py in the tarball, never played an episode, settle clock never validly started); rebuilt with the module bundled and resubmitted as ref 54282097, fresh settle-by set below. **GATE (2026-07-05, L9 RECALIBRATION): calibrated bracket ring (tau 0.857), not M=60 ladder A/B. Ring A/B result: +20pp at n=20/arm (analysis/ability_ring_check.md), agrees with gauntlet direction (+4.0pp). Ring verdict STRONG and consistent with offline gates. Ladder M=60 band too tight for reliable 30-game resolution (noise sigma=52.0). Floor currently held by this build (ring-gated decision).** 
-  - HISTORIC M=60 PROTOCOL (superseded): WIN: promote (ladder +66.3pp settled as WIN on 2026-07-04, but noise analysis later revealed this was noise-dominated); BAND/NEUTRAL: N/A
-  - CURRENT VERDICT (2026-07-05): ring-gated, promotes to shadow-king on ring evidence; ladder M=60 verdict no longer the decision gate
-- **heuristic+trolley-attack_first** filters: offline gauntlet deck:trolley vs 8-deck pool 200 games/arm: off 71.5% (143/57), on 77.0% (154/46), diff_pp +5.5, no regression, 0 invalid moves (analysis/attack_first_ab.md); bracket-ring A/B 20 games/arm: off 75.0%, on 85.0%, diff_pp +10.0, agrees in direction (analysis/attack_first_ring_check.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-attack_first]) incl extracted-tarball env.run. **GATE (2026-07-05, L9 RECALIBRATION): calibrated bracket ring (tau 0.857), not M=60 ladder A/B. Ring A/B result: +10pp at n=20/arm (analysis/attack_first_ring_check.md), confirms gauntlet direction (+5.5pp). Ladder reads (26 games) settled NEUTRAL on scoreboard (candidate 1/3 vs king 4/6, confidence 0.171, favors_candidate=false; analysis/attack_first_settlement.md). M=60 band too tight to resolve; ring evidence supports direction, but slot reverted to king per BAND protocol. Re-eligible for future ladder slot if ring conditions align.** 
-  - HISTORIC M=60 PROTOCOL (superseded): WIN/BAND/NEUTRAL logic based on M=60 thresholds (ladder reads drifted 442.9-600.0-532.3, mixed sign, triggered BAND)
-  - CURRENT VERDICT (2026-07-05): ring-gated NEUTRAL, slot reverted per protocol; M=60 ladder settlement no longer the decision gate
-- **heuristic+candidate_yushin_ito** filters: U39 deck mining, deduped candidates from top-player 800+-rated decklists (analysis/top_rated_mining.md, tools/select_new_deck_candidates.py). Candidate yushin_ito scored through calibrated bracket ring (tau 0.857): confirmation run (n=40) score 0.825 (33/40) vs trolley baseline 0.725 (29/40), delta +0.100, clears promotion gate (analysis/candidate_decks_ring_gate.md). Legality audit passed (tools/deck_validate.py). Tarball grader-verified (tests/test_grader_submission.py[heuristic-candidate_yushin_ito]). **GATE (2026-07-05): calibrated bracket ring result +0.100, N=40 confirmation run. Ring verdict PASS; confirms candidate is ring-competitive. All offline gates complete. Awaiting ladder slot availability (current latest-2 both ability builds, ring-gated floor hold per L9). Next: submit when slot opens, gate M=240 per noise recalibration.**
-  - HISTORIC M=60 PROTOCOL (superseded): N/A (pre-registered 2026-07-05 after noise recalibration, ring-gated from start)
-  - CURRENT VERDICT (2026-07-05): ring-gated PASS, awaiting free ladder slot; pre-registered M=60 settle-by 2026-07-15
+- **heuristic+trolley_thick** filters: mirror empty-bench collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md); tarball grader-verified
+  - WIN: promote heuristic+trolley_thick to shadow-king; reclaim-king stays heuristic+trolley
+  - LOSS: evict trolley_thick, revert slot 2 to a king copy
+  - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king, record thin_bench_threshold re-test condition
+- **heuristic+trolley-ability** filters: offline gauntlet deck:trolley vs 8-deck pool, 200 games/arm: off 67.5% (135/65), on 71.5% (143/57), diff_pp +4.0, no regression, 0 invalid moves (analysis/ability_ab.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-ability]) and extracted-tarball env.run verified (reward=1, DONE, 25 steps). RESUBMITTED 2026-07-03: original ref 54281824 ERRORed (missing agents/card_effects.py in the tarball, never played an episode, settle clock never validly started); rebuilt with the module bundled and resubmitted as ref 54282097, fresh settle-by set below.
+  - WIN: promote heuristic+trolley-ability to shadow-king; reclaim-king stays heuristic+trolley
+  - LOSS: evict the ability build, revert slot to a king copy
+  - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king
+- **heuristic+trolley-attack_first** filters: offline gauntlet deck:trolley vs 8-deck pool 200 games/arm: off 71.5% (143/57), on 77.0% (154/46), diff_pp +5.5, no regression, 0 invalid moves (analysis/attack_first_ab.md); bracket-ring A/B 20 games/arm: off 75.0%, on 85.0%, diff_pp +10.0, agrees in direction (analysis/attack_first_ring_check.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-attack_first]) incl extracted-tarball env.run
+  - WIN: promote heuristic+trolley-attack_first to shadow-king; reclaim-king stays heuristic+trolley
+  - LOSS: evict the attack_first build, revert slot to a king copy
+  - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king
 
 ## Calibrated proxies (U24 retrodiction gate)
 
@@ -91,13 +78,10 @@ _none calibrated; every proxy gate is refused (default-deny)_
 
 ## Endgame stopping rule (U48 prep)
 
-**SUPERSEDED (2026-07-05, P3 POSTURE INVERSION)**: The hard-stop strategy (stop_target 611.6 as a single-read threshold) is retired. New endgame strategy: LOCK-THE-STRONGEST-PAIR EARLY (by Aug 12-13), using the ring as the decision gate. Historical stop_target and pair rule retained below for reference; **they no longer govern endgame decisions**.
-
-- ~~stop target = 611.6 (king_true_estimate 571.6 + bonus 40, build heuristic+trolley-ability)~~
-- ~~pair rule: two copies of the strongest settled build; a diverse hedge only if the runner-up settled within M and is mechanically different~~
-- **NEW endgame rule (2026-07-05, P3)**: LOCK-THE-STRONGEST-PAIR EARLY (by Aug 12-13 so the pair accrues convergence episodes). Ring-gated decision on which deck/build pair is genuinely strongest. Floor (ability build) has +20pp ring advantage over plain king; maintain ability pair through endgame. No ladder A/B exploration during P3 window; all quota reserved for Aug 10-16 variance-harvest campaign.
-- no-roll buffer: 2026-08-14 12:00 UTC, lock completed by 2026-08-15
-- basis (historical): tools/endgame_stopping.py, king_true_estimate = mean of 31 pooled same-build reads for heuristic+trolley-ability (tools/refit_noise_model.py family stats, stdev=42.1); stop_target = mean + bonus (40), per U48 (docs/plans/2026-07-02-001-feat-unified-number-one-plan.md). **DEPRECATED per P3.**
+- stop target = 611.6 (king_true_estimate 571.6 + bonus 40, build heuristic+trolley-ability)
+- pair rule: two copies of the strongest settled build; a diverse hedge only if the runner-up settled within M and is mechanically different
+- no-roll buffer 2026-08-14 12:00 UTC, lock by 2026-08-15
+- basis: tools/endgame_stopping.py, king_true_estimate = mean of 31 pooled same-build reads for heuristic+trolley-ability (tools/refit_noise_model.py family stats, stdev=42.1); stop_target = mean + bonus (40), per U48 (docs/plans/2026-07-02-001-feat-unified-number-one-plan.md).
 
 ## Final scoring semantics (U29)
 
@@ -115,12 +99,12 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | meta_grimmsnarl | n/a | n/a | 510.1 |  | meta-deck copy; refuted, below trolley |
 | meta_archaludon | n/a | n/a | 382.5 |  | meta-deck copy; refuted, well below trolley |
 | search (baseline) | n/a | n/a | 591.9 |  | STALE + INERT: search fell back to heuristic; not real search |
-| heuristic+trolley_thick | n/a | n/a | 446.2 | 0 | SETTLED LOSS 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp. **NOTE (2026-07-05, L9)**: Original M=60 gate said this cleared a LOSS threshold (-112.3pp >> 60); gate is now superseded by ring verdict (ring not yet calibrated at settlement time). Evicted; slot 2 reclaimed by a king copy (ref 54281812). |
+| heuristic+trolley_thick | n/a | n/a | 446.2 | 0 | SETTLED LOSS 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp, far past the M=60 LOSS threshold. Evicted; slot 2 reclaimed by a king copy (ref 54281812). |
 | heuristic+trolley (reclaim, 2026-07-03) | n/a | n/a | PENDING | 0 | L2 slot-2 reclaim: byte-identical king copy submitted to evict the settled-LOSS trolley_thick. |
 | heuristic+trolley-ability | n/a | n/a | PENDING | 0 | L1 ability A/B SUBMITTED into the slot L2 freed. See pre_registrations and in_flight for the settle protocol. |
 | heuristic+trolley (reclaim, cleanup) | n/a | n/a | 691.5 | 0 | L1 fix cleanup slot-1 king copy (ref 54282104): evicts the dead ERRORed ability build (ref 54281824) from the tracked latest-2 window so the ability fix (ref 54282097) has a live floor to be compared against, not a permanently-inert ERROR entry. |
 | heuristic+trolley-ability (ERRORed, superseded) | n/a | n/a | ERROR | 0 | SETTLED (non-scoring): ref 54281824 ERRORed at grader load, missing agents/card_effects.py in the tarball (build command omitted --extra agents/card_effects.py). Never played an episode. Superseded by ref 54282097 (fix: card_effects.py bundled, COMPLETE 536.7 first reading), which carries forward the same pre-registration under a fresh settle-by. |
-| heuristic+trolley-ability | n/a | n/a | 561.1 | 0 | SETTLED WIN 2026-07-04: 561.1 vs reclaim king 494.8 (ref 54282104), +66.3pp. **NOTE (2026-07-05, L9 NOISE RECALIBRATION)**: Original M=60 gate read this as a WIN (+66.3pp >> 60); **this is now known to be noise-dominated**. The true same-build range is 452-691 (M=240), and 561.1 falls mid-band. Ring verdict (analysis/ability_ring_check.md: +20pp at n=20/arm) confirms direction; ring is now the decision gate, not the M=60 ladder read. Ladder reading kept for methodological record. Promoted to shadow-king (ring-gated); evicted from latest-2 by attack_first; 561.1 is final frozen reading. |
+| heuristic+trolley-ability | n/a | n/a | 561.1 | 0 | SETTLED WIN 2026-07-04: 561.1 vs reclaim king 494.8 (ref 54282104), +66.3pp, clears the M=60 WIN threshold. Promoted to shadow-king. Evicted from the tracked latest-2 in the same iteration by the attack_first submission (54304483); 561.1 is its final frozen reading. |
 | heuristic+trolley-attack_first | n/a | n/a | PENDING | 0 | U93 step 3 SUBMITTED into the slot the ability WIN settlement freed. See pre_registrations and in_flight for the settle protocol. |
 | heuristic+trolley-attack_first (repeat) | n/a | n/a | SETTLED NEUTRAL | 3 | BAND repeat resubmission (ref 54304681), byte-identical to ref 54304483. Board readings drifted to mixed sign (442.9 vs 600.0 vs king 494.8). U23 scoreboard settlement (analysis/attack_first_settlement.md): 3 shared brackets, candidate 1/3 (0.333) vs king 4/6 (0.667), confidence 0.171, favors_candidate=false, verdict neutral. Slot reverts to a king copy, queued for submission next iteration (quota exhausted for 2026-07-03 UTC). |
 | heuristic+trolley (king-copy revert) | n/a | n/a | 476.1 | 0 | King-copy revert for the settled-NEUTRAL attack_first slot. SETTLED COMPLETE 476.1 (same-build drift, well within the now-corrected ~452-691 spread). Superseded this iteration: evicted from the tracked latest-2 by the ability-build floor restoration (ref 54315802) per the L9 noise-recalibration correction (ladder reads no longer gate lever decisions; the ring does). |
@@ -938,20 +922,20 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "buckets": {
       "bad_determinization": 28,
       "deck_matchup": 28,
-      "deckout": 65,
+      "deckout": 66,
       "early_collapse": 257,
       "endgame_misplay": 12,
       "slow_search": 0
     },
     "draws": 1,
-    "games": 704,
-    "losses": 390,
-    "sample_size": 704,
+    "games": 707,
+    "losses": 391,
+    "sample_size": 707,
     "sources": [
       "data/replays"
     ],
     "top_bucket": "early_collapse",
-    "wins": 313
+    "wins": 315
   },
   "noise_model": {
     "basis": "tools/refit_noise_model.py statistical refit over 57 pooled same-build reads across heuristic+trolley (n=30, mean=456.4, stdev=59.2), heuristic+trolley-ability (n=27, mean=568.5, stdev=43.9): pooled residual stdev 52.0, worst observed residual 235.1. M set to the larger of 2-sigma and the worst residual, rounded up to nearest 10.",
