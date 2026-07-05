@@ -6,14 +6,14 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Top loss bucket (what this iteration targets)
 
-**early_collapse** over 707 classified replays (W/D/L 315/1/391).
+**early_collapse** over 745 classified replays (W/D/L 332/1/412).
 
 | bucket | losses |
 | --- | --- |
-| early_collapse | 257 |
-| deckout | 66 |
-| deck_matchup | 28 |
-| bad_determinization | 28 |
+| early_collapse | 273 |
+| deckout | 67 |
+| bad_determinization | 31 |
+| deck_matchup | 29 |
 | endgame_misplay | 12 |
 
 ## Kings
@@ -32,8 +32,6 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 - re-fit by: 2026-07-18
 
 ## Pre-registrations (machine-checked gate, U22)
-
-**NOTE (L9 POSTURE INVERSION, 2026-07-05): The M=60 settlement rules and settle-by dates recorded below are SUPERSEDED by noise recalibration to M=240 and decision-gate change to the calibrated bracket ring (tau 0.857, analysis/ring_calibration.md). Single-read ladder A/Bs no longer decide lever verdicts; the ring does. Pre-registrations retained for reference and for tools/loop_state.py check-submit validation, but historical M/settle-by rules no longer govern lever verdicts.**
 
 A build may not be submitted without a complete row here (tools/loop_state.py check-submit --build <name>).
 
@@ -922,22 +920,22 @@ _none calibrated; every proxy gate is refused (default-deny)_
   ],
   "loss_distribution": {
     "buckets": {
-      "bad_determinization": 28,
-      "deck_matchup": 28,
-      "deckout": 66,
-      "early_collapse": 257,
+      "bad_determinization": 31,
+      "deck_matchup": 29,
+      "deckout": 67,
+      "early_collapse": 273,
       "endgame_misplay": 12,
       "slow_search": 0
     },
     "draws": 1,
-    "games": 707,
-    "losses": 391,
-    "sample_size": 707,
+    "games": 745,
+    "losses": 412,
+    "sample_size": 745,
     "sources": [
       "data/replays"
     ],
     "top_bucket": "early_collapse",
-    "wins": 315
+    "wins": 332
   },
   "noise_model": {
     "basis": "tools/refit_noise_model.py statistical refit over 57 pooled same-build reads across heuristic+trolley (n=30, mean=456.4, stdev=59.2), heuristic+trolley-ability (n=27, mean=568.5, stdev=43.9): pooled residual stdev 52.0, worst observed residual 235.1. M set to the larger of 2-sigma and the worst residual, rounded up to nearest 10.",
