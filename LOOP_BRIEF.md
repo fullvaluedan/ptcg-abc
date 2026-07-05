@@ -68,15 +68,22 @@ P7. DAN'S DIRECTIVES (2026-07-05), three standing objectives, all offline and qu
         than text says = candidate exploit; engine does LESS = trap to avoid. Exploits are LEGAL play-level
         moves (the engine is the rules; no platform manipulation, no egress); any exploitable quirk the
         shipped pilot can use ships as a flag-gated rule through the normal gates.
-    U103 MIRROR BENCHMARK (Dan's success criterion: beat the top players with their own deck, because that
-        proves we learned to play better). Metric ladder, in order: (i) move-agreement with the deck
-        OWNERS' held-out games on their deck (baseline 21.6% overall; report per-deck and target a material
-        rise using U100 knowledge + playbooks); (ii) our-pilot-on-kazuki-Grimmsnarl must OUTPERFORM
-        our-pilot-on-trolley against the REBUILT meta-archetype ring (that is the deck ceiling unlocking,
-        impossible today: 409 vs 570 on the ladder historically); (iii) only after (ii) passes and the
-        rebuilt ring calibrates, a convergence-aware ladder run of the mirror deck, judged against the
-        owner's ~1185 converged rating. This folds in the meta_deck_copy re-test (its recorded condition,
-        a real deck-aware differentiator, is what U100-U102 build).
+    U103 MIRROR BENCHMARK (Dan's success criterion, formalized 2026-07-05: TRUE SKILL = simulate the SAME
+        deck and win the mirror OVER 50% of the time). Honest operationalization (the top players' actual
+        bots are not downloadable, so the criterion is administered in two stages):
+        (i) move-agreement with the deck OWNERS' held-out games on their deck (baseline 21.6% overall;
+            report per-deck; a material rise licenses stage ii);
+        (ii) LOCAL MIRROR >50%: same-deck mirror matches (their exact deck on BOTH seats), our improved
+            pilot vs the best available model of that deck's play (the rebuilt ring's pilot for that deck;
+            the current heuristic as a floor control). Must win >50% SUSTAINED (n>=400, CI excluding 0.5),
+            and our-pilot-on-their-deck must also OUTPERFORM our-pilot-on-trolley vs the rebuilt ring (the
+            deck ceiling unlocking, historically impossible: 409 vs 570);
+        (iii) THE REAL TEST, run on the ladder: matchmaking pairs similar ratings, so a converged rating on
+            their exact deck approaching the owner's (~1185) IS beating the actual them >50% (rating parity
+            = >50% expected win rate, and at that band we get paired against the real top bots). A
+            convergence-aware ladder run of the mirror deck is the final exam, only after (ii) passes and
+            the rebuilt ring calibrates. Folds in the meta_deck_copy re-test (its recorded condition, a
+            real deck-aware differentiator, is what U100-U102 build).
 
 Near-term queue (one unit per iteration): (1) the age-stratified refit, (2) daily leaderboard snapshot into
 data/leaderboard_cache (median/percentile drift series), (3) U100 rules-as-implemented (start now, it feeds
