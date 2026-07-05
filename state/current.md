@@ -18,8 +18,8 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Kings
 
-- **shadow-king** (best live build): heuristic+trolley-ability (ref 54315802, ladder n/a (ring-gated, not ladder-gated per L9))
-- **reclaim-king** (safe floor): heuristic+trolley (ref 54315565, ladder 441.1)
+- **shadow-king** (best live build, ring-preferred): heuristic+trolley-ability (refs 54339500/54315802, dual rolls per P3, public scores 486.2/570.4, both COMPLETE, ring-gated per L9, no ladder-side gate per noise recalibration)
+- **reclaim-king** (safe floor): N/A; both latest-2 slots occupied by ability builds (same tarball, dual roll cadence for convergence episodes)
 
 ## Candidates awaiting a ladder slot
 
@@ -171,6 +171,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 441.1 | 0 | Board check 2026-07-04 (this iteration): 441.1, BREAKING a thirteen-check freeze (new episode id 83782915, up from the long-frozen 83768597). Small same-build drift (443.1 -> 441.1), well within the v3 pooled range (heuristic+trolley family mean 456.4, stdev 59.2). Plain king-copy floor; no action taken (no active pre-registration for this slot). |
 | heuristic+trolley-ability (floor restoration) | n/a | n/a | 563.8 | 0 | Board check 2026-07-05: 563.8, BREAKS the eighth-check freeze (down from 602.4). tools/scout.py episodes confirms new games played: newest episode id advanced from the frozen 83776251 to 83878807 (8 new completed episodes). Within the v3 pooled range, no new low/high. Ring-gated per L9; no action taken. |
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 422.2 | 0 | Board check 2026-07-05: 422.2, BREAKS the thirteenth-check-plus freeze (down from 441.1). tools/scout.py episodes confirms new games played: newest episode id advanced from 83782915 to 83894390 (8 new completed episodes). Slightly below the prior observed low (423.5) but within the v3 pooled noise band (M=240 sized to a worst residual of 235.1, refit ce4e928). Plain king-copy floor; no action taken. |
+| heuristic+trolley-ability (fresh roll) | n/a | n/a | 486.2 | 0 | Board check 2026-07-05 (this iteration): 486.2 (ref 54339500, submitted 2026-07-04 18:48, "floor roll P3 posture"). Fresh copy of the ring-best ability build that evicts the prior king-copy slot. Newest episode 83920026 (151k+ advance from prior 83878807 on ref 54315802 at last check 2026-07-05). Within the v3 pooled range (396.7-691.5), no new low/high. Ring-gated per L9; no action taken. |
+| heuristic+trolley-ability (floor restoration, prior check) | n/a | n/a | 570.4 | 0 | Board check 2026-07-05 (this iteration): 570.4 (ref 54315802, submitted 2026-07-04 02:49). Last board check (2026-07-05 prior iteration) read 602.4 at episode 83878807. Holds this iteration (no new episodes played by this ref since prior check; now evicted from the tracked latest-2 by the fresh-roll 54339500, per latest-2 scoring semantics). Within the v3 pooled range, no new low/high. Ring-gated per L9; no action taken. |
 
 ```json STATE
 {
@@ -220,9 +222,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "source": "analysis/final_scoring_semantics.md"
   },
   "in_flight": {
-    "board_reading": "563.8/422.2 (both refs' long freezes broke simultaneously this check; ~8 new episodes each)",
+    "board_reading": "486.2/570.4 (54339500 fresh roll, 54315802 prior restoration; 151k+ episode advance for 54339500, both ring-gated)",
     "build": "none (TRACK L HOLDS)",
-    "note": "Board-checked and cross-verified with tools/scout.py episodes. ability-floor ref 54315802 moved to 563.8 (from a frozen 602.4), newest episode id 83878807 (up from 83776251). king-copy ref 54315565 moved to 422.2 (from a frozen 441.1), newest episode id 83894390 (up from 83782915). Both refs resumed active play the same iteration after extended quiet periods (8/13+ checks respectively), consistent with the prior finding that these gaps are temporary scheduling lulls, not permanent staleness. Both readings remain within the v3 pooled noise band; no new pattern requiring a fresh findings.md entry. Re-ran tools/endgame_stopping.py --write to refresh king_true_estimate with the new reads. TRACK L holds; no submission spent, no build awaiting a slot. PLAN FREEZE remains in effect through 2026-08-16.",
+    "note": "Board-checked 2026-07-05 (this iteration). Latest-2 pair: 54339500 (fresh roll, newest episode 83920026, public 486.2) and 54315802 (ring-restoration, no new episodes, public 570.4). Both ability builds (same tarball), ring-preferred per L9 noise recalibration. No settlement triggered; both within v3 pooled range (396.7-691.5, M=240). Per P3 POSTURE INVERSION, both slots occupied by ability builds; no free slot, no new TRACK L submission. PLAN FREEZE through 2026-08-16. TRACK L holds.",
     "ref": "n/a"
   },
   "ledger": [
