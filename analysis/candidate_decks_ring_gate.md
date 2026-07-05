@@ -39,7 +39,7 @@ Only 1 of 6 candidates cleared the gate. The remainder scored below baseline by 
 
 | Candidate | Win Rate | Wins/n | Delta vs Trolley | Verdict |
 |-----------|----------|--------|------------------|---------|
-| trolley (baseline) | 0.900 | 18/20 | — | — |
+| trolley (baseline) | 0.900 | 18/20 | n/a | n/a |
 | candidate_yushin_ito | 1.000 | 20/20 | +0.100 | **PROMOTE** |
 | candidate_btk15049 | 0.800 | 16/20 | -0.100 | no promote |
 | candidate_windecks | 0.750 | 15/20 | -0.150 | no promote |
