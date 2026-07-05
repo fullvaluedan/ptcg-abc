@@ -23,17 +23,25 @@ P1. TRACK S (the Strategy writeup + the honest-methods story) is the PRIMARY EV 
     attached we cannot publish); full draft by Aug 10; SUBMITTED on Kaggle by SEP 1 (Dan's hard deadline,
     12-day buffer to the official Sep 13; a reminder is scheduled).
 P2. TRUE STRENGTH is the only rank lever that survives convergence. U39 DECK EXPLORATION is authorized and
-    is the top offline build priority. ESCALATION RESOLVED (2026-07-05): the existing BRACKET ring (tau
-    0.857, calibrated 2026-07-03 on same-deck trolley builds at our rating band) is NOT the ring this unit
-    builds; it is structurally blind to DECK changes because every build it was calibrated on played the
-    same deck. U39 step 2 builds RING V2, the DECK-CAPABLE ring: opponent pool = the dominant archetypes
-    clustered from the 800+ rated decklists already mined (analysis/top_rated_mining.md, queue item 4,
-    DONE), pilots = the best available per-deck models, then RECALIBRATE tau against our settled builds
-    INCLUDING the two meta-copy builds (382.5/510.1), which the bracket ring never had to rank. Ring v2
-    gets deck-judging gate authority only at tau >= 0.7 on that widened build set. The bracket ring keeps
-    its existing authority for same-deck pilot levers. Do NOT ladder-test any deck before ring v2
-    calibrates. Queue items 5 and 6 (fuzzer, differential audit) are being built by the lead session, not
-    the loop; item 10 (mirror benchmark) waits on ring v2.
+    is the top offline build priority. CORRECTION (2026-07-05, supersedes the "Ring v2" directive that
+    stood here): the escalation resolution above was WRONG on the facts. Verified against
+    analysis/ring_calibration.md: the existing BRACKET ring (tau 0.857) was NOT calibrated only on same-deck
+    trolley builds. Its 6-build calibration set already includes meta_archaludon (382.5) and meta_grimmsnarl
+    (510.1), both DECK-CHANGED builds, and the ring correctly ranked them near the bottom. The ring already
+    has deck-judging gate authority; there is no "Ring v2" to build, and no future unit should attempt to
+    rebuild this ring. Do not re-open this question without first re-reading analysis/ring_calibration.md
+    in full.
+    THE REAL GAP: no NEW top-rated deck candidate has ever been scored through the existing calibrated ring.
+    analysis/top_rated_mining.md (queue item 4) mined 800+-rated decklists, but 2 of its top 3 clusters are
+    undocumented duplicates of decks already tested and refuted (meta_grimmsnarl, meta_grimmsnarl_tonakaiiii)
+    and the rest were never deduped against decks/*.csv or scored. NEXT: dedupe the mined clusters by full
+    60-card signature against every decks/*.csv, take the top few genuinely NEW candidates by play count,
+    validate legality, score each (heuristic pilot, mirroring ring_calibrate.py's
+    `"trolley_thick": lambda: opponents.get("deck:trolley_thick")` pattern) against
+    tools.ring_calibrate.ring_names() via run_ring, and compare to trolley's calibrated ring win rate (0.85).
+    Only a candidate that clears trolley's ring win rate by a material margin is pre-registered for a TRACK L
+    ladder A/B. Queue items 5 and 6 (fuzzer, differential audit) are being built by the lead session, not
+    the loop; item 10 (mirror benchmark) waits on this deck-candidate work, not on any ring rebuild.
 P3. The Aug 10-16 window becomes LOCK-THE-STRONGEST-PAIR, executed EARLY (by Aug 12-13 so the pair accrues
     convergence episodes): two copies of the genuinely strongest build (or a within-margin hedge pair).
     Retire tools/endgame_stopping.py stop_target 611.6 as a decision rule. Ops guards: every campaign
