@@ -73,6 +73,14 @@ P7. DAN'S DIRECTIVES (2026-07-05), three standing objectives, all offline and qu
         sub-select (CARD/COUNT/YES_NO) meanings, turn structure. Deliverables: docs/rules_as_implemented.md
         (plain-language, card-play oriented) plus tests/test_engine_mechanics.py pinning each VERIFIED
         mechanic as an executable test. The engine's behavior, not the printed text, is the real rulebook.
+        STATUS CHECK (2026-07-06): tests/test_engine_mechanics.py currently has 20 of 21 test bodies as
+        `pass  # TODO: implement game harness`, each sitting under a docstring/comment claiming the mechanic
+        is "VERIFIED" (only test_damage_with_no_modifier_applied_as_base has a real assertion). pytest
+        reports "21 passed" but an empty `pass` body cannot fail, so that count proves nothing. This is not
+        done; do not report U100 as shipped or cite these tests as verification until each stub asserts a
+        real value from a real cg.api game state. Build the missing fixture/harness (drive a real game to
+        the state under test via cg.api, not a mock) rather than deleting the TODO comment without adding
+        the assertion.
     U101 INVARIANT FUZZER (glitch hunt, part 1): run massive random-legal-play games across the 20 cores
         (reuse tools/parallel_gauntlet.py) asserting conservation invariants every step: total cards in
         deck+hand+discard+board+prizes, HP bounds, prize-count transitions, turn alternation, energy
