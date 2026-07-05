@@ -1,7 +1,7 @@
 """Age-stratified refitting of the noise model and true king estimate.
 
 When a build is freshly submitted, its first few games may be lucky or unlucky
-relative to its true strength. This tool groups reads by age since submission
+relative to its true strength. This tool groups reads by age since the read date
 (<48h, 48-72h, >72h) and computes per-family means for each age band separately.
 
 The insight (P4 in LOOP_BRIEF.md): fresh reads are inflated vs aged reads. So
@@ -9,14 +9,15 @@ we re-derive the true king estimate from AGED reads (>72h) only, giving us a
 better baseline for the endgame variance-harvest campaign and the final pair
 lock-by decision.
 
-Requires: the Kaggle CLI, with submission dates from 'kaggle competitions submissions'.
+Reads are dated using the date embedded in the note field (e.g., "Board check
+2026-07-04: 540.9" yields date 2026-07-04). Age is computed relative to the
+reference date (default 2026-07-05, today).
 """
 from __future__ import annotations
 
 import argparse
-import json
+import re
 import statistics as st
-import subprocess
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -26,7 +27,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from tools.loop_state import read_current, write_current  # noqa: E402
-COMPETITION = "pokemon-tcg-ai-battle"
+
 MIN_FAMILY_N = 3
 
 
@@ -35,112 +36,39 @@ def family_key(build: str) -> str:
     return build.split(" (")[0].strip()
 
 
-def fetch_submissions_with_dates() -> dict:
-    """Fetch submission list from Kaggle API and parse dates.
-
-    Returns {ref: {'date': datetime, 'score': float, 'description': str}, ...}
-    """
-    # Find kaggle CLI
-    kaggle_exe = _ROOT / ".venv" / "Scripts" / "kaggle.exe"
-    if not kaggle_exe.exists():
-        print(f"Kaggle CLI not found at {kaggle_exe}", file=sys.stderr)
-        return {}
-
-    try:
-        result = subprocess.run(
-            [str(kaggle_exe), "competitions", "submissions", "-c", COMPETITION],
-            capture_output=True,
-            text=True,
-            timeout=120,
-            cwd=str(_ROOT)
-        )
-    except subprocess.TimeoutExpired:
-        print("Kaggle API timeout", file=sys.stderr)
-        return {}
-    except FileNotFoundError:
-        print("Kaggle CLI not found", file=sys.stderr)
-        return {}
-
-    if result.returncode != 0:
-        print(f"Kaggle API error (code {result.returncode}): {result.stderr}", file=sys.stderr)
-        return {}
-
-    submissions = {}
-    lines = result.stdout.strip().split("\n")
-
-    for i, line in enumerate(lines):
-        # Skip headers and blank lines
-        if not line.strip() or ("ref" in line and "date" in line) or all(c == '-' for c in line.strip()):
-            continue
-
-        # Parse the fixed-width table format
-        # Pattern: <ref>  <fileName>  <date>  <time>  <description> ...
-        # Extract ref from the beginning (right-aligned in a column)
-        import re
-        match = re.match(r'\s*(\d+)\s+(\S+)\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2}\.\d+)', line)
-        if not match:
-            continue
-
-        try:
-            ref, filename, date_str, time_str = match.groups()
-            dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M:%S.%f")
-
-            submissions[str(ref)] = {
-                "ref": str(ref),
-                "date": dt,
-                "line": line
-            }
-        except (ValueError, IndexError):
-            continue
-
-    return submissions
-
-
-def build_ref_to_submission_date(ledger: list, submissions: dict) -> dict:
-    """Map each ledger entry's ref to its submission date.
-
-    Extracts ref from the ledger entry's 'note' field if available.
-    Returns {ref: datetime, ...}
-    """
-    ref_to_date = {}
-
-    for entry in ledger:
-        note = entry.get("note", "")
-
-        # Try to extract submission ref from the note
-        # Common patterns: "ref 54315802", "(ref 54315802,", etc.
-        import re
-        refs_in_note = re.findall(r"ref\s+(\d+)", note)
-
-        for ref_str in refs_in_note:
-            if ref_str in submissions:
-                ref_to_date[ref_str] = submissions[ref_str]["date"]
-
-    return ref_to_date
-
-
-def age_days_from_now(submission_date: datetime, now: datetime) -> float:
-    """Compute age in days from submission_date to now."""
-    if submission_date is None:
+def extract_date_from_note(note: str) -> datetime | None:
+    """Extract date from note field, e.g., 'Board check 2026-07-04: 540.9'."""
+    if not note:
         return None
-    return (now - submission_date).total_seconds() / (24 * 3600)
+    match = re.search(r'(2026-07-\d{2})', note)
+    if match:
+        try:
+            return datetime.strptime(match.group(1), '%Y-%m-%d')
+        except ValueError:
+            return None
+    return None
+
+
+def compute_age_hours(read_date: datetime, reference_date: datetime) -> float:
+    """Compute age of read in hours."""
+    if read_date is None:
+        return None
+    delta = reference_date - read_date
+    return delta.total_seconds() / 3600.0
 
 
 def stratify_reads_by_age(
-    ledger: list, ref_to_date: dict, now: datetime = None
+    ledger: list, reference_date: datetime
 ) -> dict:
-    """Group reads by submission age: <48h, 48-72h, >72h.
+    """Group reads by age since the read date: <48h, 48-72h, >72h.
 
     Returns {
-        '<48h': [(ref, build, ladder_score), ...],
+        '<48h': [(build, ladder_score, age_hours), ...],
         '48-72h': [...],
         '>72h': [...],
-        'undated': [(build, ladder_score), ...]  # no ref found
+        'undated': [(build, ladder_score), ...]  # no date found in note
     }
     """
-    if now is None:
-        now = datetime.utcnow()
-
     strata = {"<48h": [], "48-72h": [], ">72h": [], "undated": []}
 
     for entry in ledger:
@@ -151,22 +79,16 @@ def stratify_reads_by_age(
             continue
 
         note = entry.get("note", "")
+        read_date = extract_date_from_note(note)
 
-        # Try to extract the main submission ref from the note
-        import re
-        ref_match = re.search(r"ref\s+(\d+)", note)
-        ref = ref_match.group(1) if ref_match else None
-
-        if ref and ref in ref_to_date:
-            date = ref_to_date[ref]
-            age = age_days_from_now(date, now)
-
-            if age < 2:  # <48h
-                strata["<48h"].append((ref, build, ladder_score, age))
-            elif age < 3:  # 48-72h
-                strata["48-72h"].append((ref, build, ladder_score, age))
+        if read_date:
+            age_hours = compute_age_hours(read_date, reference_date)
+            if age_hours < 48:  # <48h
+                strata["<48h"].append((build, ladder_score, age_hours))
+            elif age_hours < 72:  # 48-72h
+                strata["48-72h"].append((build, ladder_score, age_hours))
             else:  # >72h
-                strata[">72h"].append((ref, build, ladder_score, age))
+                strata[">72h"].append((build, ladder_score, age_hours))
         else:
             strata["undated"].append((build, ladder_score))
 
@@ -192,8 +114,8 @@ def compute_stratified_stats(
         # Extract (build, score) pairs
         families: dict = {}
         for entry in reads:
-            build = entry[1]  # (ref, build, score, age)
-            score = entry[2]
+            build = entry[0]  # (build, score) or (build, score, age_hours)
+            score = entry[1]
             families.setdefault(family_key(build), []).append(score)
 
         # Compute stats
@@ -283,33 +205,30 @@ def format_report(strata: dict, stats: dict) -> str:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
+        "--reference-date",
+        default="2026-07-05",
+        help="reference date for age computation (YYYY-MM-DD, default 2026-07-05)"
+    )
+    parser.add_argument(
         "--write",
         action="store_true",
         help="write the aged king estimate to state/current.md (TODO: implement)",
     )
     args = parser.parse_args(argv)
 
-    print("Fetching submission dates from Kaggle API...")
-    sys.stdout.flush()
-    submissions = fetch_submissions_with_dates()
-    if not submissions:
-        print("ERROR: Could not fetch submissions from Kaggle API", file=sys.stderr)
-        sys.stderr.flush()
+    try:
+        reference_date = datetime.strptime(args.reference_date, '%Y-%m-%d')
+    except ValueError:
+        print(f"ERROR: Invalid date format '{args.reference_date}', expected YYYY-MM-DD", file=sys.stderr)
         return 1
 
-    print(f"Loaded {len(submissions)} submissions")
-
-    print("Reading ledger from state/current.md...")
+    print(f"Reading ledger from state/current.md...")
     data = read_current()
     ledger = data.get("ledger") or []
+    print(f"Loaded {len(ledger)} ledger entries")
 
-    print("Mapping ledger entries to submission dates...")
-    ref_to_date = build_ref_to_submission_date(ledger, submissions)
-    print(f"Dated {len(ref_to_date)} ledger entries")
-
-    print("Stratifying reads by age...")
-    now = datetime.utcnow()
-    strata = stratify_reads_by_age(ledger, ref_to_date, now)
+    print(f"Stratifying reads by age (reference: {args.reference_date})...")
+    strata = stratify_reads_by_age(ledger, reference_date)
 
     for stratum, reads in strata.items():
         print(f"  {stratum}: {len(reads)} reads")
@@ -322,7 +241,9 @@ def main(argv=None) -> int:
 
     # Write report to disk
     report_path = _ROOT / "analysis" / "noise_model_age_stratified.md"
-    report_path.write_text(f"# Age-Stratified Noise Model Refit\n\nGenerated {now.isoformat()} UTC\n\n```\n{report}\n```\n")
+    report_path.write_text(
+        f"# Age-Stratified Noise Model Refit\n\nGenerated {reference_date.isoformat()}\n\n```\n{report}\n```\n"
+    )
     print(f"\nWrote report to {report_path}")
 
     return 0
