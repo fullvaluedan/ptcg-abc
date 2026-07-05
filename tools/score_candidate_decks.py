@@ -28,11 +28,12 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
         sys.path.insert(0, _p)
 
 from tools import opponents  # noqa: E402
-from tools.ring_calibrate import DEFAULT_MATCHES, _ring_win_rate, ring_names  # noqa: E402
+from tools import ring_calibrate as rc  # noqa: E402
 
 CANDIDATE_PREFIX = "candidate_"
 BASELINE_BUILD = "trolley"
 MATERIAL_MARGIN = 0.10
+DEFAULT_MATCHES = rc.DEFAULT_MATCHES
 
 
 def candidate_deck_names(decks_dir=None) -> list:
@@ -51,18 +52,14 @@ def score_candidates(n_matches=DEFAULT_MATCHES, decks_dir=None, opponent_names=N
     Returns {build_name: {"win_rate", "wins", "draws", "losses", "n"}},
     always including BASELINE_BUILD first.
     """
-    names = opponent_names if opponent_names is not None else ring_names()
+    names = opponent_names if opponent_names is not None else rc.ring_names()
     if not names:
         raise RuntimeError("no clone: opponents available; cannot score candidates against an empty ring")
     stems = candidate_deck_names(decks_dir)
-    builds = {BASELINE_BUILD: opponents.get(f"deck:{BASELINE_BUILD}")}
+    builds = {BASELINE_BUILD: lambda: opponents.get(f"deck:{BASELINE_BUILD}")}
     for stem in stems:
-        builds[stem] = opponents.get(f"deck:{stem}")
-    results = {}
-    for name, agent_fn in builds.items():
-        win_rate, wins, draws, losses, n = _ring_win_rate(agent_fn, names, n_matches)
-        results[name] = {"win_rate": win_rate, "wins": wins, "draws": draws, "losses": losses, "n": n}
-    return results
+        builds[stem] = lambda stem=stem: opponents.get(f"deck:{stem}")
+    return rc.run_ring(n_matches=n_matches, builds=builds, opponent_names=names)
 
 
 def promote_verdicts(results: dict, baseline: str = BASELINE_BUILD, margin: float = MATERIAL_MARGIN) -> dict:
@@ -100,7 +97,7 @@ def _main(argv=None):
     results = score_candidates(n_matches=args.matches)
     verdicts = promote_verdicts(results, margin=args.margin)
 
-    print(f"ring: {len(ring_names())} opponents, {args.matches} games/build")
+    print(f"ring: {len(rc.ring_names())} opponents, {args.matches} games/build")
     base = results[BASELINE_BUILD]
     print(f"{BASELINE_BUILD} (baseline): {base['win_rate']:.3f} ({base['wins']}/{base['n']})")
     for name, r in results.items():
