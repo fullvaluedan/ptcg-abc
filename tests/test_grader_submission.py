@@ -139,6 +139,17 @@ SHIPPED_AGENTS = [
     pytest.param(
         str(AGENTS / "agent_search.py"), str(DECKS / "trolley.csv"), _SEARCH_EXTRAS, {}, id="search-trolley"
     ),
+    # U39 promoted candidate: ring score 0.825 (n=40) vs trolley baseline 0.725,
+    # delta +0.100, cleared promotion gate per analysis/candidate_decks_ring_gate.md.
+    # Confirmation run passed; legality audit passed (tools/deck_validate.py);
+    # pre-registered for TRACK L ladder A/B pending slot availability.
+    pytest.param(
+        str(AGENTS / "agent_heuristic.py"),
+        str(DECKS / "candidate_yushin_ito.csv"),
+        _HEUR_EXTRAS,
+        {},
+        id="heuristic-candidate_yushin_ito",
+    ),
 ]
 
 
