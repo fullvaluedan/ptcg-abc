@@ -166,17 +166,62 @@ def _capture_real_obs():
     return None
 
 
+def _setup_fresh_game(your_deck=None, opp_deck=None):
+    """Set up a fresh game from scratch without needing replay files.
+
+    Args:
+        your_deck: optional custom deck (loads trolley.csv if None)
+        opp_deck: optional custom deck (loads trolley.csv if None)
+
+    Returns:
+        GameState instance ready for stepping
+    """
+    if your_deck is None:
+        your_deck = _load_deck(_ROOT / "decks" / "trolley.csv")
+    if opp_deck is None:
+        opp_deck = _load_deck(_ROOT / "decks" / "trolley.csv")
+
+    # Create minimal observation: the engine will initialize its own game state
+    minimal_obs = {
+        "current": {
+            "turn": 0,
+            "yourIndex": 0,
+            "players": [
+                {"handCount": 5, "prize": [3]*6, "bench": [], "active": []},
+                {"handCount": 5, "prize": [3]*6, "bench": [], "active": []}
+            ]
+        },
+        "select": None
+    }
+    obs_class = to_observation_class(minimal_obs)
+
+    root = search_begin(
+        obs_class,
+        your_deck=your_deck,
+        your_prize=[3]*6,
+        opponent_deck=opp_deck,
+        opponent_prize=[3]*6,
+        opponent_hand=[3]*5,
+        opponent_active=[]
+    )
+    return GameState(root.searchId, root.observation)
+
+
 def _setup_game_from_observation(obs, your_deck=None, opp_deck=None):
     """Set up a game using a real observation and custom decks.
 
     Args:
-        obs: a real observation dict from a game
+        obs: a real observation dict from a game, or None to create fresh game
         your_deck: optional custom deck (uses first deck in obs if None)
         opp_deck: optional custom deck (uses second deck in obs if None)
 
     Returns:
         GameState instance ready for stepping
     """
+    if obs is None:
+        # No replay available; create a fresh game instead
+        return _setup_fresh_game(your_deck, opp_deck)
+
     if your_deck is None:
         your_deck = _load_deck(_ROOT / "decks" / "trolley.csv")
     if opp_deck is None:

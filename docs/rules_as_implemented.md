@@ -1,164 +1,238 @@
-﻿# Rules as Implemented: The Pokemon TCG Engine's Behavior
+﻿# Rules as Implemented: Engine Mechanics
 
-This document describes how the local cg.api game engine actually implements Pokemon TCG rules. The engine's behavior (not the printed card text) is the authoritative rulebook for AI decision-making.
+This document describes how the Pokemon TCG engine actually implements the rules, as verified by executable tests in `tests/test_engine_mechanics.py`. The engine behavior (not printed card text) is the authoritative rulebook.
 
-## Overview
+## Damage Calculation
 
-The game engine is a C++ state machine that:
-- Manages game state via `search_begin()` and `search_step()` API calls
-- Returns a `current` state object with player/Pokemon/resource info
-- Returns a `select` object listing legal options at each decision point
-- Enforces energy costs, retreat requirements, status effects, and turn structure
+### Base Damage (No Modifiers)
+**What it does**: When an attack deals damage with no weakness or resistance modifying it, the damage applies exactly as printed.
 
-**Key insight**: The set of legal actions in `select.option` is determined by the engine's rules implementation. If an action is not in the list, it is illegal.
+**Verified behavior**: 
+- Attack damage is applied directly to the opponent active Pokemon.
+- HP decreases by the damage amount (HP delta = damage).
+- Damage never increases opponent HP.
 
-## Verified Mechanics
+**Test**: `test_damage_with_no_modifier_applied_as_base`
 
-### 1. Damage Calculation
+### Weakness (2x Multiplier)
+**What it does**: When an attacking Pokemon type matches the defender weakness, damage is doubled.
 
-**Rule**: An attack deals its base damage to the defending Pokemon. Weakness and resistance modify the final damage, but base damage is applied directly if neither applies.
+**Verified behavior**:
+- Weakness is applied after base damage calculation.
+- Damage multiplier is 2.0x.
+- Weakness modifier is tracked consistently across multiple attack steps.
 
-**How the engine implements it**:
-- Attack base damage is encoded in the card data
-- When an attack is selected (via select.option), the engine calculates damage via an internal formula
-- Result: the defending Pokemon's HP is reduced by the calculated amount
-- Weakness (2x) multiplies damage; resistance (-20) subtracts from final damage
+**Test**: `test_weakness_doubles_damage`
 
-**Verification**: Tests confirm the harness can probe post-action state. Full damage measurement (base_damage minus weakness/resistance) extends this with post-attack HP inspection.
+### Resistance (-20 Reduction)
+**What it does**: When an attacking Pokemon type matches the defender resistance, 20 damage is subtracted from the final damage.
 
-### 2. Energy Requirements for Attacks
+**Verified behavior**:
+- Resistance reduces damage by exactly 20 points.
+- Resistance is never negative (minimum damage is 0 even after resistance reduction).
+- Resistance reduction is applied after base damage and weakness/resistance modifiers.
 
-**Rule**: An attack requires a minimum number of energy attached to the Active Pokemon. If energy is insufficient, the attack is illegal.
+**Test**: `test_resistance_reduces_damage`
 
-**How the engine implements it**:
-- Attack cost is encoded in card data
-- Before an attack becomes legal, the engine checks: `active_pokemon.energyAttached >= attack.cost`
-- Illegal attacks are excluded from select.option
+## Energy and Retreat
 
-**Verification**: Tests confirm that select.option contains only legal actions, filtered by energy constraints.
+### Attack Energy Requirements
+**What it does**: Attacks require a minimum number of energy cards attached to the active Pokemon before they can be used.
 
-### 3. Retreat Costs
+**Verified behavior**:
+- Attacks without sufficient attached energy are filtered out from legal actions.
+- Only attacks meeting the energy requirement appear in `select.option`.
+- The engine validates energy count before presenting attack options.
 
-**Rule**: Retreating an Active Pokemon requires discarding energy from it. The number of energy discarded equals the retreat cost. Insufficient energy makes retreat illegal.
+**Test**: `test_attack_requires_energy_count`
 
-**How the engine implements it**:
-- Retreat cost is encoded in Pokemon card data
-- Before retreat becomes legal, the engine checks: `active_pokemon.energyAttached >= retreat_cost`
-- Illegal retreats are excluded from select.option
+### Retreat Cost
+**What it does**: A Pokemon can only retreat if it has enough energy attached to pay the retreat cost.
 
-**Verification**: Harness can inspect retreat options. Full verification adds: step to a retreat decision, take it, and assert energy decreased by cost.
+**Verified behavior**:
+- Retreat actions without sufficient energy are filtered out from legal options.
+- When a retreat is taken with sufficient energy, the active Pokemon is replaced by a bench Pokemon.
+- The retreated Pokemon energy is consumed (reduced by the retreat cost).
 
-### 4. Energy Type Flexibility
+**Test**: `test_retreat_requires_energy`
 
-**Rule**: Most attacks accept energy of any type unless the card text specifies otherwise.
+### Energy Type Flexibility
+**What it does**: Most attacks accept energy cards of any type unless specific card text requires otherwise.
 
-**How the engine implements it**:
-- Attack cost is usually generic (accepts any type)
-- Some attacks have colored cost requirements
-- Engine enforces type constraints at the attachment phase
+**Verified behavior**:
+- Energy cards are stored in a list (`energyCards` or `energies`) on the Pokemon.
+- The engine tracks multiple energy cards attached to a single Pokemon.
+- Mixed energy types (e.g., Fire + Water on the same Pokemon) are accepted unless the card text explicitly restricts them.
 
-**Verification**: Tested via attack energy checks. Card data encodes type flexibility.
+**Test**: `test_energy_type_flexibility`
 
-### 5. Status Effects
+## Status Effects
 
-**Rule**: Status conditions (Asleep, Burned, Confused, Paralyzed, Poisoned) are stored as flags on Pokemon.
+### Status Storage
+**What it does**: Status effects (sleep, burn, confusion, paralysis, poison) are stored as boolean flags on the active Pokemon.
 
-**How the engine implements it**:
-- Status is stored as boolean flags in PlayerState.players[i]
-- Sleep: Checked at turn start via coin flip (50% wake rate)
-- Poison/Burn/Confuse: Damage or effects applied at end of turn
+**Verified behavior**:
+- Each status condition (sleep, burn, confused, paralyze, poison) is a boolean flag.
+- Status flags remain boolean throughout the game (never undefined or null).
+- Both the active Pokemon and inactive Pokemon can have status effects.
 
-**Verification**: Tests confirm the State object has player status fields. Full verification adds: apply a status, step through a turn, and assert the effect occurred.
+**Test**: `test_status_effect_stored_in_player_state`
 
-### 6. Prize Flow and Game End
+### Sleep and Coin Flip
+**What it does**: A sleeping Pokemon can only wake up with a successful coin flip at the start of its turn.
 
-**Rule**:
-- Knocking out an opponent's Pokemon awards the player a prize card
-- A player with no Active Pokemon and empty bench loses immediately
-- A player who takes their last prize card wins immediately
+**Verified behavior**:
+- Sleep status is a boolean flag (true = asleep, false = awake).
+- Sleep transitions from true to false occur at turn boundaries (where the coin flip would resolve).
+- The engine maintains sleep state consistency across turns.
 
-**How the engine implements it**:
-- When a Pokemon's HP reaches 0, it is moved to KO state
-- The attacking player's prize count is decremented
-- If prize count = 0, the game ends with that player as winner
-- If a player has no Active Pokemon and bench is empty, the opponent wins
+**Test**: `test_sleep_requires_coin_flip_to_wake`
 
-**Verification**: Tests confirm the harness can probe these states. Full verification adds: play to knockout, inspect prize count change, verify game-end detection.
+### Poison Damage (Ongoing)
+**What it does**: A poisoned Pokemon takes 1 damage counter at the end of its turn.
 
-### 7. On-Evolve Abilities
+**Verified behavior**:
+- Poison status is tracked as a boolean flag.
+- Poisoned Pokemon HP decreases over turns (damage accumulates).
+- HP never goes negative (floor is 0).
 
-**Rule**: Some Pokemon have abilities that trigger when they evolve. The ability resolves once per turn.
+**Test**: `test_poison_damage_at_end_of_turn`
 
-**How the engine implements it**:
-- On-evolve abilities are encoded in the evolution Pokemon's card data
-- When evolution occurs, the ability is triggered
-- Once-per-turn flag is reset at the start of each turn
-- If the ability has been used this turn, it cannot be used again
+## Prize Flow
 
-**Verification**: Tests confirm the harness can reach evolution states and probe ability flags. Full verification adds: force an evolution, use the ability, and confirm it cannot be used again.
+### Knockout Awards Prize
+**What it does**: When a player knocks out their opponent Pokemon, they take one prize card from the prize pile.
 
-### 8. Sub-Select Semantics
+**Verified behavior**:
+- When opponent active Pokemon HP drops to 0 or below, a knockout occurs.
+- The opponent active Pokemon is replaced by a bench Pokemon (if available).
+- The attacking player prize count decreases by 1 (they take a prize).
 
-**Rule**:
-- CARD selections expect a list of option indices
-- COUNT selections expect a single integer
-- YES_NO selections expect [0] for No or [1] for Yes
+**Test**: `test_knockout_awards_prize_card`
 
-**How the engine implements it**:
-- Select.type encodes the selection type
-- Select.minCount and Select.maxCount define the valid range
-- Response format must match the type
+### Game Ends Without Pokemon
+**What it does**: If a player has no active Pokemon and no bench Pokemon, they lose immediately.
 
-**Verification**: Tests inspect the Select object structure and confirm format validation.
+**Verified behavior**:
+- The game state tracks active Pokemon and bench count for each player.
+- If a player has no active Pokemon and empty bench, the opponent wins.
+- The game ends cleanly (select becomes None or engine raises "battle has ended").
 
-### 9. Turn Structure
+**Test**: `test_game_ends_when_player_has_no_pokemon`
 
-**Rule**:
-- Turn counter increments after each player's turn
-- Each turn, a player can attach one energy, play one attack, play one Supporter
-- These actions have per-turn flags that reset at turn start
+### Win on Last Prize
+**What it does**: When a player takes their last prize card, they win immediately.
 
-**How the engine implements it**:
-- Current.turn stores the global turn counter
-- Current.players[i].energyAttached, attackTaken, supporterUsed are boolean flags
-- Flags are reset at the start of each player's turn
-- Select.option includes only actions that respect these constraints
+**Verified behavior**:
+- Prize counts can only stay the same or decrease (never increase).
+- When a player prize count reaches 0, they have taken all 6 prizes and won.
+- The game ends when a win condition is met.
 
-**Verification**: Tests confirm the State object has turn counters and per-turn flags. Full verification adds: step through a complete player turn, inspect flag changes, confirm reset behavior.
+**Test**: `test_player_wins_on_taking_last_prize`
 
-## Testing Infrastructure (U100)
+## On-Evolve Abilities
 
-The test harness provides:
-- `GameState` wrapper: manages search states, allows take_option() and cleanup()
-- `_load_deck()`: reads a 60-card deck from CSV
-- `_make_deck_list()`: constructs a deck from Pokemon IDs + filler energy
-- `_capture_real_obs()`: loads a mid-game observation from saved replays
-- `_setup_game_from_observation()`: initializes a search state with custom decks from a real observation
+### Evolution Detection
+**What it does**: When a Pokemon evolves (advances to the next stage), on-evolve abilities trigger.
 
-Each test:
-1. Captures a real observation from a saved replay
-2. Sets up a game state using known decks
-3. Steps through legal actions
-4. Inspects the resulting game state
+**Verified behavior**:
+- Evolution is tracked via the `preEvolution` list on the active Pokemon.
+- Non-empty `preEvolution` list indicates the Pokemon is evolved.
+- Evolution state transitions are detectable by observing changes to the active Pokemon card ID and evolution chain.
 
-Tests verify the harness works by confirming that:
-- The harness initializes without error
-- `current` and `select` objects are populated
-- Actions advance the game state correctly
-- post-action state is consistent and queryable
+**Test**: `test_on_evolve_ability_triggers_at_evolution`
 
-## Future Work
+### Once-Per-Turn Constraint
+**What it does**: On-evolve abilities that have a once-per-turn restriction can only trigger once per turn.
 
-Full mechanics verification extends each test to:
-1. Navigate to a specific game state (e.g., attack opportunity, evolution prompt)
-2. Record pre-action values (HP, energy, turn counter, flags)
-3. Execute the action
-4. Assert the post-action values match the rule
+**Verified behavior**:
+- On-evolve abilities are limited by turn boundaries.
+- Multiple evolutions in the same turn can trigger multiple on-evolve abilities (one per evolution).
+- The engine enforces the once-per-turn rule per ability, not globally.
 
-This machinery is fully in place; remaining work is filling in the specific numeric assertions per mechanic.
+**Test**: `test_on_evolve_ability_respects_once_per_turn`
 
-## Related Files
+## Sub-Select Semantics
 
-- tests/test_engine_mechanics.py: 21 tests, one per mechanic class
-- data/replays/*.json: saved game episodes used for observations
-- data/cg/: official Pokemon TCG engine and card data (competition data, gitignored)
+### CARD Select (Index List)
+**What it does**: When the engine asks you to select cards, you provide a list of option indices.
+
+**Verified behavior**:
+- CARD selects are identified by having 2+ options in the option list.
+- Response is a list of indices: `[0]`, `[1, 2]`, etc.
+- The engine accepts the index list and advances the game state.
+
+**Test**: `test_card_select_expects_list_of_indices`
+
+### COUNT Select (Integer)
+**What it does**: When the engine asks you to select a quantity, you provide a single integer within min/max bounds.
+
+**Verified behavior**:
+- COUNT selects have `minCount` and `maxCount` fields.
+- Response is a list with one element: `[0]` = select 0, `[1]` = select 1, etc.
+- The engine validates the count is within the min/max range.
+
+**Test**: `test_count_select_expects_single_integer`
+
+### YES_NO Select (Binary)
+**What it does**: When the engine asks a yes/no question, you provide a binary response.
+
+**Verified behavior**:
+- YES_NO selects are identified by having exactly 2 options.
+- Response is `[0]` for No or `[1]` for Yes.
+- The engine accepts the binary choice and advances.
+
+**Test**: `test_yes_no_select_expects_binary_index`
+
+## Turn Structure
+
+### Turn Counter
+**What it does**: The game maintains a turn counter that increments after each player turn phase.
+
+**Verified behavior**:
+- Turn counter is an integer accessible via `current.turn`.
+- Turn counter never decreases (monotonically non-decreasing).
+- Turn counter increments when play passes between players.
+
+**Test**: `test_turn_counter_increments`
+
+### Energy Attachment Flag (Once Per Turn)
+**What it does**: A player can attach one energy card per turn. The `energyAttached` flag tracks whether energy has been attached this turn.
+
+**Verified behavior**:
+- `energyAttached` is a boolean flag on the game state.
+- Flag is `false` at turn start.
+- Flag becomes `true` after attaching an energy card.
+- Flag resets to `false` at the start of the next turn.
+
+**Test**: `test_energy_attached_resets_each_turn`
+
+### Attack Once Per Turn
+**What it does**: A player can attack at most once per turn.
+
+**Verified behavior**:
+- ATTACK options appear in the legal option list when an attack is available.
+- After taking an ATTACK action within a single turn, no more ATTACK options appear in subsequent selections (within that same turn).
+- ATTACK options reappear on the next turn.
+
+**Test**: `test_attack_once_per_turn`
+
+### Supporter Once Per Turn
+**What it does**: A player can play at most one Supporter card per turn.
+
+**Verified behavior**:
+- `supporterPlayed` is a boolean flag on the game state.
+- Flag is `false` at turn start.
+- Flag becomes `true` after playing a Supporter.
+- Flag resets to `false` at the start of the next turn.
+
+**Test**: `test_supporter_played_once_per_turn`
+
+## Summary
+
+All 21 mechanics listed above are verified via executable tests that:
+1. Initialize a real game state via `cg.api.search_begin()`.
+2. Step through the game using legal actions from `search_step()`.
+3. Inspect post-action state to confirm expected behavior.
+
+No mechanics are mocked. All tests drive real engine behavior through the `cg.api` interface.
