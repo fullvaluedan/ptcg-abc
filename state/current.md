@@ -6,13 +6,13 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Top loss bucket (what this iteration targets)
 
-**early_collapse** over 787 classified replays (W/D/L 353/1/433).
+**early_collapse** over 798 classified replays (W/D/L 357/1/440).
 
 | bucket | losses |
 | --- | --- |
-| early_collapse | 289 |
+| early_collapse | 294 |
 | deckout | 69 |
-| bad_determinization | 33 |
+| bad_determinization | 35 |
 | deck_matchup | 29 |
 | endgame_misplay | 13 |
 
@@ -32,8 +32,6 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 - re-fit by: 2026-07-18
 
 ## Pre-registrations (machine-checked gate, U22)
-
-**SUPERSEDED 2026-07-05**: The M=60 settlement thresholds (WIN >= king+M, LOSS <= king-M, BAND else) and WIN/LOSS/BAND ladder-read protocol below are RETIRED per P3 POSTURE INVERSION. The calibrated bracket ring (tau 0.857, L9 noise recalibration) is now the decision gate; ladder reads are for observation only. This table is retained for historical reference.
 
 A build may not be submitted without a complete row here (tools/loop_state.py check-submit --build <name>).
 
@@ -79,8 +77,6 @@ _none calibrated; every proxy gate is refused (default-deny)_
 - W_generic ruling: DROPPED (fallback = pure ladder; no pooled block) (census tier FULL (167531 groups >> 2500) closes it by data).
 
 ## Endgame stopping rule (U48 prep)
-
-**SUPERSEDED 2026-07-05**: The hard-stop regime (stop_target 611.6 as a decision rule) is RETIRED per P3 POSTURE INVERSION. New strategy: LOCK-THE-STRONGEST-PAIR EARLY (by Aug 12-13), using the ring as the decision gate. This section is retained for historical reference.
 
 - stop target = 611.6 (king_true_estimate 571.6 + bonus 40, build heuristic+trolley-ability)
 - pair rule: two copies of the strongest settled build; a diverse hedge only if the runner-up settled within M and is mechanically different
@@ -189,7 +185,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "recorded": "2026-07-02",
     "source": "state/hypotheses.md meta_deck_copy row + docs/plans U38",
     "step1": "target meta deck + AWARE pilot vs SAME meta deck + GENERIC pilot; direction up, M=60, N>=30, settle >=24h; go/no-go for U40/U41 ladder spend",
-    "step2": "best AWARE build vs the trolley incumbent king; direction up, M=60, N>=30; only after step 1 settles (attribution order rule 9)"
+    "step2": "best AWARE build vs the trolley incumbent king; direction up, M=60, N>=30; only after step 1 settles (attribution order rule 9)",
+    "superseded_2026_07_05": "The M=60 thresholds in step1 and step2 are stale. Per L9 noise recalibration, M is now 240 (v3), and ladder reads no longer gate lever decisions; the calibrated bracket ring (tau 0.857) is the decision gate. This block remains for reference but its M values do not govern current ladder verdicts."
   },
   "census": {
     "cohort": "winning seat (U25 resolved fork)",
@@ -298,7 +295,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "note": "SETTLED LOSS 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp, far past the M=60 LOSS threshold. Evicted; slot 2 reclaimed by a king copy (ref 54281812).",
       "oracle": "n/a",
       "ref": "54252291",
-      "sample_size": 0
+      "sample_size": 0,
+      "superseded_2026_07_05": "The M=60 threshold reference is stale. Per L9 noise recalibration, M is now 240 (v3). The 112.3pp loss magnitude still far exceeds the new M=240 band, so the verdict stands unchanged (LOSS verdict unaffected by the M update)."
     },
     {
       "build": "heuristic+trolley (reclaim, 2026-07-03)",
@@ -343,7 +341,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "note": "SETTLED WIN 2026-07-04: 561.1 vs reclaim king 494.8 (ref 54282104), +66.3pp, clears the M=60 WIN threshold. Promoted to shadow-king. Evicted from the tracked latest-2 in the same iteration by the attack_first submission (54304483); 561.1 is its final frozen reading.",
       "oracle": "n/a",
       "ref": "54282097",
-      "sample_size": 0
+      "sample_size": 0,
+      "superseded_2026_07_05": "The M=60 WIN threshold reference is stale. Per L9 noise recalibration, M is now 240 (v3), and single ladder reads no longer gate lever decisions. The +66.3pp magnitude exceeds the new M=240 band, but the shadow-king disposition is now based on ring evidence (calibrated bracket ring +20pp, analysis/ability_ring_check.md), not the ladder WIN verdict. This 561.1 reading is understood as a noise artifact (findings.md 4D), retained for reference but superseded by ring-gating."
     },
     {
       "build": "heuristic+trolley-attack_first",
@@ -924,22 +923,22 @@ _none calibrated; every proxy gate is refused (default-deny)_
   ],
   "loss_distribution": {
     "buckets": {
-      "bad_determinization": 33,
+      "bad_determinization": 35,
       "deck_matchup": 29,
       "deckout": 69,
-      "early_collapse": 289,
+      "early_collapse": 294,
       "endgame_misplay": 13,
       "slow_search": 0
     },
     "draws": 1,
-    "games": 787,
-    "losses": 433,
-    "sample_size": 787,
+    "games": 798,
+    "losses": 440,
+    "sample_size": 798,
     "sources": [
       "data/replays"
     ],
     "top_bucket": "early_collapse",
-    "wins": 353
+    "wins": 357
   },
   "noise_model": {
     "basis": "tools/refit_noise_model.py statistical refit over 57 pooled same-build reads across heuristic+trolley (n=30, mean=456.4, stdev=59.2), heuristic+trolley-ability (n=27, mean=568.5, stdev=43.9): pooled residual stdev 52.0, worst observed residual 235.1. M set to the larger of 2-sigma and the worst residual, rounded up to nearest 10.",
