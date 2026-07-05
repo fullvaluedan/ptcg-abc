@@ -64,6 +64,26 @@ This insight flowed into two shipped improvements:
 
 ---
 
+## Parallel Investigation: Category Mining Closes with Archetype Awareness
+
+While the comprehension track diagnosed the clone's instrument defects and produced two shipped rules, a parallel effort (U82, `analysis/category_mining_v2.md`) took a different diagnostic angle on the same move-ranking validator's low-agreement categories. The validator had surfaced three low-agreement areas worth root-causing: RETREAT (0.0% vs expert baseline), PROMOTE post-knockout (0.4%), and deck-search picks (likely context-dependent). If any of these hid a simple decision rule the pilot missed, shipping that rule could move the needle without expensive model-retraining.
+
+Each was checked systematically against the expert corpus:
+
+- **RETREAT** (analysis/retreat_gap_conditional.md, 163 real decisions): 89.1% of expert retreats are genuine active-HP threshold misses, not position artifacts. Top players' retreat choices do not correlate with bench-matchup quality improvements; the missing signal is not in simple fields but in context the five base state fields do not capture.
+
+- **PROMOTE post-knockout** (analysis/promote_gap_conditional.md, 91 decisions): six candidate signals (type matchup, bench energy, combined energy-then-matchup, immediate-knockout check) were scored against expert picks. None ranked promoted benches above the pilot's first-legal choice with measurable consistency.
+
+- **Deck-search picks** (analysis/category_mining_v2.md): the pilot's search logic already tracks the weighted-random strategy experts employ; the picks were category-explained by existing rules, revealing no distinct gap.
+
+All three threads independently converged on the same diagnosis: the pilot lacks high-level game-plan / archetype awareness, not a missing single-field rule. Context-dependent decisions (which bench to promote, which active to retreat) require understanding the game state's arc—what archetype the hand is building, what threat the opponent poses—not isolated fields. This is the insight that closed the mining track: U82 confirmed that every named conditional gap had been checked and found to point toward the same missing capability, making further single-field mining unproductive without first addressing archetype awareness itself.
+
+That capability was tested separately (`analysis/archetype_prior_train.md`, U9b): a classifier trained on early-turn features to predict winner vs loser, pre-registered to clear a +5.0pp held-out margin. Result: +4.3pp, a narrow miss. Per pre-registration, nothing was shipped, and the gate blocks further U9-family pursuit without a different approach.
+
+This convergence—from instrument defects (U71 clone autopsy), to played-decision structure (U91 playbook miner), to parallel single-field mining (U82), all pointing toward the same missing capability (archetype awareness), which then failed its own pre-registered gate (U9b)—is itself reportable evidence. It is not proof the idea is unimportant, only that this implementation did not clear the bar. The decision discipline stands: when a well-motivated idea misses its gate, you record the miss and move on, rather than lowering the bar or redefining success.
+
+---
+
 ## Bottom Line: Discipline Over Luck
 
 Three distinct offline designs, of increasing sophistication and cost, were checked against the same ladder-truth bar and none cleared it—until the third failure's diagnosis was fixed and re-tested. The core claim this project can report: matching the offline proxy's opponent distribution to the actual distribution the ladder scores came from mattered more than any amount of added model sophistication. The proxies that were most expensive to build and most theoretically justified still landed at tau 0.429 because they were measuring performance against the wrong field.
