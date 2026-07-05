@@ -33,6 +33,8 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Pre-registrations (machine-checked gate, U22)
 
+**SUPERSEDED 2026-07-04 (L9 noise recalibration):** The M=60 entries below are from the prior regime where ladder reads with fixed M-bands decided outcomes. As of 2026-07-04, the decision gate moved to ring-gating (calibrated bracket ring, tau=0.857, analysis/ring_calibration.md) and ladder submissions are for floor maintenance and endgame variance harvest only (L9 NEW RULES). The M=240 noise model is now the reference for same-build drift tracking, not a gate. These rows remain for historical record but no new TRACK L ladder slots respect these M=60 pre-registrations; the ring is the gate.
+
 A build may not be submitted without a complete row here (tools/loop_state.py check-submit --build <name>).
 
 | build | hypothesis | dir | M | N | settle-by | complete |
@@ -206,7 +208,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "no_roll_buffer": "2026-08-14 12:00 UTC",
     "pair_rule": "two copies of the strongest settled build; a diverse hedge only if the runner-up settled within M and is mechanically different",
     "recorded": "2026-07-05",
-    "stop_target": 611.6
+    "stop_target": 611.6,
+    "superseded_2026_07_05": "The hard-stop regime (stop_target 611.6 as a decision rule) is retired per P3 POSTURE INVERSION. New strategy: LOCK-THE-STRONGEST-PAIR EARLY (by Aug 12-13), using the ring as the decision gate, not a fixed ladder-read threshold. This block remains for reference but does not govern endgame decisions."
   },
   "final_scoring": {
     "daily_limit": "5 submissions/day",

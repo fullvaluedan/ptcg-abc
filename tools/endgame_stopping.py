@@ -9,6 +9,13 @@ module reuses tools/refit_noise_model.py's per-build family stats (the same
 pooled same-build reads that just refit M to 240) to estimate it as that
 build's own mean ladder read, so the stop target is data-driven rather than
 guessed the week of the campaign.
+
+SUPERSEDED (2026-07-05 item 9): The prior stop_target 611.6 hard-stop regime is
+retired per P3 (POSTURE INVERSION, 2026-07-05). The new endgame strategy is
+LOCK-THE-STRONGEST-PAIR EARLY (by Aug 12-13): two copies of the genuinely
+strongest ring-gated build. This tool remains available for computing the
+threshold, but no fixed stop_target is enforced as a gate. The endgame campaign
+uses the ring as the decision authority, not a static ladder-read threshold.
 """
 from __future__ import annotations
 
