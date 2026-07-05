@@ -172,11 +172,19 @@ def test_i1_uncalibrated_effect_context_enforces_structural_bimodal():
     assert calib.allowed_for(0, "effect") == {59, 60}
     checker = fz.FuzzChecker(calibration=calib)
     checker.enforce()
-    effect_obs = {
+    # deck=40 totals 59: LEGAL in effect context under the structural band, no
+    # violation. deck=30 totals 49: outside {59, 60}, must flag.
+    legal_obs = {
         "current": make_state(me=player_state(deck=40)),
         "select": {"contextCard": {"id": 5, "serial": 9999, "playerIndex": 0}},
     }
-    checker.observe(effect_obs, fz.GameTracker())
+    checker.observe(legal_obs, fz.GameTracker())
+    assert [v for v in checker.violations if v["invariant"] == "I1"] == []
+    bad_obs = {
+        "current": make_state(me=player_state(deck=30)),
+        "select": {"contextCard": {"id": 5, "serial": 9999, "playerIndex": 0}},
+    }
+    checker.observe(bad_obs, fz.GameTracker())
     i1 = [v for v in checker.violations if v["invariant"] == "I1"]
     assert len(i1) == 1
     assert sorted(i1[0]["detail"]["expected"]) == [59, 60]
