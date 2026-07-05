@@ -12,45 +12,43 @@ game minus this window are dropped before matching).
 
 | rank | team | rating | corpus games | corpus win rate |
 |---|---|---|---|---|
-| 1 | Majkel1337 | 1257.2 | 0 | n/a |
-| 2 | THIRD PTCG Club | 1153.6 | 304 | 56% |
-| 3 | Yushin Ito | 1127.5 | 341 | 54% |
-| 4 | nasuo445 | 1125.6 | 251 | 61% |
-| 5 | tonakaiiii | 1123.4 | 850 | 57% |
-| 6 | zoroark190 | 1116.0 | 325 | 60% |
-| 7 | iwashi | 1114.4 | 165 | 52% |
-| 8 | Ruko | 1110.6 | 0 | n/a |
-| 9 | kashiwashira | 1089.3 | 266 | 57% |
-| 10 | Rmy | 1088.5 | 0 | n/a |
-| 11 | junlee789 | 1087.2 | 54 | 65% |
-| 12 | Banjo | 1084.9 | 0 | n/a |
-| 13 | genki toyama | 1083.2 | 0 | n/a |
-| 14 | aaa | 1080.4 | 19 | 37% |
-| 15 | WinDecks | 1074.2 | 667 | 51% |
-| 16 | easonyanyan | 1070.0 | 267 | 56% |
-| 17 | payanotty | 1069.4 | 0 | n/a |
-| 18 | Hase2727 | 1069.1 | 0 | n/a |
-| 19 | 渡邊征央 | 1067.6 | 630 | 54% |
-| 20 | noikaret | 1063.8 | 76 | 34% |
+| 1 | Majkel1337 | 1251.3 | 0 | n/a |
+| 2 | zoroark190 | 1142.7 | 325 | 60% |
+| 3 | tonakaiiii | 1136.1 | 850 | 57% |
+| 4 | nasuo445 | 1131.2 | 251 | 61% |
+| 5 | Yushin Ito | 1130.5 | 341 | 54% |
+| 6 | junlee789 | 1111.1 | 54 | 65% |
+| 7 | THIRD PTCG Club | 1109.3 | 304 | 56% |
+| 8 | Rmy | 1102.7 | 0 | n/a |
+| 9 | kashiwashira | 1092.6 | 266 | 57% |
+| 10 | iwashi | 1092.2 | 165 | 52% |
+| 11 | WinDecks | 1079.4 | 667 | 51% |
+| 12 | easonyanyan | 1078.7 | 267 | 56% |
+| 13 | btk15049 | 1076.4 | 683 | 51% |
+| 14 | 渡邊征央 | 1074.0 | 630 | 54% |
+| 15 | Shardul Gharat | 1072.0 | 5 | 80% |
+| 16 | kenkoooo | 1071.3 | 45 | 38% |
+| 17 | aaa | 1071.2 | 19 | 37% |
+| 18 | payanotty | 1069.6 | 0 | n/a |
+| 19 | genki toyama | 1065.6 | 0 | n/a |
+| 20 | Ruko | 1060.2 | 0 | n/a |
 
 ## Coverage
 
 - Games considered (post recency filter): 4975
-- Games matched to a top-N team: 3367
-- Training rows written: 189460
+- Games matched to a top-N team: 3783
+- Training rows written: 222090
 - Date range of matched games: 2026-07-04 to 2026-07-04
 
 ## Archetype breakdown
 
-- meta_grimmsnarl_tonakaiiii: 2225
-- other: 1334
-- meta_archaludon: 352
-- meta_grimmsnarl: 304
+- meta_grimmsnarl_tonakaiiii: 2230
+- other: 1258
+- meta_archaludon: 1035
+- meta_grimmsnarl: 349
 
 ## Unmapped team names
 
-- Banjo (no game in the scanned dataset names this team)
-- Hase2727 (no game in the scanned dataset names this team)
 - Majkel1337 (no game in the scanned dataset names this team)
 - Rmy (no game in the scanned dataset names this team)
 - Ruko (no game in the scanned dataset names this team)
@@ -62,6 +60,7 @@ game minus this window are dropped before matching).
 | team | losses | dominant loss bucket | most common opponent |
 |---|---|---|---|
 | tonakaiiii | 369 | endgame_misplay | Dũng Đỗ |
+| btk15049 | 334 | slow_search | tonakaiiii |
 | WinDecks | 329 | early_collapse | kazuki0123 |
 | 渡邊征央 | 289 | endgame_misplay | tonakaiiii |
 | Yushin Ito | 157 | early_collapse | tonakaiiii |
@@ -71,9 +70,10 @@ game minus this window are dropped before matching).
 | kashiwashira | 114 | endgame_misplay | WinDecks |
 | nasuo445 | 98 | endgame_misplay | Dũng Đỗ |
 | iwashi | 80 | slow_search | tonakaiiii |
-| noikaret | 50 | bad_determinization | 渡邊征央 |
+| kenkoooo | 28 | slow_search | Nghia Tran |
 | junlee789 | 19 | endgame_misplay | 渡邊征央 |
 | aaa | 12 | deckout | XP3RiX |
+| Shardul Gharat | 1 | bad_determinization | tonakaiiii |
 
 ## Staleness
 
