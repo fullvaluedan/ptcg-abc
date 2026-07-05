@@ -113,3 +113,19 @@ the other. The mechanism was already verified during bring-up, so allowed_for no
 effect contexts structurally. Net result of run 1 stands as: 17,585 states / 4,000 games with ZERO true
 conservation violations in plain states. Raw run-1 log archived at
 data/engine_quirks_fuzz_run1_false_positives.jsonl (gitignored).
+
+## Run 2026-07-05T11:56:30+00:00 (shard 11)
+
+- command: `tools/fuzz_invariants.py --games 300 --agents mixed --seed 7 --shard 11 --calibrate 5`
+- games: 300 requested, 300 completed (5 calibration, 295 enforced), 0 crashed
+- states scanned: 9990, checker internal errors: 0, duration: 44.8s
+- calibration: I1 own-side totals per seat {'seat0/effect': {59: 23, 60: 9}, 'seat0/plain': {60: 116}, 'seat1/effect': {59: 20, 60: 12}, 'seat1/plain': {60: 97}}; I1 skips {'looking_active': 8}; I7 benign duplicate serials none
+- verdict: CLEAN, 0 violations over 295 enforced games (9990 states scanned)
+
+## Run 2026-07-05T11:56:32+00:00 (shard 10)
+
+- command: `tools/fuzz_invariants.py --games 300 --agents mixed --seed 7 --shard 10 --calibrate 5`
+- games: 300 requested, 300 completed (5 calibration, 295 enforced), 0 crashed
+- states scanned: 10535, checker internal errors: 0, duration: 46.7s
+- calibration: I1 own-side totals per seat {'seat0/effect': {59: 14, 60: 2}, 'seat0/plain': {60: 45}, 'seat1/effect': {59: 13, 60: 3}, 'seat1/plain': {60: 47}}; I1 skips {'looking_active': 8}; I7 benign duplicate serials none
+- verdict: CLEAN, 0 violations over 295 enforced games (10535 states scanned)
