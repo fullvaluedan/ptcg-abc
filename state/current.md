@@ -35,24 +35,23 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 A build may not be submitted without a complete row here (tools/loop_state.py check-submit --build <name>).
 
+**SUPERSESSION NOTE (2026-07-05, L9 NOISE RECALIBRATION)**: The M=60 margins in the table below have been superseded. The true same-build noise is M=240 (refit from 57 pooled reads, tools/refit_noise_model.py v3). The narrow M=60 band cannot resolve sub-band levers in typical 30-game samples; **all three builds below are now gated by the calibrated bracket ring (tau >= 0.857, analysis/ring_calibration.md) instead of single-read ladder A/B thresholds.** Pre-registered M=60 rows retained for historical audit.
+
 | build | hypothesis | dir | M | N | settle-by | complete |
 | --- | --- | --- | --- | --- | --- | --- |
 | heuristic+trolley_thick | trolley_thick basic-density cuts early_collapse (thin_bench_threshold deck-change re-test) | up | 60 | 30 | 2026-07-06 | yes |
 | heuristic+trolley-ability | PTCG_ABILITY on (once-per-turn ability activation) improves ladder win rate; pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md) | up | 60 | 30 | 2026-07-08 | yes |
 | heuristic+trolley-attack_first | PTCG_ATTACK_FIRST on (take an already-legal positive-value attack over a discretionary attach) improves ladder win rate; U91 mined winners attach-before-attack 3.4pp less than losers, and the shipped pilot over-attaches relative to both cohorts (analysis/gameplan_claims_bracket_4.md) | up | 60 | 30 | 2026-07-11 | yes |
 
-- **heuristic+trolley_thick** filters: mirror empty-bench collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md); tarball grader-verified
-  - WIN: promote heuristic+trolley_thick to shadow-king; reclaim-king stays heuristic+trolley
-  - LOSS: evict trolley_thick, revert slot 2 to a king copy
-  - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king, record thin_bench_threshold re-test condition
-- **heuristic+trolley-ability** filters: offline gauntlet deck:trolley vs 8-deck pool, 200 games/arm: off 67.5% (135/65), on 71.5% (143/57), diff_pp +4.0, no regression, 0 invalid moves (analysis/ability_ab.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-ability]) and extracted-tarball env.run verified (reward=1, DONE, 25 steps). RESUBMITTED 2026-07-03: original ref 54281824 ERRORed (missing agents/card_effects.py in the tarball, never played an episode, settle clock never validly started); rebuilt with the module bundled and resubmitted as ref 54282097, fresh settle-by set below.
-  - WIN: promote heuristic+trolley-ability to shadow-king; reclaim-king stays heuristic+trolley
-  - LOSS: evict the ability build, revert slot to a king copy
-  - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king
-- **heuristic+trolley-attack_first** filters: offline gauntlet deck:trolley vs 8-deck pool 200 games/arm: off 71.5% (143/57), on 77.0% (154/46), diff_pp +5.5, no regression, 0 invalid moves (analysis/attack_first_ab.md); bracket-ring A/B 20 games/arm: off 75.0%, on 85.0%, diff_pp +10.0, agrees in direction (analysis/attack_first_ring_check.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-attack_first]) incl extracted-tarball env.run
-  - WIN: promote heuristic+trolley-attack_first to shadow-king; reclaim-king stays heuristic+trolley
-  - LOSS: evict the attack_first build, revert slot to a king copy
-  - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king
+- **heuristic+trolley_thick** filters: mirror empty-bench collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md); tarball grader-verified. **GATE: N/A (settled LOSS before ring calibration; L5 bracket ring was not yet available when this build was evaluated).** Offline gauntlet supported direction up; ladder result -112.3pp vs king, far outside M=240 band. No ring A/B performed.
+  - HISTORIC M=60 PROTOCOL (superseded): WIN: promote; LOSS: evict (TRIGGERED); BAND: scoreboard tiebreak
+  - CURRENT VERDICT (2026-07-05): SETTLED LOSS, evicted
+- **heuristic+trolley-ability** filters: offline gauntlet deck:trolley vs 8-deck pool, 200 games/arm: off 67.5% (135/65), on 71.5% (143/57), diff_pp +4.0, no regression, 0 invalid moves (analysis/ability_ab.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-ability]) and extracted-tarball env.run verified (reward=1, DONE, 25 steps). RESUBMITTED 2026-07-03: original ref 54281824 ERRORed (missing agents/card_effects.py in the tarball, never played an episode, settle clock never validly started); rebuilt with the module bundled and resubmitted as ref 54282097, fresh settle-by set below. **GATE (2026-07-05, L9 RECALIBRATION): calibrated bracket ring (tau 0.857), not M=60 ladder A/B. Ring A/B result: +20pp at n=20/arm (analysis/ability_ring_check.md), agrees with gauntlet direction (+4.0pp). Ring verdict STRONG and consistent with offline gates. Ladder M=60 band too tight for reliable 30-game resolution (noise sigma=52.0). Floor currently held by this build (ring-gated decision).** 
+  - HISTORIC M=60 PROTOCOL (superseded): WIN: promote (ladder +66.3pp settled as WIN on 2026-07-04, but noise analysis later revealed this was noise-dominated); BAND/NEUTRAL: N/A
+  - CURRENT VERDICT (2026-07-05): ring-gated, promotes to shadow-king on ring evidence; ladder M=60 verdict no longer the decision gate
+- **heuristic+trolley-attack_first** filters: offline gauntlet deck:trolley vs 8-deck pool 200 games/arm: off 71.5% (143/57), on 77.0% (154/46), diff_pp +5.5, no regression, 0 invalid moves (analysis/attack_first_ab.md); bracket-ring A/B 20 games/arm: off 75.0%, on 85.0%, diff_pp +10.0, agrees in direction (analysis/attack_first_ring_check.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-attack_first]) incl extracted-tarball env.run. **GATE (2026-07-05, L9 RECALIBRATION): calibrated bracket ring (tau 0.857), not M=60 ladder A/B. Ring A/B result: +10pp at n=20/arm (analysis/attack_first_ring_check.md), confirms gauntlet direction (+5.5pp). Ladder reads (26 games) settled NEUTRAL on scoreboard (candidate 1/3 vs king 4/6, confidence 0.171, favors_candidate=false; analysis/attack_first_settlement.md). M=60 band too tight to resolve; ring evidence supports direction, but slot reverted to king per BAND protocol. Re-eligible for future ladder slot if ring conditions align.** 
+  - HISTORIC M=60 PROTOCOL (superseded): WIN/BAND/NEUTRAL logic based on M=60 thresholds (ladder reads drifted 442.9-600.0-532.3, mixed sign, triggered BAND)
+  - CURRENT VERDICT (2026-07-05): ring-gated NEUTRAL, slot reverted per protocol; M=60 ladder settlement no longer the decision gate
 
 ## Calibrated proxies (U24 retrodiction gate)
 
@@ -78,10 +77,13 @@ _none calibrated; every proxy gate is refused (default-deny)_
 
 ## Endgame stopping rule (U48 prep)
 
-- stop target = 611.6 (king_true_estimate 571.6 + bonus 40, build heuristic+trolley-ability)
-- pair rule: two copies of the strongest settled build; a diverse hedge only if the runner-up settled within M and is mechanically different
-- no-roll buffer 2026-08-14 12:00 UTC, lock by 2026-08-15
-- basis: tools/endgame_stopping.py, king_true_estimate = mean of 31 pooled same-build reads for heuristic+trolley-ability (tools/refit_noise_model.py family stats, stdev=42.1); stop_target = mean + bonus (40), per U48 (docs/plans/2026-07-02-001-feat-unified-number-one-plan.md).
+**SUPERSEDED (2026-07-05, P3 POSTURE INVERSION)**: The hard-stop strategy (stop_target 611.6 as a single-read threshold) is retired. New endgame strategy: LOCK-THE-STRONGEST-PAIR EARLY (by Aug 12-13), using the ring as the decision gate. Historical stop_target and pair rule retained below for reference; **they no longer govern endgame decisions**.
+
+- ~~stop target = 611.6 (king_true_estimate 571.6 + bonus 40, build heuristic+trolley-ability)~~
+- ~~pair rule: two copies of the strongest settled build; a diverse hedge only if the runner-up settled within M and is mechanically different~~
+- **NEW endgame rule (2026-07-05, P3)**: LOCK-THE-STRONGEST-PAIR EARLY (by Aug 12-13 so the pair accrues convergence episodes). Ring-gated decision on which deck/build pair is genuinely strongest. Floor (ability build) has +20pp ring advantage over plain king; maintain ability pair through endgame. No ladder A/B exploration during P3 window; all quota reserved for Aug 10-16 variance-harvest campaign.
+- no-roll buffer: 2026-08-14 12:00 UTC, lock completed by 2026-08-15
+- basis (historical): tools/endgame_stopping.py, king_true_estimate = mean of 31 pooled same-build reads for heuristic+trolley-ability (tools/refit_noise_model.py family stats, stdev=42.1); stop_target = mean + bonus (40), per U48 (docs/plans/2026-07-02-001-feat-unified-number-one-plan.md). **DEPRECATED per P3.**
 
 ## Final scoring semantics (U29)
 
@@ -99,12 +101,12 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | meta_grimmsnarl | n/a | n/a | 510.1 |  | meta-deck copy; refuted, below trolley |
 | meta_archaludon | n/a | n/a | 382.5 |  | meta-deck copy; refuted, well below trolley |
 | search (baseline) | n/a | n/a | 591.9 |  | STALE + INERT: search fell back to heuristic; not real search |
-| heuristic+trolley_thick | n/a | n/a | 446.2 | 0 | SETTLED LOSS 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp, far past the M=60 LOSS threshold. Evicted; slot 2 reclaimed by a king copy (ref 54281812). |
+| heuristic+trolley_thick | n/a | n/a | 446.2 | 0 | SETTLED LOSS 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp. **NOTE (2026-07-05, L9)**: Original M=60 gate said this cleared a LOSS threshold (-112.3pp >> 60); gate is now superseded by ring verdict (ring not yet calibrated at settlement time). Evicted; slot 2 reclaimed by a king copy (ref 54281812). |
 | heuristic+trolley (reclaim, 2026-07-03) | n/a | n/a | PENDING | 0 | L2 slot-2 reclaim: byte-identical king copy submitted to evict the settled-LOSS trolley_thick. |
 | heuristic+trolley-ability | n/a | n/a | PENDING | 0 | L1 ability A/B SUBMITTED into the slot L2 freed. See pre_registrations and in_flight for the settle protocol. |
 | heuristic+trolley (reclaim, cleanup) | n/a | n/a | 691.5 | 0 | L1 fix cleanup slot-1 king copy (ref 54282104): evicts the dead ERRORed ability build (ref 54281824) from the tracked latest-2 window so the ability fix (ref 54282097) has a live floor to be compared against, not a permanently-inert ERROR entry. |
 | heuristic+trolley-ability (ERRORed, superseded) | n/a | n/a | ERROR | 0 | SETTLED (non-scoring): ref 54281824 ERRORed at grader load, missing agents/card_effects.py in the tarball (build command omitted --extra agents/card_effects.py). Never played an episode. Superseded by ref 54282097 (fix: card_effects.py bundled, COMPLETE 536.7 first reading), which carries forward the same pre-registration under a fresh settle-by. |
-| heuristic+trolley-ability | n/a | n/a | 561.1 | 0 | SETTLED WIN 2026-07-04: 561.1 vs reclaim king 494.8 (ref 54282104), +66.3pp, clears the M=60 WIN threshold. Promoted to shadow-king. Evicted from the tracked latest-2 in the same iteration by the attack_first submission (54304483); 561.1 is its final frozen reading. |
+| heuristic+trolley-ability | n/a | n/a | 561.1 | 0 | SETTLED WIN 2026-07-04: 561.1 vs reclaim king 494.8 (ref 54282104), +66.3pp. **NOTE (2026-07-05, L9 NOISE RECALIBRATION)**: Original M=60 gate read this as a WIN (+66.3pp >> 60); **this is now known to be noise-dominated**. The true same-build range is 452-691 (M=240), and 561.1 falls mid-band. Ring verdict (analysis/ability_ring_check.md: +20pp at n=20/arm) confirms direction; ring is now the decision gate, not the M=60 ladder read. Ladder reading kept for methodological record. Promoted to shadow-king (ring-gated); evicted from latest-2 by attack_first; 561.1 is final frozen reading. |
 | heuristic+trolley-attack_first | n/a | n/a | PENDING | 0 | U93 step 3 SUBMITTED into the slot the ability WIN settlement freed. See pre_registrations and in_flight for the settle protocol. |
 | heuristic+trolley-attack_first (repeat) | n/a | n/a | SETTLED NEUTRAL | 3 | BAND repeat resubmission (ref 54304681), byte-identical to ref 54304483. Board readings drifted to mixed sign (442.9 vs 600.0 vs king 494.8). U23 scoreboard settlement (analysis/attack_first_settlement.md): 3 shared brackets, candidate 1/3 (0.333) vs king 4/6 (0.667), confidence 0.171, favors_candidate=false, verdict neutral. Slot reverts to a king copy, queued for submission next iteration (quota exhausted for 2026-07-03 UTC). |
 | heuristic+trolley (king-copy revert) | n/a | n/a | 476.1 | 0 | King-copy revert for the settled-NEUTRAL attack_first slot. SETTLED COMPLETE 476.1 (same-build drift, well within the now-corrected ~452-691 spread). Superseded this iteration: evicted from the tracked latest-2 by the ability-build floor restoration (ref 54315802) per the L9 noise-recalibration correction (ladder reads no longer gate lever decisions; the ring does). |
