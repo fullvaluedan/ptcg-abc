@@ -34,7 +34,10 @@ while true; do
     echo "-- iteration $i: U80 daily refresh (every ${REFRESH_EVERY}) --" | tee -a "$LOG"
     "$PY" "$PROJ/tools/daily_refresh.py" >> "$LOG" 2>&1
   fi
-  MSYS_NO_PATHCONV=1 "$CLAUDE" -p "$(cat "$PROJ/LOOP_BRIEF.md")" \
+  # Pipe the brief via stdin instead of as a CLI argument: LOOP_BRIEF.md has grown
+  # large enough (>40KB) that passing it inline hit the OS/shell argv-length limit
+  # ("Argument list too long"), which silently looked like a usage-limit backoff.
+  MSYS_NO_PATHCONV=1 cat "$PROJ/LOOP_BRIEF.md" | "$CLAUDE" -p \
       --model claude-haiku-4-5-20251001 \
       --dangerously-skip-permissions >> "$LOG" 2>&1
   code=$?
