@@ -1,0 +1,134 @@
+{
+  "results": {
+    "trolley": {
+      "win_rate": 0.75,
+      "wins": 15,
+      "draws": 0,
+      "losses": 5,
+      "n": 20
+    },
+    "candidate_bluezlee": {
+      "win_rate": 0.55,
+      "wins": 11,
+      "draws": 0,
+      "losses": 9,
+      "n": 20
+    },
+    "candidate_btk15049": {
+      "win_rate": 0.6,
+      "wins": 12,
+      "draws": 0,
+      "losses": 8,
+      "n": 20
+    },
+    "candidate_easonyanyan": {
+      "win_rate": 0.45,
+      "wins": 9,
+      "draws": 0,
+      "losses": 11,
+      "n": 20
+    },
+    "candidate_kashiwashira": {
+      "win_rate": 0.3,
+      "wins": 6,
+      "draws": 0,
+      "losses": 14,
+      "n": 20
+    },
+    "candidate_maher_el_ouahabi": {
+      "win_rate": 0.45,
+      "wins": 9,
+      "draws": 0,
+      "losses": 11,
+      "n": 20
+    },
+    "candidate_nasuo445": {
+      "win_rate": 0.7,
+      "wins": 14,
+      "draws": 0,
+      "losses": 6,
+      "n": 20
+    },
+    "candidate_shumpeinomura": {
+      "win_rate": 0.5,
+      "wins": 10,
+      "draws": 0,
+      "losses": 10,
+      "n": 20
+    },
+    "candidate_third_ptcg_club": {
+      "win_rate": 0.6,
+      "wins": 12,
+      "draws": 0,
+      "losses": 8,
+      "n": 20
+    },
+    "candidate_windecks": {
+      "win_rate": 0.45,
+      "wins": 9,
+      "draws": 0,
+      "losses": 11,
+      "n": 20
+    },
+    "candidate_yushin_ito": {
+      "win_rate": 0.8,
+      "wins": 16,
+      "draws": 0,
+      "losses": 4,
+      "n": 20
+    },
+    "candidate_zoroark190": {
+      "win_rate": 0.35,
+      "wins": 7,
+      "draws": 0,
+      "losses": 13,
+      "n": 20
+    }
+  },
+  "verdicts": {
+    "candidate_bluezlee": {
+      "delta": -0.19999999999999996,
+      "promote": false
+    },
+    "candidate_btk15049": {
+      "delta": -0.15000000000000002,
+      "promote": false
+    },
+    "candidate_easonyanyan": {
+      "delta": -0.3,
+      "promote": false
+    },
+    "candidate_kashiwashira": {
+      "delta": -0.45,
+      "promote": false
+    },
+    "candidate_maher_el_ouahabi": {
+      "delta": -0.3,
+      "promote": false
+    },
+    "candidate_nasuo445": {
+      "delta": -0.050000000000000044,
+      "promote": false
+    },
+    "candidate_shumpeinomura": {
+      "delta": -0.25,
+      "promote": false
+    },
+    "candidate_third_ptcg_club": {
+      "delta": -0.15000000000000002,
+      "promote": false
+    },
+    "candidate_windecks": {
+      "delta": -0.3,
+      "promote": false
+    },
+    "candidate_yushin_ito": {
+      "delta": 0.050000000000000044,
+      "promote": false
+    },
+    "candidate_zoroark190": {
+      "delta": -0.4,
+      "promote": false
+    }
+  }
+}

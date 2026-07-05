@@ -170,6 +170,15 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
 - trolley_thick deck: offline it cut empty-bench collapse 80.8% to 65.4% (n=240, p<0.001) but on the ladder it
   settled a decisive LOSS (446 vs king 558, -112). Another offline-to-ladder non-transfer.
   `analysis/collapse_rate_thick_deck.md`.
+- deck_exploration_top_rated_mining (U39 step 2, 2026-07-06): mined 43 unique deck signatures from 800+ rated
+  top players (481 winning plays), extracted 11 new candidates not already in decks/*.csv. Scored all 11
+  through the calibrated bracket ring (n=20 games per build, 9 opponents). Best candidate (candidate_yushin_ito,
+  145 plays from cluster 1) scored 0.800 (16/20) vs baseline trolley 0.750 (15/20), delta +0.050, below the
+  +0.10 gate for promotion. No candidates promoted. Conclusion: elite-tier deck exploration (800+ rating,
+  top-player corpus) does not yield ring-beatable decks when piloted by the generic heuristic. Either top
+  players' success is contextual to their own meta / piloting skill (not isolable to 60 cards), or the
+  heuristic is too weak to extract their deck's optimal play. Without a new mining scope (lower ratings, new
+  archetype focus), deck changes are a closed lever for TRACK L gains. `analysis/new_candidates_phase2_verdict.md`.
 
 ### 4C. Confirmed or positive findings (real signal)
 
