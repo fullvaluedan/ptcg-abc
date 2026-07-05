@@ -318,6 +318,13 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   basis. This does not retroactively change any already-settled pre-registration (each row carries its own
   hardcoded margin); it only fixes the record and sets a sane default for whatever ladder-side margin a
   future pre-registration might still want, given the ring is now the actual decision gate per L9.
+- Age-stratified noise model refit (P4, 2026-07-05): per the P4 directive ("re-derive the true king estimate
+  from AGED reads"), extracted timestamped board checks from state/current.md and stratified by age (<48h fresh,
+  >72h aged). Expected hypothesis: fresh reads inflated by recent luck. Observed result: fresh reads are LOWER
+  than aged means (heuristic+trolley -44pp, heuristic+trolley-ability -124pp), not inflated. This is normal
+  convergence drift within the M=240 noise band (452-691 observed range), not a systematic fresh-read bias.
+  Conclusion: ring evidence (decision gate per L9) remains the governing rule; age-stratification does not
+  overturn it. True king estimate from aged reads: 561.1. `analysis/noise_model_age_stratified.md`.
 - Ability-lever confound re-check (2026-07-04): `LOOP_BRIEF.md` L1 had flagged, but never re-validated, that
   the offline gauntlet gate for `heuristic+trolley-ability` (+4.0pp, `analysis/ability_ab.md`) baked
   `PTCG_ABILITY` into a whole subprocess's environment, so both seats (our pilot AND every `deck:<name>`
