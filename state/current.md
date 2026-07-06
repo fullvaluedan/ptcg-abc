@@ -40,6 +40,7 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
 | heuristic+trolley_thick | trolley_thick basic-density cuts early_collapse (thin_bench_threshold deck-change re-test) | up | 60 | 30 | 2026-07-06 | yes |
 | heuristic+trolley-ability | PTCG_ABILITY on (once-per-turn ability activation) improves ladder win rate; pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md) | up | 60 | 30 | 2026-07-08 | yes |
 | heuristic+trolley-attack_first | PTCG_ATTACK_FIRST on (take an already-legal positive-value attack over a discretionary attach) improves ladder win rate; U91 mined winners attach-before-attack 3.4pp less than losers, and the shipped pilot over-attaches relative to both cohorts (analysis/gameplan_claims_bracket_4.md) | up | 60 | 30 | 2026-07-11 | yes |
+| heuristic+trolley+yushin_ito | yushin_ito deck (extracted U39, ring gate +0.15 vs trolley: 0.90 vs 0.75 on calibrated bracket ring) improves ladder win rate (U39 deck exploration round 2); ring-gated candidate awaiting ladder slot (analysis/u39_ring_scores_analysis.md) | up | 240 | 30 | 2026-07-21 | yes |
 
 - **heuristic+trolley_thick** filters: mirror empty-bench collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md); tarball grader-verified
   - WIN: promote heuristic+trolley_thick to shadow-king; reclaim-king stays heuristic+trolley
@@ -52,6 +53,10 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
 - **heuristic+trolley-attack_first** filters: offline gauntlet deck:trolley vs 8-deck pool 200 games/arm: off 71.5% (143/57), on 77.0% (154/46), diff_pp +5.5, no regression, 0 invalid moves (analysis/attack_first_ab.md); bracket-ring A/B 20 games/arm: off 75.0%, on 85.0%, diff_pp +10.0, agrees in direction (analysis/attack_first_ring_check.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-attack_first]) incl extracted-tarball env.run
   - WIN: promote heuristic+trolley-attack_first to shadow-king; reclaim-king stays heuristic+trolley
   - LOSS: evict the attack_first build, revert slot to a king copy
+  - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king
+- **heuristic+trolley+yushin_ito** filters: U39 deck exploration round 2 (2026-07-07) fresh ring run against calibrated bracket ring (tau 0.857, n=20/build): yushin_ito 0.90 (18/20), trolley baseline 0.75 (15/20), delta +0.15, clears +0.10 promotion gate (analysis/u39_ring_scores_analysis.md). Board frozen; awaiting an available ladder slot. Once a slot opens, build tarball (heuristic pilot + yushin_ito deck.csv), grader-verify, pre-register, and submit per standard protocol (M=240 noise band, N=30, settle-by 2026-07-21, one repeat on BAND before U23 scoreboard).
+  - WIN: promote heuristic+trolley+yushin_ito to shadow-king; reclaim-king stays heuristic+trolley
+  - LOSS: evict the yushin_ito build, revert slot to a king copy
   - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king
 
 ## Calibrated proxies (U24 retrodiction gate)
