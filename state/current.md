@@ -6,15 +6,15 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Top loss bucket (what this iteration targets)
 
-**early_collapse** over 820 classified replays (W/D/L 367/1/452).
+**early_collapse** over 826 classified replays (W/D/L 368/1/457).
 
 | bucket | losses |
 | --- | --- |
-| early_collapse | 304 |
+| early_collapse | 306 |
 | deckout | 69 |
-| bad_determinization | 36 |
-| deck_matchup | 29 |
-| endgame_misplay | 14 |
+| bad_determinization | 37 |
+| deck_matchup | 30 |
+| endgame_misplay | 15 |
 
 ## Kings
 
@@ -99,7 +99,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | meta_grimmsnarl | n/a | n/a | 510.1 |  | meta-deck copy; refuted, below trolley |
 | meta_archaludon | n/a | n/a | 382.5 |  | meta-deck copy; refuted, well below trolley |
 | search (baseline) | n/a | n/a | 591.9 |  | STALE + INERT: search fell back to heuristic; not real search |
-| heuristic+trolley_thick | n/a | n/a | 446.2 | 0 | SETTLED BAND 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp, inside the M=240 band (not a LOSS threshold of king-240=318). Evicted incorrectly; pre-registered BAND action (one repeat resubmission + U23 scoreboard per pre-registrations line 40) was not followed. Governance violation U108: the applied decision rule breached pre-registration. Ring-eligible for re-test per collapse fix (-15.4pp empty-bench rate, 55% head-to-head baseline). |
+| heuristic+trolley_thick | n/a | n/a | 446.2 | 0 | SETTLED BAND 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp, inside the M=240 band (not a LOSS threshold of king-240=318). Evicted incorrectly; pre-registered BAND action (one repeat + U23 scoreboard per pre-registrations) was not applied. Ring-eligible for re-test per U108 governance fix (collapse fix: -15.4pp empty-bench rate, 55% head-to-head baseline). |
 | heuristic+trolley (reclaim, 2026-07-03) | n/a | n/a | PENDING | 0 | L2 slot-2 reclaim: byte-identical king copy submitted to evict the settled-BAND trolley_thick. |
 | heuristic+trolley-ability | n/a | n/a | PENDING | 0 | L1 ability A/B SUBMITTED into the slot L2 freed. See pre_registrations and in_flight for the settle protocol. |
 | heuristic+trolley (reclaim, cleanup) | n/a | n/a | 691.5 | 0 | L1 fix cleanup slot-1 king copy (ref 54282104): evicts the dead ERRORed ability build (ref 54281824) from the tracked latest-2 window so the ability fix (ref 54282097) has a live floor to be compared against, not a permanently-inert ERROR entry. |
@@ -923,22 +923,22 @@ _none calibrated; every proxy gate is refused (default-deny)_
   ],
   "loss_distribution": {
     "buckets": {
-      "bad_determinization": 36,
-      "deck_matchup": 29,
+      "bad_determinization": 37,
+      "deck_matchup": 30,
       "deckout": 69,
-      "early_collapse": 304,
-      "endgame_misplay": 14,
+      "early_collapse": 306,
+      "endgame_misplay": 15,
       "slow_search": 0
     },
     "draws": 1,
-    "games": 820,
-    "losses": 452,
-    "sample_size": 820,
+    "games": 826,
+    "losses": 457,
+    "sample_size": 826,
     "sources": [
       "data/replays"
     ],
     "top_bucket": "early_collapse",
-    "wins": 367
+    "wins": 368
   },
   "noise_model": {
     "basis": "tools/refit_noise_model.py statistical refit over 57 pooled same-build reads across heuristic+trolley (n=30, mean=456.4, stdev=59.2), heuristic+trolley-ability (n=27, mean=568.5, stdev=43.9): pooled residual stdev 52.0, worst observed residual 235.1. M set to the larger of 2-sigma and the worst residual, rounded up to nearest 10.",
