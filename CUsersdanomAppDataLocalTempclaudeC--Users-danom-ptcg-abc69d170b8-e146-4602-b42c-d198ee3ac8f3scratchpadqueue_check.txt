@@ -1,0 +1,13 @@
+NEAR-TERM QUEUE (from POSTURE INVERSION):
+1. age-stratified refit — STATUS: DONE (2026-07-04, f456d6a)
+2. daily leaderboard snapshot — STATUS: DONE (2026-07-06, iteration 60)
+3. U100 rules-as-implemented — STATUS: DONE (21/21 tests with real assertions; docs/rules_as_implemented.md complete; iteration 18+)
+4. U39 deck mining + ring rebuild — STATUS: DONE/GATE FAILED (no candidates qualified; iteration 22)
+5. U101 invariant fuzzer — STATUS: COMPUTE-HEAVY (belongs in ptcgcompute tmux, not LLM loop)
+6. U102 differential audit — STATUS: COMPUTE-HEAVY (belongs in ptcgcompute tmux, not LLM loop)
+7. board-check gating — STATUS: DONE (auto_settle in tools/loop_state.py; iteration 30)
+8. writeup conformance pass — STATUS: DONE (final_synthesis.md 1,984/2,000 words; iteration 32)
+9. supersession flags on stale M=60/WIN text — STATUS: DONE (2026-07-06, iteration 28)
+10. U103 mirror benchmark — STATUS: DESIGN ESCALATION PENDING (awaits Dan guidance)
+
+CONCLUSION: Items 1-9 COMPLETE or COMPUTE-DEFERRED. Item 10 requires design judgment (not mechanical). No mechanical units remain.

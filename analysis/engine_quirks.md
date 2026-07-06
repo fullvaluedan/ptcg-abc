@@ -1,37 +1,316 @@
 # Engine Invariant Fuzzer Report (U101)
 
-**Status**: Tool implemented, game harness initialization needs investigation.
+Date: 2026-07-06T10:25:36.946507
+Total games: 50
+Violations found: 49
 
-**Date**: 2026-07-06
+## Summary
+Found 49 violations:
 
-**Finding**: The invariant fuzzer tool (`tools/invariant_fuzzer.py`) is structurally complete with all five required invariant checks built (HP bounds, prize bounds, turn counter, card conservation, energy flags). However, the game initialization path (`_setup_fresh_game`) inherited from the test harness is raising an error when called outside the pytest context, suggesting the harness has a dependency on test-time setup that is not self-contained.
+CARD_CONSERVATION (49 cases):
+  {'type': 'card_conservation', 'player': 0, 'total_cards': 66, 'details': 'Player 0: 46(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 1(energy cards) = 66 (expected 60)'}
+  {'type': 'card_conservation', 'player': 1, 'total_cards': 59, 'details': 'Player 1: 43(deck) + 5(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 3(energy cards) = 59 (expected 60)'}
+  {'type': 'card_conservation', 'player': 0, 'total_cards': 66, 'details': 'Player 0: 46(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 1(energy cards) = 66 (expected 60)'}
 
-## Invariant checks implemented
+... and 39 more violations
 
-1. **HP bounds**: 0 <= HP <= maxHP for all active and bench Pokemon
-2. **Prize bounds**: 0 <= prize_count <= 6, no decrements except via knockout resolution
-3. **Turn counter**: Non-negative integer, increments once per full turn cycle
-4. **Card conservation**: Total cards across deck/hand/discard/bench/active/prizes conserved
-5. **Energy flags**: attached + attached_this_turn consistency checks
+## Full violations log (JSON)
 
-## Diagnosis
-
-The test harness at `tests/test_engine_mechanics.py::_setup_fresh_game` uses `to_observation_class()` to construct an Observation object from a minimal dict skeleton. When called from `tools/invariant_fuzzer.py`, this fails with:
-
+```json
+[
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 46(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 1(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 43(deck) + 5(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 3(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 46(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 1(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 42(deck) + 6(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 3(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 44(deck) + 5(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 2(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 45(deck) + 5(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 1(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 41(deck) + 9(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 3(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 45(deck) + 5(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 1(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 44(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 3(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 45(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 2(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 45(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 1(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 45(deck) + 4(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 2(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 45(deck) + 4(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 2(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 45(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 2(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 45(deck) + 4(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 2(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 44(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 3(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 45(deck) + 4(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 2(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 46(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 1(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 46(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 1(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 45(deck) + 7(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 1(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 43(deck) + 6(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 2(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 44(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 2(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 44(deck) + 5(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 2(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 45(deck) + 4(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 2(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 45(deck) + 4(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 2(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 45(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 1(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 42(deck) + 5(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 4(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 45(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 2(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 43(deck) + 7(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 2(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 42(deck) + 6(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 3(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 46(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 1(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 46(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 1(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 46(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 1(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 45(deck) + 4(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 2(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 42(deck) + 8(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 1(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 44(deck) + 5(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 2(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 45(deck) + 5(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 1(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 44(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 2(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 46(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 1(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 45(deck) + 4(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 2(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 44(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 2(energy cards) = 59 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 45(deck) + 7(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 1(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 44(deck) + 7(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 2(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 46(deck) + 7(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 0(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 43(deck) + 7(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 3(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 45(deck) + 7(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 1(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 46(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 1(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 0,
+    "total_cards": 66,
+    "details": "Player 0: 46(deck) + 6(hand) + 0(discard) + 1(active) + 0(bench) + 6(prize) + 0(tools) + 1(energy cards) = 66 (expected 60)"
+  },
+  {
+    "type": "card_conservation",
+    "player": 1,
+    "total_cards": 59,
+    "details": "Player 1: 45(deck) + 5(hand) + 0(discard) + 1(active) + 1(bench) + 6(prize) + 0(tools) + 1(energy cards) = 59 (expected 60)"
+  }
+]
 ```
-AttributeError: 'int' object has no attribute 'items'
-```
-
-This occurs in `cg.utils.to_dataclass()`, which tries to recursively convert the minimal obs dict into the Observation dataclass, but fails when it encounters the prize list's integer card IDs (which it tries to treat as dicts).
-
-The same `_setup_fresh_game` function passes in pytest (confirmed: `pytest tests/test_engine_mechanics.py::test_damage_with_no_modifier_applied_as_base PASSED`), suggesting pytest does some initialization that makes the harness work. The error is not in the tool logic but in the shared game-setup infrastructure.
-
-## Next steps
-
-1. Investigate what pytest or conftest.py sets up that enables to_observation_class() to work
-2. Either port that setup into the tool, or rewrite game initialization directly via search_begin without the to_observation_class intermediate
-3. Run the fuzzer on 50-100 games and log any violations found
-
-## No violations found yet
-
-The tool is ready to run once the initialization path is unblocked. No quirks in the engine have been discovered at this stage because no games have executed successfully.
