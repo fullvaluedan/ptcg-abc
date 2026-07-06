@@ -6,15 +6,15 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Top loss bucket (what this iteration targets)
 
-**early_collapse** over 809 classified replays (W/D/L 364/1/444).
+**early_collapse** over 815 classified replays (W/D/L 366/1/448).
 
 | bucket | losses |
 | --- | --- |
-| early_collapse | 298 |
+| early_collapse | 301 |
 | deckout | 69 |
 | bad_determinization | 35 |
 | deck_matchup | 29 |
-| endgame_misplay | 13 |
+| endgame_misplay | 14 |
 
 ## Kings
 
@@ -298,7 +298,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "oracle": "n/a",
       "ref": "54252291",
       "sample_size": 0,
-      "superseded_2026_07_05": "GOVERNANCE VIOLATION: The M=60 reference is stale. Per L9 noise recalibration, M is now 240 (v3). The 112.3pp magnitude is INSIDE the ±240 band, making this a BAND reading, not a LOSS. The eviction verdict was incorrect under the noise model's own rules. See findings.md 4D governance record."
+      "superseded_2026_07_05": "GOVERNANCE VIOLATION: The M=60 reference is stale. Per L9 noise recalibration, M is now 240 (v3). The 112.3pp magnitude is INSIDE the \u00b1240 band, making this a BAND reading, not a LOSS. The eviction verdict was incorrect under the noise model's own rules. See findings.md 4D governance record."
     },
     {
       "build": "heuristic+trolley (reclaim, 2026-07-03)",
@@ -928,19 +928,19 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "bad_determinization": 35,
       "deck_matchup": 29,
       "deckout": 69,
-      "early_collapse": 298,
-      "endgame_misplay": 13,
+      "early_collapse": 301,
+      "endgame_misplay": 14,
       "slow_search": 0
     },
     "draws": 1,
-    "games": 809,
-    "losses": 444,
-    "sample_size": 809,
+    "games": 815,
+    "losses": 448,
+    "sample_size": 815,
     "sources": [
       "data/replays"
     ],
     "top_bucket": "early_collapse",
-    "wins": 364
+    "wins": 366
   },
   "noise_model": {
     "basis": "tools/refit_noise_model.py statistical refit over 57 pooled same-build reads across heuristic+trolley (n=30, mean=456.4, stdev=59.2), heuristic+trolley-ability (n=27, mean=568.5, stdev=43.9): pooled residual stdev 52.0, worst observed residual 235.1. M set to the larger of 2-sigma and the worst residual, rounded up to nearest 10.",
