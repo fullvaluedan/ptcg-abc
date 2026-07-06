@@ -1,5 +1,8 @@
 # Pre-Registration Discipline and Offline-to-Ladder Transfer: A Kaggle Strategy Prize Report
 
+**Track:** Strategy (Model Approach)  
+**Word Count:** 2,081
+
 ## Executive Summary
 
 This report documents one thesis: disciplined offline proxy development, where proxies must retrodict known ladder outcomes before earning decision authority, can produce trustworthy signals where single-read ladder A/Bs cannot. The project built and gate-checked four structurally distinct offline proxies against six known ladder scores. Three failed with named, specific diagnoses. The fourth passed by fixing a diagnosed flaw. The passing proxy then correctly predicted direction on two real ladder transfers, while misdiagnosing transfer "failures" that were actually noise bands at work—the core finding this project can report with evidence.
