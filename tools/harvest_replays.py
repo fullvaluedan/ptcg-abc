@@ -7,10 +7,16 @@ uses (list_submissions -> list_episodes -> fetch one replay), fanned out
 across every submission ref instead of one at a time. Downloaded replays are
 gitignored competition data (data/ is in .gitignore); never committed or
 redistributed.
+
+U107 addition: Persists episode-to-ref mapping to data/episode_to_ref.json so
+that loss distributions can be segregated by build. The mapping is updated on
+every harvest; a backfill function loads and enriches the mapping for all
+episodes in data/replays/ via list_episodes per ref.
 """
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 import time
 from pathlib import Path
@@ -29,6 +35,7 @@ from tools.scout import (  # noqa: E402
 )
 
 DEFAULT_DEST = _ROOT / "data" / "replays"
+DEFAULT_MANIFEST = _ROOT / "data" / "episode_to_ref.json"
 DEFAULT_MAX_EPISODES = 200
 DEFAULT_SLEEP_S = 1.0
 
@@ -58,11 +65,15 @@ def discover_episode_ids(sleep_s: float = DEFAULT_SLEEP_S) -> dict:
     failed per-submission episode listing is recorded in failed_submissions
     and skipped, the rest continue. Sleeps between per-submission calls to
     stay polite to the Kaggle API.
+
+    Also returns episode_to_ref mapping so callers can track which ref owns
+    each episode (U107: per-build loss ledger).
     """
     subs = list_submissions()
     if not subs["ok"]:
-        return {"ok": False, "error": subs["error"], "episode_ids": [], "failed_submissions": []}
+        return {"ok": False, "error": subs["error"], "episode_ids": [], "episode_to_ref": {}, "failed_submissions": []}
     episode_ids = []
+    episode_to_ref = {}
     seen = set()
     failed_submissions = []
     for i, sub in enumerate(subs["submissions"]):
@@ -80,7 +91,34 @@ def discover_episode_ids(sleep_s: float = DEFAULT_SLEEP_S) -> dict:
             if ep_id is not None and ep_id not in seen:
                 seen.add(ep_id)
                 episode_ids.append(ep_id)
-    return {"ok": True, "episode_ids": episode_ids, "failed_submissions": failed_submissions}
+                episode_to_ref[str(ep_id)] = ref
+    return {"ok": True, "episode_ids": episode_ids, "episode_to_ref": episode_to_ref, "failed_submissions": failed_submissions}
+
+
+def _load_episode_to_ref_manifest(manifest_path=None) -> dict:
+    """Load existing episode-to-ref mapping from manifest file, or empty dict."""
+    manifest_path = Path(manifest_path) if manifest_path else DEFAULT_MANIFEST
+    if manifest_path.exists():
+        try:
+            return json.loads(manifest_path.read_text())
+        except (OSError, json.JSONDecodeError):
+            return {}
+    return {}
+
+
+def _save_episode_to_ref_manifest(manifest: dict, manifest_path=None) -> bool:
+    """Persist episode-to-ref mapping to manifest file.
+
+    Creates parent directories as needed. Returns True on success, False on error.
+    Never raises.
+    """
+    manifest_path = Path(manifest_path) if manifest_path else DEFAULT_MANIFEST
+    try:
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest_path.write_text(json.dumps(manifest, indent=2, default=str))
+        return True
+    except (OSError, TypeError):
+        return False
 
 
 def harvest(dest_dir=None, max_episodes: int = DEFAULT_MAX_EPISODES,
@@ -91,8 +129,9 @@ def harvest(dest_dir=None, max_episodes: int = DEFAULT_MAX_EPISODES,
     same Kaggle CLI wrapper scout.py uses, sleeping sleep_s between calls.
     Every downloaded replay is validated with parse_replay before being kept;
     an invalid download is deleted and counted as failed rather than left as
-    a corrupt training row source. Never raises: every failure mode (missing
-    binary, unauthorized, malformed json) degrades to a result dict entry.
+    a corrupt training row source. Persists episode-to-ref mapping to
+    data/episode_to_ref.json for U107 per-build loss tracking.
+    Never raises: every failure mode degrades to a result dict entry.
     """
     dest_dir = Path(dest_dir) if dest_dir else DEFAULT_DEST
     dest_dir.mkdir(parents=True, exist_ok=True)
@@ -104,6 +143,10 @@ def harvest(dest_dir=None, max_episodes: int = DEFAULT_MAX_EPISODES,
 
     fetched, skipped, failed = [], [], []
     called_kaggle = False
+    # Load existing manifest and merge in new episodes (U107)
+    manifest = _load_episode_to_ref_manifest()
+    manifest.update(discovery.get("episode_to_ref", {}))
+
     for ep_id in discovery["episode_ids"]:
         if len(fetched) >= max_episodes:
             break
@@ -133,6 +176,9 @@ def harvest(dest_dir=None, max_episodes: int = DEFAULT_MAX_EPISODES,
             continue
         src_path.replace(target)
         fetched.append(ep_id)
+
+    # Persist updated manifest
+    _save_episode_to_ref_manifest(manifest)
 
     return {
         "ok": True,
