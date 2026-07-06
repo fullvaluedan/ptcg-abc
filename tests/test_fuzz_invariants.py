@@ -436,3 +436,73 @@ def test_md_summary_created_with_header_and_appended(tmp_path):
     assert "CLEAN, 0 violations" in text
     fz.append_md_summary(md, summary)
     assert md.read_text(encoding="utf-8").count("## Run") == 2
+
+
+# ---------------------------------------------------------------------------
+# Regression tests: U111 adjudication bugs (invariant_fuzzer.py defects).
+# ---------------------------------------------------------------------------
+
+
+def test_regression_board_slots_iterates_all_active_slots():
+    """Bug in invariant_fuzzer.py line 136: only iterated player.active[0].
+
+    That checker counted only the first active Pokemon's tools/energy, missing
+    violations in multi-slot active zones. fuzz_invariants.py's _board_slots()
+    correctly iterates ALL active and bench slots.
+    """
+    me = player_state(deck=40, bench=[])
+    me["active"] = [pokemon(energy=3), pokemon(energy=2)]
+    state = make_state(me=me)
+    total, comp = fz.compute_own_total(state, 0)
+    assert total == 60
+    assert comp["inPlay"] == 2 + 3 + 2
+    assert comp == {
+        "deckCount": 40,
+        "hand": 5,
+        "discard": 2,
+        "prizeSlots": 6,
+        "inPlay": 2 + 5,
+        "stadium": 0,
+    }
+
+
+def test_regression_board_slots_does_not_double_count_energy():
+    """Bug in invariant_fuzzer.py line 139: counted energyCards separately.
+
+    That checker added len(energyCards) to totals as if they were extra cards
+    beyond the Pokemon itself. But energyCards are attachments to the Pokemon,
+    already counted as part of the Pokemon's in-play footprint. Correct
+    accounting treats them as part of that Pokemon's card count.
+    """
+    me = player_state(active=pokemon(energy=5), bench=[])
+    state = make_state(me=me)
+    total, comp = fz.compute_own_total(state, 0)
+    assert total == 60
+    assert comp["inPlay"] == 1 + 5
+    assert comp == {
+        "deckCount": 41,
+        "hand": 5,
+        "discard": 2,
+        "prizeSlots": 6,
+        "inPlay": 1 + 5,
+        "stadium": 0,
+    }
+
+
+def test_regression_multi_active_and_benign_energy_together():
+    """Both bugs combined: multiple active slots each with heavy energy."""
+    me = player_state(deck=31, bench=[pokemon(energy=2), pokemon(tools=2, pre=1)])
+    me["active"] = [pokemon(energy=4), pokemon(energy=3)]
+    state = make_state(me=me)
+    total, comp = fz.compute_own_total(state, 0)
+    assert total == 60
+    in_play_correct = 2 + 4 + 3 + 2 + 2 + 2 + 1
+    assert comp["inPlay"] == in_play_correct
+    assert comp == {
+        "deckCount": 31,
+        "hand": 5,
+        "discard": 2,
+        "prizeSlots": 6,
+        "inPlay": in_play_correct,
+        "stadium": 0,
+    }
