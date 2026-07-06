@@ -6,13 +6,13 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Top loss bucket (what this iteration targets)
 
-**early_collapse** over 818 classified replays (W/D/L 367/1/450).
+**early_collapse** over 819 classified replays (W/D/L 367/1/451).
 
 | bucket | losses |
 | --- | --- |
 | early_collapse | 303 |
 | deckout | 69 |
-| bad_determinization | 35 |
+| bad_determinization | 36 |
 | deck_matchup | 29 |
 | endgame_misplay | 14 |
 
@@ -33,9 +33,9 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Pre-registrations (machine-checked gate, U22)
 
-A build may not be submitted without a complete row here (tools/loop_state.py check-submit --build <name>).
-
 **GOVERNANCE (U108):** A ladder read inside the M band can NEVER evict a ring-positive build; ring evidence is the only eviction authority. trolley_thick was incorrectly recorded as evicted on a -112.3 read when M=240 classifies this as BAND, not LOSS (see 4D governance findings). attack_first settled NEUTRAL due to insufficient decisive episodes (N=3 vs required N=30), not a confirmed ladder loss, and stays re-eligible.
+
+A build may not be submitted without a complete row here (tools/loop_state.py check-submit --build <name>).
 
 | build | hypothesis | dir | M | N | settle-by | complete |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -101,7 +101,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | meta_grimmsnarl | n/a | n/a | 510.1 |  | meta-deck copy; refuted, below trolley |
 | meta_archaludon | n/a | n/a | 382.5 |  | meta-deck copy; refuted, well below trolley |
 | search (baseline) | n/a | n/a | 591.9 |  | STALE + INERT: search fell back to heuristic; not real search |
-| heuristic+trolley_thick | n/a | n/a | 446.2 | 0 | SETTLEMENT ARITHMETIC ERROR 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp. This is a BAND reading (within ±240), not a LOSS (<=−240). Should have been one repeat resubmission, not eviction. Governance violation: violated the M=240 noise model's own rule that readings inside the band require repeat+scoreboard, not immediate eviction. Slot 2 was incorrectly reclaimed by a king copy (ref 54281812). Marked for the governance findings record; trolley_thick's offline collapse fix (-15.4pp empty-bench, 55% head-to-head, analysis/collapse_rate_thick_deck.md) is eligible for ring gating if a future ladder slot opens. |
+| heuristic+trolley_thick | n/a | n/a | 446.2 | 0 | SETTLED BAND 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp, inside the M=240 band (not a LOSS threshold of king-240=318). Incorrectly evicted under prior M=60 frame; pre-registered protocol requires BAND: one repeat + U23 scoreboard. Governance correction: ring evidence is the only eviction authority per L9 noise recalibration. |
 | heuristic+trolley (reclaim, 2026-07-03) | n/a | n/a | PENDING | 0 | L2 slot-2 reclaim: byte-identical king copy submitted to evict the settled-LOSS trolley_thick. |
 | heuristic+trolley-ability | n/a | n/a | PENDING | 0 | L1 ability A/B SUBMITTED into the slot L2 freed. See pre_registrations and in_flight for the settle protocol. |
 | heuristic+trolley (reclaim, cleanup) | n/a | n/a | 691.5 | 0 | L1 fix cleanup slot-1 king copy (ref 54282104): evicts the dead ERRORed ability build (ref 54281824) from the tracked latest-2 window so the ability fix (ref 54282097) has a live floor to be compared against, not a permanently-inert ERROR entry. |
@@ -925,7 +925,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
   ],
   "loss_distribution": {
     "buckets": {
-      "bad_determinization": 35,
+      "bad_determinization": 36,
       "deck_matchup": 29,
       "deckout": 69,
       "early_collapse": 303,
@@ -933,9 +933,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "slow_search": 0
     },
     "draws": 1,
-    "games": 818,
-    "losses": 450,
-    "sample_size": 818,
+    "games": 819,
+    "losses": 451,
+    "sample_size": 819,
     "sources": [
       "data/replays"
     ],
