@@ -99,7 +99,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | meta_grimmsnarl | n/a | n/a | 510.1 |  | meta-deck copy; refuted, below trolley |
 | meta_archaludon | n/a | n/a | 382.5 |  | meta-deck copy; refuted, well below trolley |
 | search (baseline) | n/a | n/a | 591.9 |  | STALE + INERT: search fell back to heuristic; not real search |
-| heuristic+trolley_thick | n/a | n/a | 446.2 | 0 | SETTLED BAND 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp, inside the M=240 band (not a LOSS threshold of king-240=318). Incorrectly evicted under prior M=60 frame; pre-registered protocol requires BAND: one repeat + U23 scoreboard. Governance correction: ring evidence is the only eviction authority per L9 noise recalibration. |
+| heuristic+trolley_thick | n/a | n/a | 446.2 | 0 | SETTLED BAND 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp, inside the M=240 band (not a LOSS threshold of king-240=318). Evicted incorrectly; pre-registered BAND action (one repeat resubmission + U23 scoreboard per pre-registrations line 40) was not followed. Governance violation U108: the applied decision rule breached pre-registration. Ring-eligible for re-test per collapse fix (-15.4pp empty-bench rate, 55% head-to-head baseline). |
 | heuristic+trolley (reclaim, 2026-07-03) | n/a | n/a | PENDING | 0 | L2 slot-2 reclaim: byte-identical king copy submitted to evict the settled-BAND trolley_thick. |
 | heuristic+trolley-ability | n/a | n/a | PENDING | 0 | L1 ability A/B SUBMITTED into the slot L2 freed. See pre_registrations and in_flight for the settle protocol. |
 | heuristic+trolley (reclaim, cleanup) | n/a | n/a | 691.5 | 0 | L1 fix cleanup slot-1 king copy (ref 54282104): evicts the dead ERRORed ability build (ref 54281824) from the tracked latest-2 window so the ability fix (ref 54282097) has a live floor to be compared against, not a permanently-inert ERROR entry. |
@@ -292,11 +292,11 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "build": "heuristic+trolley_thick",
       "ladder": 446.2,
       "move_agreement_delta": "n/a",
-      "note": "SETTLED BAND 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp, inside the M=240 band (not a LOSS threshold of king-240=318). Incorrectly evicted under prior M=60 frame; pre-registered protocol requires BAND: one repeat + U23 scoreboard. Governance correction: ring evidence is the only eviction authority per L9 noise recalibration.",
+      "note": "SETTLED BAND 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp, inside the M=240 band (not a LOSS threshold of king-240=318). Evicted incorrectly; pre-registered BAND action (one repeat + U23 scoreboard per pre-registrations) was not applied. Ring-eligible for re-test per U108 governance fix (collapse fix: -15.4pp empty-bench rate, 55% head-to-head baseline).",
       "oracle": "n/a",
       "ref": "54252291",
       "sample_size": 0,
-      "superseded_2026_07_05": "GOVERNANCE VIOLATION: The M=60 reference is stale. Per L9 noise recalibration, M is now 240 (v3). The 112.3pp magnitude is INSIDE the \u00b1240 band, making this a BAND reading, not a LOSS. The eviction verdict was incorrect under the noise model's own rules. See findings.md 4D governance record."
+      "superseded_2026_07_06_u108": "GOVERNANCE VIOLATION: the applied decision rule (immediate eviction) did not follow pre-registered BAND filter (one repeat + scoreboard settlement). U108 correction: ladder reads inside the M=240 band can never evict a ring-positive build. Ring evidence is the sole eviction authority. See findings.md 4D governance record."
     },
     {
       "build": "heuristic+trolley (reclaim, 2026-07-03)",

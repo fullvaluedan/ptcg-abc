@@ -428,6 +428,24 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   evidence anything is wrong with the submitted builds; keep checking episode ids each time, but stop treating
   each additional simultaneous-freeze confirmation as newsworthy on its own once the pattern is this
   established, and instead watch for the freeze breaking (either ref's newest episode id advancing again).
+- Settlement arithmetic fix and governance violations (U108, 2026-07-06): two past evictions violated the
+  project's own noise model and pre-registered decision rules. (1) trolley_thick (2026-07-03): evicted on a
+  ladder read 446.2 vs reclaim-king 558.5 (diff -112.3pp). Under the M=240 noise model, a read is BAND if
+  |diff| <= 240. The -112.3pp magnitude is inside the band, making this a BAND verdict requiring
+  pre-registered action (one repeat resubmission + U23 scoreboard settlement per `state/current.md`
+  pre-registrations line 40, "BAND: one repeat resubmission, then U23 scoreboard..."), not immediate
+  eviction. Incorrect decision rule applied. (2) attack_first (2026-07-04): reverted on a NEUTRAL verdict
+  from the U23 scoreboard tiebreak at only 3 decisive shared-bracket episodes (candidate 1/3, king 4/6,
+  n_decisive=3, confidence=0.171). Pre-registered filter requires N>=30 decisive for scoreboard confidence;
+  n=3 was below the threshold. The NEUTRAL verdict itself is correct per the pre-registered rule ("if
+  confidence < 0.90, revert to king"), but the settlement occurred with weak confidence. Per L9 noise
+  recalibration, a ladder read inside the M band can NEVER evict a ring-positive build; ring evidence is the
+  sole eviction authority going forward. Standing correction: both builds' ring verdicts stand unchanged
+  (ability +20pp, attack_first +10pp both still calibrated-ring-gated per their analysis files), and
+  trolley_thick's offline collapse fix (-15.4pp empty-bench collapse rate reduction, 55% head-to-head win
+  rate vs baseline deck per `analysis/collapse_rate_thick_deck.md`) is marked ring-eligible for re-test if a
+  future ladder slot opens. `state/current.md` pre-registrations and ledger now flag both evictions with
+  "superseded_2026_07_05"/"governance violation" notes clarifying the arithmetic and pre-registration breach.
 - Writeup drift caught before it went stale for long (2026-07-04): `docs/writeup/genome_tuning.md` still
   described condition (c) (a genome region with a measured non-flat held-out gradient) as a standing open
   question, even though it had already been directly checked and closed the same day (`2caccac`,
