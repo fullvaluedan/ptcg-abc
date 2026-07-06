@@ -6,11 +6,11 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Top loss bucket (what this iteration targets)
 
-**early_collapse** over 798 classified replays (W/D/L 357/1/440).
+**early_collapse** over 808 classified replays (W/D/L 364/1/443).
 
 | bucket | losses |
 | --- | --- |
-| early_collapse | 294 |
+| early_collapse | 297 |
 | deckout | 69 |
 | bad_determinization | 35 |
 | deck_matchup | 29 |
@@ -40,8 +40,6 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
 | heuristic+trolley_thick | trolley_thick basic-density cuts early_collapse (thin_bench_threshold deck-change re-test) | up | 60 | 30 | 2026-07-06 | yes |
 | heuristic+trolley-ability | PTCG_ABILITY on (once-per-turn ability activation) improves ladder win rate; pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md) | up | 60 | 30 | 2026-07-08 | yes |
 | heuristic+trolley-attack_first | PTCG_ATTACK_FIRST on (take an already-legal positive-value attack over a discretionary attach) improves ladder win rate; U91 mined winners attach-before-attack 3.4pp less than losers, and the shipped pilot over-attaches relative to both cohorts (analysis/gameplan_claims_bracket_4.md) | up | 60 | 30 | 2026-07-11 | yes |
-
-**SUPERSESSION NOTE (2026-07-05)**: The M=60 thresholds in the pre-registrations table above are stale. Per L9 noise recalibration, M is now 240 (v3). These pre-registrations' M and settle-by fields remain for reference but no longer govern settlement protocol (ladder reads no longer gate decisions; the calibrated bracket ring is the decision gate). The three builds are shelved pending new design judgment calls; they do not currently occupy ladder slots.
 
 - **heuristic+trolley_thick** filters: mirror empty-bench collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md); tarball grader-verified
   - WIN: promote heuristic+trolley_thick to shadow-king; reclaim-king stays heuristic+trolley
@@ -84,7 +82,6 @@ _none calibrated; every proxy gate is refused (default-deny)_
 - pair rule: two copies of the strongest settled build; a diverse hedge only if the runner-up settled within M and is mechanically different
 - no-roll buffer 2026-08-14 12:00 UTC, lock by 2026-08-15
 - basis: tools/endgame_stopping.py, king_true_estimate = mean of 31 pooled same-build reads for heuristic+trolley-ability (tools/refit_noise_model.py family stats, stdev=42.1); stop_target = mean + bonus (40), per U48 (docs/plans/2026-07-02-001-feat-unified-number-one-plan.md).
-- **SUPERSESSION (2026-07-05)**: The hard-stop regime (stop_target 611.6 as a decision rule) is retired per P3 POSTURE INVERSION. New strategy: LOCK-THE-STRONGEST-PAIR EARLY (by Aug 12-13), using the ring as the decision gate, not a fixed ladder-read threshold. This block remains for reference but does not govern endgame decisions.
 
 ## Final scoring semantics (U29)
 
@@ -929,19 +926,19 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "bad_determinization": 35,
       "deck_matchup": 29,
       "deckout": 69,
-      "early_collapse": 294,
+      "early_collapse": 297,
       "endgame_misplay": 13,
       "slow_search": 0
     },
     "draws": 1,
-    "games": 798,
-    "losses": 440,
-    "sample_size": 798,
+    "games": 808,
+    "losses": 443,
+    "sample_size": 808,
     "sources": [
       "data/replays"
     ],
     "top_bucket": "early_collapse",
-    "wins": 357
+    "wins": 364
   },
   "noise_model": {
     "basis": "tools/refit_noise_model.py statistical refit over 57 pooled same-build reads across heuristic+trolley (n=30, mean=456.4, stdev=59.2), heuristic+trolley-ability (n=27, mean=568.5, stdev=43.9): pooled residual stdev 52.0, worst observed residual 235.1. M set to the larger of 2-sigma and the worst residual, rounded up to nearest 10.",
