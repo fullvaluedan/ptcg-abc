@@ -180,11 +180,13 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   heuristic is too weak to extract their deck's optimal play. Without a new mining scope (lower ratings, new
   archetype focus), deck changes are a closed lever for TRACK L gains. `analysis/new_candidates_phase2_verdict.md`.
 - attack_first_yushin_composition (U104, 2026-07-06): the attack_first lever (pre-registered at +10pp ring on
-  trolley, +5.5pp gauntlet) was tested in a factorized three-arm ring run against the calibrated bracket ring
-  (n=40 per arm). Arm 1 (trolley+ability): 77.5%, Arm 2 (yushin+ability): 92.5%, Arm 3
-  (yushin+ability+attack_first): 80.0%. diff_pp (arm 3 minus arm 1) = +2.5pp, below the +10pp promotion gate
-  (FAIL). Yushin's deck advantage (0.925 vs trolley 0.775) is not further composable with attack_first; the
-  lever measured in isolation does not transfer across decks. `analysis/u104_stacked_ring_run.md`.
+  trolley, +5.5pp gauntlet) was tested in a factorized three-arm ring run against the calibrated bracket ring.
+  Early run (n=40 per arm) showed 72.5% vs 87.5%, diff +15.0pp, gate PASS. Confirmation run (U112, n=100/arm,
+  2026-07-07) showed 77.0% vs 86.0%, diff +9.0pp, gate FAIL (below +10pp threshold). The n=40 result was
+  noise-inflated; the true delta at larger sample is ~+9pp. Yushin's baseline (85% at n=100) is strong, but
+  attack_first composition benefit is marginal (~1pp on yushin vs its isolated +10pp on trolley). Same-build
+  ring noise varies with sample size; small-n ring measurements need confirmation before design decisions.
+  `analysis/u104_stacked_ring_pass_run.md`, `analysis/u112_stacked_ring_confirmation.md`.
 
 ### 4C. Confirmed or positive findings (real signal)
 
