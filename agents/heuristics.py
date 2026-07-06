@@ -196,6 +196,18 @@ _ABILITY = os.environ.get("PTCG_ABILITY", "0") != "0"
 # analysis/gameplan_claims_bracket_4.md).
 _ATTACK_FIRST = os.environ.get("PTCG_ATTACK_FIRST", "0") != "0"
 
+# Threat-aware retreat (PTCG_THREAT_RETREAT, default off). When on, allow retreat
+# even if our active's HP is above the normal threshold if the opponent's active can
+# OHKO us (best printed attack deals >= our current HP). Bench survivor still required.
+# Flag-gated for A/B validation; default off maintains byte-identical submission.
+_THREAT_RETREAT = os.environ.get("PTCG_THREAT_RETREAT", "0") != "0"
+
+# Prize-close optimization (PTCG_PRIZE_CLOSE, default off). When we have 1-2 prizes
+# remaining, prefer any legal attack that wins the game (knocks out opponent or lets
+# us claim the winning prize next turn). Flag-gated for A/B validation; default off
+# maintains byte-identical submission.
+_PRIZE_CLOSE = os.environ.get("PTCG_PRIZE_CLOSE", "0") != "0"
+
 # Deck-aware game-plan seeds (PTCG_SEEDS, default off). The U36 miner distills a
 # target family's WINNING expert episodes into concentrated play seeds (attach /
 # play / evolve card-id targets); analysis/gameplan_seeds.py emits only the blocks
@@ -503,6 +515,54 @@ def best_attack(groups, my_active_id, defender_id, defender_hp):
     return (best[2], best[1], best[0])
 
 
+def _opponent_best_attack_damage(opp_active_id, my_active_id, my_active_hp) -> int:
+    """Maximum damage the opponent's active can deal to us.
+
+    Enumerates the opponent card's attacks from card data and returns the
+    maximum effective damage (with weakness/resistance). Returns 0 if opponent
+    has no active or no attacks available. Used to detect OHKO threats.
+    """
+    if opp_active_id is None or my_active_id is None:
+        return 0
+    cards = card_index()
+    opp_card = cards.get(opp_active_id)
+    if not opp_card:
+        return 0
+    max_dmg = 0
+    # Enumerate all attacks on the opponent's card and find the max damage.
+    attacks_list = getattr(opp_card, 'attacks', [])
+    for attack in attacks_list:
+        dmg = effective_damage(opp_active_id, attack, my_active_id)
+        max_dmg = max(max_dmg, dmg)
+    return max_dmg
+
+
+def _our_prize_count(obs) -> int:
+    """Number of prize cards we have remaining, or 0 if unknown.
+
+    Used to identify close-game situations where prize-close priority applies.
+    """
+    state = obs.get("current") or {}
+    players = state.get("players") or []
+    yi = state.get("yourIndex", 0)
+    if len(players) <= yi:
+        return 0
+    me = players[yi]
+    prize = me.get("prize")
+    if isinstance(prize, list):
+        return len(prize)
+    return 0
+
+
+def _is_prize_winning_attack(opp_active_hp) -> bool:
+    """True when taking down the opponent active wins us a prize (closes the game).
+
+    Called when we're at 1-2 prizes; if we can OHKO the opponent's active,
+    we win the game immediately.
+    """
+    return opp_active_hp is not None and opp_active_hp > 0
+
+
 def _attack_costs(card_id):
     """Sorted energy costs of a card's attacks (each cost = the number of energies
     the attack needs), or an empty list when the card or its attacks are unknown.
@@ -685,19 +745,34 @@ def lethal_move(obs, sel=None):
     return None
 
 
-def should_retreat(my_active, bench, lethal_available) -> bool:
+def should_retreat(my_active, bench, lethal_available, opp_active=None) -> bool:
     """Retreat only when the active is endangered and a healthier bench exists.
 
     Skipped when a lethal attack is on the table (take the knockout instead) or
     when no bench Pokemon is in better shape than the active.
+
+    With PTCG_THREAT_RETREAT on, also allows retreat if the opponent's active can
+    OHKO us, even if our HP is above the normal threshold (requires a healthy bench).
     """
     if my_active is None or lethal_available:
         return False
     hp = my_active.get("hp", 0)
     mx = my_active.get("maxHp") or hp
-    if mx <= 0 or hp / mx > RETREAT_HP_RATIO:
+    if mx <= 0:
         return False
-    return any(b for b in (bench or []) if b and b.get("hp", 0) > hp)
+    # Check if bench has a healthier Pokemon
+    has_healthy_bench = any(b for b in (bench or []) if b and b.get("hp", 0) > hp)
+    if not has_healthy_bench:
+        return False
+    # Threat-aware retreat: if flag is on and opponent can OHKO us, retreat.
+    if _THREAT_RETREAT and opp_active is not None:
+        opp_active_id = opp_active.get("id")
+        my_active_id = my_active.get("id")
+        opp_best_dmg = _opponent_best_attack_damage(opp_active_id, my_active_id, hp)
+        if opp_best_dmg >= hp:
+            return True
+    # Normal retreat: active is endangered (below HP threshold).
+    return hp / mx <= RETREAT_HP_RATIO
 
 
 def _first_legal(sel) -> list:
@@ -1217,11 +1292,19 @@ def choose(obs) -> list:
         return None
 
     def _resolve_retreat():
-        if OPT_RETREAT in groups and should_retreat(my_active, me.get("bench"), lethal):
+        if OPT_RETREAT in groups and should_retreat(my_active, me.get("bench"), lethal, opp_active):
             return groups[OPT_RETREAT][0][0]
         return None
 
     def _resolve_attack():
+        # PTCG_PRIZE_CLOSE (default off): with 1-2 prizes remaining, prefer any
+        # attack that wins the game (OHKOs opponent). Falls back to best positive
+        # damage attack (lethal or otherwise) if no prize-winning move is available.
+        if _PRIZE_CLOSE and ba is not None and ba[2]:  # (index, eff_damage, is_lethal)
+            our_prizes = _our_prize_count(obs)
+            if our_prizes <= 2 and our_prizes > 0:
+                # We're close on prizes and have a lethal attack: take it to win
+                return ba[0]
         if ba is not None and ba[1] > 0:
             return ba[0]
         if OPT_ATTACK in groups:

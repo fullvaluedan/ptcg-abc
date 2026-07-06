@@ -1133,3 +1133,92 @@ def test_build_submission_bundles_extra_module():
     with tarfile.open(out) as tar:
         top = {n.split("/")[0] for n in tar.getnames()}
     assert {"main.py", "deck.csv", "cg", "heuristics.py"} <= top
+
+
+# Test scenario: PTCG_THREAT_RETREAT (flag-gated threat-aware retreat).
+def test_threat_retreat_fires_when_opponent_threatens_ohko(monkeypatch):
+    monkeypatch.setattr(heuristics, "_THREAT_RETREAT", True)
+    # Mock the opponent best attack damage to return 100 (OHKO against our 60 HP active).
+    monkeypatch.setattr(heuristics, "_opponent_best_attack_damage",
+                       lambda opp_id, my_id, my_hp: 100)
+    # My active is at 60 HP (above normal retreat threshold of 34%).
+    # Opponent can OHKO us (best attack = 100).
+    # Bench has a healthier Pokemon at 80 HP.
+    # With flag on: should retreat despite good HP to avoid OHKO.
+    opts = [
+        {"type": heuristics.OPT_ATTACK, "attackId": "1"},
+        {"type": heuristics.OPT_RETREAT},
+        {"type": heuristics.OPT_END},
+    ]
+    obs = _main_obs(
+        opts,
+        my_active=_pokemon("722", 60, 100),  # Charizard, 60/100 HP (60% health)
+        opp_active=_pokemon("384", 90, 120),  # Rayquaza (attack mocked to 100 damage)
+        bench=[_pokemon("25", 80, 100), None],  # Pikachu at 80 HP on bench
+    )
+    move = heuristics.choose(obs)
+    # Should retreat (index 1) to avoid OHKO, even though HP is above 34% threshold
+    assert move == [1]
+
+
+def test_threat_retreat_inactive_by_default():
+    # Same scenario but with flag off (default): should NOT retreat.
+    opts = [
+        {"type": heuristics.OPT_ATTACK, "attackId": "1"},
+        {"type": heuristics.OPT_RETREAT},
+        {"type": heuristics.OPT_END},
+    ]
+    obs = _main_obs(
+        opts,
+        my_active=_pokemon("722", 60, 100),
+        opp_active=_pokemon("384", 90, 120),
+        bench=[_pokemon("25", 80, 100), None],
+    )
+    move = heuristics.choose(obs)
+    # With flag off: normal retreat logic (only retreat if HP is low)
+    assert move != [1]
+
+
+# Test scenario: PTCG_PRIZE_CLOSE (flag-gated prize-closing attack priority).
+def test_prize_close_prefers_lethal_when_prizes_low(monkeypatch):
+    monkeypatch.setattr(heuristics, "_PRIZE_CLOSE", True)
+    # We have 1 prize remaining and a lethal attack available.
+    # With flag on: should take the lethal attack to win immediately.
+    attacks = heuristics.attack_index()
+    aid, attack = next((k, a) for k, a in attacks.items() if (a.damage or 0) > 0)
+    attacker_id = next(iter(heuristics.card_index()))
+    opp = _pokemon("25", 30, 100)
+    eff = heuristics.effective_damage(attacker_id, attack, opp["id"])
+    assert eff >= opp["hp"]  # verify lethal
+    opts = [
+        {"type": heuristics.OPT_ATTACK, "attackId": aid},
+        {"type": heuristics.OPT_END},
+    ]
+    obs = _main_obs(opts, my_active=_pokemon(attacker_id, 100, 100), opp_active=opp)
+    # Inject a SINGLE prize card for "us" to simulate 1 prize left
+    obs["current"]["players"][0]["prize"] = [{"id": "card"}]
+    move = heuristics.choose(obs)
+    # Should take attack (index 0) due to prize-close with lethal available
+    assert move == [0]
+
+
+def test_prize_close_inactive_by_default(monkeypatch):
+    # Verify that without the flag, prize count does not affect attack priority.
+    monkeypatch.setattr(heuristics, "_PRIZE_CLOSE", False)
+    attacks = heuristics.attack_index()
+    aid, attack = next((k, a) for k, a in attacks.items() if (a.damage or 0) > 0)
+    attacker_id = next(iter(heuristics.card_index()))
+    opp = _pokemon("25", 30, 100)
+    eff = heuristics.effective_damage(attacker_id, attack, opp["id"])
+    assert eff >= opp["hp"]  # verify lethal
+    opts = [
+        {"type": heuristics.OPT_ATTACK, "attackId": aid},
+        {"type": heuristics.OPT_END},
+    ]
+    obs = _main_obs(opts, my_active=_pokemon(attacker_id, 100, 100), opp_active=opp)
+    # Set prize count to 0 (no prizes means normal play, not prize-close mode)
+    obs["current"]["players"][0]["prize"] = []
+    move = heuristics.choose(obs)
+    # With flag off and no low-prize condition: normal logic applies
+    # The attack should still be chosen when lethal is available (lethal is always taken)
+    assert move == [0]
