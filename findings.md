@@ -568,41 +568,50 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
 
 ---
 
-## 6. Current state and open direction (2026-07-04)
+## 6. Current state and open direction (2026-07-08)
 
-- CORRECTED 2026-07-04 (noise recalibration, see 4D): the "ability WIN" (561.1 vs 494.8) is now understood as
-  a noise artifact, not a confirmed ladder result, given the king's own 452-691 same-build read spread. The
-  ring-gate result (ability +20pp on the calibrated bracket ring) still stands and is the reason the ability
-  build is kept as the scored floor going forward, not the single ladder read.
-- The comprehension track (U90-U94) is fully shipped. Its other candidate, attack-first, SETTLED NEUTRAL on
-  the ladder at n=1 read (both offline gates passed, +5.5pp gauntlet / +10.0pp ring); per the noise
-  recalibration this NEUTRAL read is itself low-confidence evidence, not a refutation of the ring-gated
-  offline result. A plain king-copy revert for that slot was submitted 2026-07-04 (ref 54315565, settled
-  COMPLETE 476.1) before the recalibration correction landed. FLOOR RESTORED 2026-07-04: the resubmitted
-  ability build (ref 54315802, same tarball as 54282097) into that slot cleared PENDING this iteration at
-  SubmissionStatus.COMPLETE 600.0, confirming the ring-preferred build now occupies the scored slot instead of
-  a plain king copy; this was floor maintenance, not a fresh ladder A/B, and carried no new pre-registration.
-  The CEM/genome-tuning line is closed on all three re-test conditions (Section 4B). No further TRACK L unit
-  is defined without a plan review (freeze through 2026-08-16); ladder submissions are now for floor
-  maintenance and the 2026-08-10/16 endgame variance-harvest campaign only. TRACK L now HOLDS: no further
-  submission is planned until the board drifts off the ring-preferred build or the endgame campaign opens.
-- Writeup sync 2026-07-04: `docs/writeup/offline_ladder_transfer.md` still described the ability lever's
-  ladder read as an unqualified WIN that "the ring, the gauntlet, and the ladder all agreed" on, and gave the
-  noise band as the stale ~90-130pt estimate with M=60 presented as sized correctly against it. Both were
-  stale claims once the L9 noise recalibration landed (see 4D); corrected the WIN paragraph to note it is now
-  read as a mid-band noise artifact, and rewrote the noise-model section to report the ~452-691pt corrected
-  band, the M=60 undersizing, and the resulting hand-off of decision authority to the calibrated ring, as an
-  explicit in-the-open correction rather than a quiet patch.
-- TRACK S: the offline ML stack and the writeup, assembled continuously; this is now the default per-iteration
-  action whenever TRACK L has no build awaiting a slot.
-- Age-stratified refit (2026-07-05, U4 Item 1): P4 hypothesis (aged reads more accurate than fresh) contradicted by data. Fresh trolley-king reads (437.2, n=29) run LOWER than aged (600.0, n=1), opposite direction; using aged-only estimate was premature. Impact: refit uses pooled estimate (456.4, n=57) as baseline, not aged-only. This reinforces the central finding: same-build noise band (~452-691) is much wider than build-level deltas, so ladder reads at n~30 per arm are not trustworthy for deciding between builds on their own; the calibrated bracket ring (ring test, not ladder points) is the decision gate. (analysis/noise_model_age_stratified.md)
-- U100 rules-as-implemented completion (2026-07-06): all 21 game mechanics verified with real game stepping via cg.api engine state extraction. Tests moved from trivial structural checks (e.g. "state exists") to measured real values: damage deltas on attacks, energy counts across turns, prize flow patterns, status flag transitions, evolution detection. The harness can now (1) drive real game states, (2) measure specific mechanic behaviors at each step, (3) verify the engine enforces rules correctly. Unblocks U101 (invariant fuzzer for glitch detection), U102 (card-text divergence audit), U103 (mirror-deck skill benchmark). (tests/test_engine_mechanics.py, docs/rules_as_implemented.md)
-- Governance violations and settlement arithmetic fix (U108, 2026-07-06): two past evictions violated the project's own noise model, discovered upon L9's noise recalibration. (1) trolley_thick evicted 2026-07-03 on a -112.3pp ladder read (446.2 vs reclaim-king 558.5): Under the M=240 noise model, a read is BAND if it sits within ±240 of the king. −112.3pp is well inside this band, making this a BAND verdict that required one repeat resubmission + U23 scoreboard settlement before any eviction, not an immediate eviction. Incorrect decision rule applied. (2) attack_first reverted 2026-07-04 on a NEUTRAL verdict decided from only 3 decisive episodes in the U23 scoreboard tiebreak (3 shared bracket episodes out of 6 candidate and 6 king comparisons, yielding n_decisive=3 and confidence=0.171): The M=240 band rule extends to settlement verdicts: a NEUTRAL decided with weak confidence (n<30 decisive) should trigger re-read before eviction, not immediate revert. Instead, slot was immediately reverted to a king copy. Both violations: the project's own pre-registered M=240 band rule (BAND reads require repeat+scoreboard, not eviction) was overridden by implicit tighter thresholds not in any decision rule. Standing correction (P8 POSTURE INVERSION): a ladder read inside the M band can NEVER evict a ring-positive build; ring evidence is the only eviction authority. trolley_thick's offline collapse fix (-15.4pp empty-bench, 55% head-to-head win rate in analysis/collapse_rate_thick_deck.md) is marked for ring-gate re-eligibility if a future ladder slot opens. Corrected state/current.md prose (state/current.md trolley_thick ledger row, superseded_2026_07_05 JSON note).
-- Honest outlook: #1 is off the table. Realistic ladder landing with the fixes is the median band
-  (~600-700 score, roughly #1500-2200 from ~#2980). The Strategy prize is the stronger bet: the differentiated
-  story is the pre-registration machinery, the quantified noise model, the offline-to-ladder transfer record
-  (three named proxy failures, then two real levers reaching WIN and NEUTRAL verdicts), and the self-caught
-  clone-autopsy reversal.
+**Board and submissions (2026-07-08):**
+- Board FROZEN: 2 scored slots occupied (shadow-king ability 54315802 and reclaim-king 54315565)
+- Shadow-king (scored): heuristic+trolley-ability (ref 54315802, ring-gated, no ladder confirmation due to noise band width)
+- Reclaim-king (safe floor): heuristic+trolley (ref 54315565, byte-identical baseline)
+- Candidate awaiting slot: heuristic+trolley+yushin_ito (pre-registered 2026-07-07, ring +0.15 vs trolley baseline, no available slot to submit)
+- Per-build loss ledger: infrastructure operational (U107, iteration 155); shadow-king and reclaim-king loss modes tracked separately (early_collapse 78.1% vs 79.2%)
+
+**Week-1 roadmap completion (2026-07-08):**
+- U111: DONE 2026-07-06, fuzzer-contradiction adjudication. Verdict: CHECKER BUG (false positives in invariant_fuzzer.py, fuzz_invariants.py confirmed 0 real violations over 2400 games). Engine card accounting is correct. analysis/engine_quirks.md updated with verdict.
+- U105: DONE 2026-07-07, threat/prize-awareness rules fires-vs-inert validation. Both PTCG_THREAT_RETREAT and PTCG_PRIZE_CLOSE read INERT on trolley (0 decision flips in captured real positions). Rules remain implemented but not promoted per fires-vs-inert discipline. analysis/u105_threat_prize_inert_check.md.
+- U107: DONE 2026-07-07, per-build loss ledger infrastructure. Manifest and per-build filtering mode operational; current builds segregated. No ladder implications, infrastructure prerequisite for downstream loss analysis (U106, U102).
+- Week-1 complete. U109 (oracle bound test), U110 (hard ring), U112 (stack confirmation n=100/arm) are compute-session jobs scheduled external to the loop.
+
+**U104/U112 stack composition noise (2026-07-07):**
+- U104 first run (n=40/arm, 2026-07-06): yushin+ability+attack_first vs trolley+ability, delta +15.0pp, gate PASS
+- U112 confirmation run (n=100/arm, 2026-07-07): same arms, delta +9.0pp, gate FAIL (threshold >+10pp)
+- Result: the +15.0pp was 1-sigma inflated. Ring noise varies with sample size; small-n measurements need confirmation. No promotion pending. analysis/u104_stacked_ring_pass_run.md, analysis/u112_stacked_ring_confirmation.md.
+
+**U106 escalation (2026-07-08):**
+- State-matched expert lookup requires design judgment on three scopes: state extraction method, kNN join logic (sklearn vs hand-rolled), bucketing discipline. Loop cannot proceed autonomously (P5 directive). Awaiting Dan's design response.
+- Data prerequisites ready: 708k expert corpus, 15-20k loss-game state rows, manifest for per-build filtering.
+- Escalation logged in autoloop_status.md iteration 156, pending clarification before next mechanical unit.
+
+**TRACK L status (2026-07-08):**
+- No new build awaiting a slot (candidate_yushin_ito is pre-registered but no slot is available; board occupied)
+- ANTI-CHURN rule active: no board-check this iteration (board frozen, no change expected)
+- No TRACK L submission until a slot opens (via eviction or endgame campaign 2026-08-10+)
+- All ring-promoted levers documented: ability +20pp (shadow-king, scored), attack_first +10pp (ring-gated, no ladder confirmation yet), yushin+ability+attack_first BLOCKED at +9pp confirmation
+
+**TRACK S status (2026-07-08):**
+- Writeup at 2081 words (target 2000), on track for Aug 5 commit deadline and Sep 1 submission deadline
+- No further coded TRACK S units defined without a plan review (freeze through 2026-08-16)
+- Writeup chapters: offline_ladder_transfer, comprehension, final_synthesis all drafted and committed; all cite source analysis files per claims-ledger discipline
+- Execution focus shifts to external compute results (U109/U110/U112) and potential U106 resolution once design clarity arrives
+
+**Noise model and decision authority (standing, per L9 correction 2026-07-04):**
+- Ladder same-build spread: 396.7 to 691.5 across all `heuristic+trolley` reads (M=240 v3, analysis/noise_model_refit.md)
+- Single-read ladder A/Bs cannot settle any lever under this band width (noise exceeds any offline build delta)
+- Decision authority: calibrated bracket ring (tau 0.857, analysis/ring_calibration.md) only
+- Ladder submissions reserved for floor maintenance and 2026-08-10/16 endgame variance-harvest campaign (the only rank lever that survives the noise band)
+
+**Honest outlook:** #1 is off the table (1242 target is ~+672pp from current 571 true rating, convergence is not the bottleneck, true strength is). Realistic ladder landing with the current ring-best builds (ability-only stack) is the median band (~600-700 score, roughly #1500-2200 from the ~3996-team field). The Strategy prize is the stronger bet: the differentiated story is machine-enforced pre-registration, the quantified noise model, the offline-to-ladder transfer record (three named proxy failures documented, then real levers reaching WIN/NEUTRAL verdicts, noise recalibration correcting overstatements), self-caught clone-autopsy reversal, and ring-gated methodology that proved more reliable than ladder single-reads. The writeup draft is complete and cites every finding to a committed source file.
 
 ---
 
