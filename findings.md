@@ -450,6 +450,24 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   was then executed instead, producing the candidate_yushin_ito finding above. Recorded because
   cross-checking one's own prior directives against the source document, not just against memory of
   it, is exactly the discipline this project's other findings depend on.
+- Blindspot audit, 15-agent adversarially-verified (2026-07-06): six parallel evidence readers (own losses,
+  top-player learning, pilot capability, lever inventory, data utilization, deck ceiling) fed a completeness
+  critic whose 8 proposed missing-levers each got an independent refutation pass against state/hypotheses.md
+  and findings.md 4B/4C. Four were KILLED as already tried and closed (move-level blunder mining as proposed,
+  deck-space basics/energy sweeps, shipping the four mined decision gaps, re-adjudicating evicted builds by
+  resubmission), demonstrating the refutation pass earns its cost: half of what looked missing was actually
+  done. Four survived and became LOOP_BRIEF P8 directives U104-U107 plus governance fix U108. The audit's
+  three structural conclusions: (1) the pilot's biggest capability hole is threat/prize blindness
+  (agents/heuristics.py has zero non-comment prize reads, never reads the opponent bench, and retreats only
+  on own HP fraction, so it plays identically at 5-0 up and 0-5 down) while the needed obs fields are proven
+  available at match time (search/endgame.py reads them without cg); (2) the loss-bucket narrative driving
+  effort allocation ("67% early_collapse, nothing play-addressable") rests on a cumulative replay pool that
+  mixes every retired build, decompositions of only 5-17 losses, and no loss-mode measurement of the current
+  shadow-king at all; (3) two past evictions violated the project's own noise model (trolley_thick evicted on
+  a -112.3 read described as "far exceeds" M=240 when it is inside the band; attack_first reverted on a
+  NEUTRAL decided at 3 decisive episodes), so ring-positive levers were discarded by an instrument the
+  project itself proved cannot resolve them. Sub-band ladder reads can never evict a ring-positive build
+  going forward. `LOOP_BRIEF.md` P8, audit transcript in the session workflow record.
 
 ---
 

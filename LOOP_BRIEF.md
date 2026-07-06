@@ -109,12 +109,64 @@ P7. DAN'S DIRECTIVES (2026-07-05), three standing objectives, all offline and qu
             the rebuilt ring calibrates. Folds in the meta_deck_copy re-test (its recorded condition, a
             real deck-aware differentiator, is what U100-U102 build).
 
-Near-term queue (one unit per iteration): (1) the age-stratified refit, (2) daily leaderboard snapshot into
-data/leaderboard_cache (median/percentile drift series), (3) U100 rules-as-implemented (start now, it feeds
-everything), (4) U39 deck mining step 1 + ring rebuild, (5) U101 fuzzer, (6) U102 differential audit,
-(7) board-check gating in the watchdog layer, (8) writeup conformance pass toward the Sep 1 submit,
-(9) supersession flags on stale M=60/WIN text in state/current.md and below in this file, (10) U103 mirror
-benchmark once the ring is rebuilt. analysis/strategy_prize_rules.md is DONE (2026-07-05).
+P8. BLINDSPOT AUDIT DIRECTIVES (2026-07-06, from a 15-agent adversarially-verified audit; each item below
+    survived a refutation pass against state/hypotheses.md and findings.md 4B/4C. Four proposed levers were
+    KILLED as already tried: move-level blunder mining as proposed (method reuses the falsified replay
+    obs/action alignment), deck-space basics/energy sweeps (three probes already ran, all negative, closed),
+    shipping the four mined decision gaps (each rule WAS built and failed its expert-agreement score), and
+    re-adjudicating trolley_thick/yushin via resubmission (prior art exists for both). Do NOT reopen those.
+    U104 STACKED RING RUN (highest priority, cheapest): the three ring-positive levers have never been
+        measured together. ONE factorized in-process ring run, n=40 per arm, three arms: (1) trolley+ability
+        (shadow-king config, baseline), (2) yushin+ability, (3) yushin+ability+attack_first. Promote-if:
+        arm 3 beats arm 1 by more than +0.10 SAME-RUN delta (same-run deltas, not absolute rates, per
+        analysis/candidate_decks_ring_gate.md). Notes: yushin is now contested (three +0.100 reads on
+        2026-07-05, one +0.050 read on 2026-07-06), so this run doubles as the tiebreak (pooled 104/120 vs
+        93/120); ability/attack_first liveness was only ever verified on the trolley deck, hence the
+        factorized arms (check the yushin list actually contains once-per-turn-ability Pokemon); a WIN feeds
+        the P3 lock-the-strongest-pair selection, not an immediate ladder slot.
+    U105 THREAT AND PRIZE AWARENESS (the real capability gap): agents/heuristics.py has ZERO non-comment
+        reads of prize state, never reads the opponent bench, and evaluates the opponent active only for OUR
+        outgoing damage; should_retreat fires solely on own HP fraction (0.34), so an incoming OHKO is
+        invisible and the pilot plays identically at 5-0 up and 0-5 down. The data is PROVEN available at
+        match time (search/endgame.py reads player['prize'] from the raw obs, no cg import). Build TWO
+        flag-gated rules, separately gated like the ability lever: (a) PTCG_THREAT_RETREAT: if the opponent
+        active's best printed attack KOs our active and a bench survivor exists, allow retreat/promote
+        independent of own-HP ratio; (b) PTCG_PRIZE_CLOSE: with 1-2 prizes remaining, prefer any legal
+        attack line that takes the last prize. Gauntlet then calibrated ring, promote only on ring delta
+        greater than +0.10. Cite the ability lever's RING read (+20pp) as precedent, never its +66.3 ladder
+        WIN (reclassified noise).
+    U106 STATE-MATCHED EXPERT LOOKUP (the one untried join): top_player corpora 20260703-20260706 (708k
+        rows, 340MB) have ZERO analysis consumers and share the exact 27-column prefix with our state CSVs.
+        kNN-join the state rows from our fresh loss games against expert outcomes on the 24 shared features.
+        Guards (all four required): join all state rows from the loss games (15-20k rows, not 233), weight
+        per game and normalize the 411k/296k win/loss corpus imbalance; report neighbor-distance support per
+        loss bucket (thin support at early_collapse states is itself the informative result); interpret
+        under the U65 caveat that the features are deck-blind; any resulting lever goes through the ring.
+        Output: analysis/state_matched_expert_lookup.md separating "experts also lose from here" (stop
+        spending pilot effort) from "experts win from here" (piloting gap, and what they did).
+    U107 PER-BUILD LOSS LEDGER (prerequisite for honest targeting): the loss-bucket table driving iteration
+        targeting mixes every retired build in the cumulative 809-replay pool, so bucket counts cannot be
+        attributed to the shipped agent, and NO loss-mode measurement of the current shadow-king exists.
+        tools/harvest_replays.py discards the episode-to-submission-ref association it already has at
+        discovery time (discover_episode_ids pools ids across refs). Fix: persist an episode-to-ref manifest
+        (at harvest time, plus a backfill via list_episodes per ref), add a per-build mode to
+        tools/loop_state.py loss_distribution_from_dirs, rerun analysis/loss_classifier.py restricted to
+        current-king and shadow-king episodes. Note state/current.md already has a section named "Per-build
+        ledger" tracking ladder ratings; name the new thing differently (loss ledger by build).
+    U108 SETTLEMENT ARITHMETIC FIX (governance): two past evictions violated the noise model. trolley_thick
+        was evicted on a -112.3 read that state/current.md calls "far exceeds" M=240 when 112.3 is INSIDE
+        the band (arithmetically BAND, not LOSS); attack_first was reverted on a NEUTRAL decided at only 3
+        decisive episodes. Standing rule going forward: a ladder read inside the M band can NEVER evict a
+        ring-positive build; ring evidence is the only eviction authority. Correct the state/current.md
+        prose, record both as governance findings in findings.md 4D, and treat trolley_thick's collapse fix
+        (-15.4pp empty-bench, 55% head-to-head) as ring-eligible again if a slot argument ever needs it.
+
+Near-term queue (one unit per iteration): (1) U104 stacked ring run (do this FIRST, it is one compute job),
+(2) U108 settlement arithmetic fix (pure docs, one iteration), (3) U107 per-build loss ledger, (4) U105
+threat/prize awareness rules, (5) U106 state-matched expert lookup, (6) U100 rules-as-implemented (REAL
+assertions, see the status check above), (7) U102 differential audit, (8) writeup conformance pass toward
+the Sep 1 submit, (9) U103 mirror benchmark. analysis/strategy_prize_rules.md is DONE (2026-07-05); the
+age-stratified refit, daily snapshot, U39 mining, and U101 fuzzer (0 violations over 2400 games) are DONE.
 
 ## RESUME STATE (2026-07-03): TWO TRACKS. Do not conflate them.
 An audit found the loop had been optimizing an agent that does NOT ship: the shipped ladder agent is
