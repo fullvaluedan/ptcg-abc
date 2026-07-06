@@ -1,0 +1,25 @@
+{
+  "arm1-trolley+ability": {
+    "win_rate": 0.775,
+    "wins": 31,
+    "draws": 0,
+    "losses": 9,
+    "n": 40
+  },
+  "arm2-yushin+ability": {
+    "win_rate": 0.75,
+    "wins": 30,
+    "draws": 0,
+    "losses": 10,
+    "n": 40
+  },
+  "arm3-yushin+ability+attack_first": {
+    "win_rate": 0.85,
+    "wins": 34,
+    "draws": 0,
+    "losses": 6,
+    "n": 40
+  },
+  "diff_pp": 7.5,
+  "gate": "FAIL (diff_pp=7.5 not > 10.0)"
+}
