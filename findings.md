@@ -179,6 +179,12 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   players' success is contextual to their own meta / piloting skill (not isolable to 60 cards), or the
   heuristic is too weak to extract their deck's optimal play. Without a new mining scope (lower ratings, new
   archetype focus), deck changes are a closed lever for TRACK L gains. `analysis/new_candidates_phase2_verdict.md`.
+- attack_first_yushin_composition (U104, 2026-07-06): the attack_first lever (pre-registered at +10pp ring on
+  trolley, +5.5pp gauntlet) was tested in a factorized three-arm ring run against the calibrated bracket ring
+  (n=40 per arm). Arm 1 (trolley+ability): 77.5%, Arm 2 (yushin+ability): 92.5%, Arm 3
+  (yushin+ability+attack_first): 80.0%. diff_pp (arm 3 minus arm 1) = +2.5pp, below the +10pp promotion gate
+  (FAIL). Yushin's deck advantage (0.925 vs trolley 0.775) is not further composable with attack_first; the
+  lever measured in isolation does not transfer across decks. `analysis/u104_stacked_ring_run.md`.
 
 ### 4C. Confirmed or positive findings (real signal)
 

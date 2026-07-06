@@ -1,17 +1,17 @@
 # U104 Stacked Ring Run Results
 
-**Run date:** 2026-07-06  
+**Run date:** 2026-07-06, 23:55 UTC  
 **Status:** FAIL (gate threshold not met)
 
 ## Results
 
-Three-arm factorized ring run against calibrated bracket ring (tau 0.857):
+Three-arm factorized ring run against calibrated bracket ring (tau 0.857), n=40 per arm:
 
 | Arm | Build | Win Rate | Wins | Matches |
 | --- | --- | --- | --- | --- |
-| 1 (baseline) | heuristic+trolley+ability | 82.5% | 33 | 40 |
-| 2 | heuristic+yushin+ability | 85.0% | 34 | 40 |
-| 3 | heuristic+yushin+ability+attack_first | 85.0% | 34 | 40 |
+| 1 (baseline) | heuristic+trolley+ability | 77.5% | 31 | 40 |
+| 2 | heuristic+yushin+ability | 92.5% | 37 | 40 |
+| 3 | heuristic+yushin+ability+attack_first | 80.0% | 32 | 40 |
 
 ## Gate Verdict
 
