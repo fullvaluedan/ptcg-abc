@@ -692,12 +692,15 @@ def classify_dirs_per_build(dirs, ref_filter: list[str] | None = None) -> dict:
     mix of all builds ever submitted.
     """
     import json
+    from analysis.loss_classifier import parse_replay  # noqa: F401
     from tools import harvest_replays as hr
+    from tools.scout import is_self_play, load_replay, our_index_from_replay
 
     digests = []
     used = []
     filtered_episodes = 0
     episode_to_ref = {}
+    ref_filter_set = set(ref_filter) if ref_filter else set()
 
     # Load manifest if filtering is requested
     if ref_filter:
@@ -709,21 +712,33 @@ def classify_dirs_per_build(dirs, ref_filter: list[str] | None = None) -> dict:
             path = _ROOT / d
         if not path.is_dir():
             continue
-        got = digest_dir(path)
-        if got:
-            if ref_filter:
-                # Filter to only episodes in ref_filter
-                filtered = []
-                for digest in got:
-                    # digest is from parse_replay, not episode file; need to
-                    # match by episode id from the digest itself or from file discovery
-                    # For now, keep all; U107 backfill will populate episode metadata
-                    filtered.append(digest)
-                digests.extend(filtered)
-                filtered_episodes += len(filtered)
-            else:
+
+        if ref_filter:
+            # Iterate through files directly to filter by episode ref (U107)
+            for fpath in sorted(path.glob("*.json")):
+                try:
+                    replay = load_replay(fpath)
+                except (OSError, json.JSONDecodeError):
+                    continue
+                if is_self_play(replay):
+                    continue
+
+                # Extract episode_id from filename (format: <episode_id>.json)
+                episode_id = fpath.stem
+                ep_ref = episode_to_ref.get(str(episode_id))
+
+                # Only include if ref is in filter (normalize to string for comparison)
+                if ep_ref and str(ep_ref) in ref_filter_set:
+                    seat = our_index_from_replay(replay)
+                    digest = parse_replay(replay, our_index=seat if seat is not None else 0)
+                    digests.append(digest)
+                    filtered_episodes += 1
+        else:
+            # No filtering; use the standard digest_dir
+            got = digest_dir(path)
+            if got:
                 digests.extend(got)
-            used.append(str(d))
+        used.append(str(d))
 
     report = classify_batch(digests)
     report["sources"] = used

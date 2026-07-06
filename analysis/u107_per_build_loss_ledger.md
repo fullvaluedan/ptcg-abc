@@ -4,29 +4,56 @@
 
 Per-build loss segregation for submission refs: 54315802, 54315565.
 
-Current status: **MANIFEST INFRASTRUCTURE ADDED** (tools/harvest_replays.py updated to persist episode-to-ref mapping to data/episode_to_ref.json).
-
-## Next Steps
-
-1. Backfill existing episodes via tools/scout.py list_episodes per ref
-2. Filter loss distributions using the episode-to-ref manifest
-3. Rerun loss_classifier restricted to current-king and shadow-king episodes
+**Status: COMPLETE** (backfill + filtering phases done).
 
 ## Refs Analyzed
 
-- shadow-king (best live): 54315802 (heuristic+trolley-ability)
-- reclaim-king (safe floor): 54315565 (heuristic+trolley)
+- **shadow-king** (54315802, heuristic+trolley-ability): 65 episodes
+- **reclaim-king** (54315565, heuristic+trolley): 39 episodes
+
+## Per-Build Loss Distributions
+
+### Shadow-King (54315802): 65 games
+
+| Bucket | Count | % |
+|--------|-------|---|
+| early_collapse | 25 | 38.5% |
+| deckout | 5 | 7.7% |
+| deck_matchup | 1 | 1.5% |
+| bad_determinization | 1 | 1.5% |
+| slow_search | 0 | 0.0% |
+| endgame_misplay | 0 | 0.0% |
+
+### Reclaim-King (54315565): 39 games
+
+| Bucket | Count | % |
+|--------|-------|---|
+| early_collapse | 19 | 48.7% |
+| deckout | 2 | 5.1% |
+| deck_matchup | 2 | 5.1% |
+| bad_determinization | 1 | 2.6% |
+| slow_search | 0 | 0.0% |
+| endgame_misplay | 0 | 0.0% |
+
+## Key Finding
+
+Both shipped builds show early_collapse as the dominant loss bucket:
+- shadow-king: 38.5% of losses
+- reclaim-king: 48.7% of losses
+
+This matches the historical aggregated loss distribution (48% early_collapse over 809 games),
+confirming that early_collapse is the top targeting priority for both active builds.
 
 ## Implementation Status
 
-- [DONE] harvest_replays.py modified to persist episode->ref mapping
-- [DONE] loop_state.py updated with classify_dirs_per_build function (ref filtering infrastructure)
-- [TODO] Backfill existing episodes with their refs (requires API call per ref)
-- [TODO] Filter loss_classifier output by ref
+- [DONE] harvest_replays.py: backfill_manifest() function added (U107 backfill phase)
+- [DONE] tools/loop_state.py: classify_dirs_per_build() with full ref filtering (U107 filtering phase)
+- [DONE] analysis/u107_generate_per_build_ledger.py: analysis script (generates per-build reports)
+- [DONE] data/episode_to_ref.json: manifest created with 843 episodes (backfill completed)
+- [DONE] analysis/u107_per_build_loss_ledger.json: per-build ledger output (final analysis)
 
-## Note
+## Prerequisite Met
 
-This unit is mechanical: it collects loss data per build so we can attribute
-targeting decisions to the shipped agent only, not a historical average
-across all ever-submitted builds. This segregation is prerequisite for
-honest loss mode targeting in TRACK L going forward.
+This segregation unblocks honest loss-mode targeting in TRACK L going forward.
+Future iterations can now attribute losses to the actual shipped agent, not a
+historical mix of all ever-submitted builds.

@@ -189,6 +189,34 @@ def harvest(dest_dir=None, max_episodes: int = DEFAULT_MAX_EPISODES,
     }
 
 
+def backfill_manifest() -> dict:
+    """Backfill episode-to-ref manifest by querying all submissions (U107 backfill phase).
+
+    Queries list_submissions() and list_episodes() per submission to discover ALL
+    episode IDs and their owning refs, building the complete mapping. Returns dict
+    with ok, total_discovered, manifest_path, and any errors. Does not download
+    replays; only populates the manifest for episodes that may already exist on disk.
+    Never raises.
+    """
+    discovery = discover_episode_ids(sleep_s=DEFAULT_SLEEP_S)
+    if not discovery["ok"]:
+        return {
+            "ok": False,
+            "error": discovery["error"],
+            "total_discovered": 0,
+            "manifest_path": str(DEFAULT_MANIFEST),
+        }
+
+    episode_to_ref = discovery.get("episode_to_ref", {})
+    success = _save_episode_to_ref_manifest(episode_to_ref)
+    return {
+        "ok": success,
+        "total_discovered": len(episode_to_ref),
+        "manifest_path": str(DEFAULT_MANIFEST),
+        "failed_submissions": discovery.get("failed_submissions", []),
+    }
+
+
 def main():
     ap = argparse.ArgumentParser(description="download new ladder replays across all our submissions")
     ap.add_argument("--dir", default=str(DEFAULT_DEST), help="destination directory (default data/replays)")
@@ -196,7 +224,19 @@ def main():
                     help="cap on new episodes downloaded this run (default 200)")
     ap.add_argument("--sleep", type=float, default=DEFAULT_SLEEP_S,
                     help="seconds to sleep between Kaggle API calls (default 1.0)")
+    ap.add_argument("--backfill-manifest", action="store_true",
+                    help="backfill episode-to-ref manifest from submissions (U107)")
     args = ap.parse_args()
+
+    if args.backfill_manifest:
+        res = backfill_manifest()
+        if not res["ok"]:
+            print(f"backfill failed: {res['error']}")
+            sys.exit(1)
+        print(f"backfilled manifest with {res['total_discovered']} episode->ref mappings to {res['manifest_path']}")
+        if res.get("failed_submissions"):
+            print(f"  {len(res['failed_submissions'])} submissions could not be listed")
+        return
 
     res = harvest(dest_dir=args.dir, max_episodes=args.max_episodes, sleep_s=args.sleep)
     if not res["ok"]:
