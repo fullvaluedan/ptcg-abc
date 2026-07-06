@@ -161,12 +161,30 @@ P8. BLINDSPOT AUDIT DIRECTIVES (2026-07-06, from a 15-agent adversarially-verifi
         prose, record both as governance findings in findings.md 4D, and treat trolley_thick's collapse fix
         (-15.4pp empty-bench, 55% head-to-head) as ring-eligible again if a slot argument ever needs it.
 
-Near-term queue (one unit per iteration): (1) U104 stacked ring run (do this FIRST, it is one compute job),
-(2) U108 settlement arithmetic fix (pure docs, one iteration), (3) U107 per-build loss ledger, (4) U105
-threat/prize awareness rules, (5) U106 state-matched expert lookup, (6) U100 rules-as-implemented (REAL
-assertions, see the status check above), (7) U102 differential audit, (8) writeup conformance pass toward
-the Sep 1 submit, (9) U103 mirror benchmark. analysis/strategy_prize_rules.md is DONE (2026-07-05); the
-age-stratified refit, daily snapshot, U39 mining, and U101 fuzzer (0 violations over 2400 games) are DONE.
+P9. 30-DAY ROADMAP (2026-07-06): docs/ROADMAP-30D.md is the authoritative plan through Aug 5 and
+    supersedes any conflicting ordering below. It came from a judged 3-posture design panel plus a gap
+    calibrator; the honest math is in its section 0 (queued increments buy +60-120 of the +672 gap to
+    number 1; the one stretch-tier mechanism is field-prior search, reopen condition formally MET in
+    state/hypotheses.md via the favorable PIMC diagnostic). U104 is DONE and PASSED (+15.0pp,
+    analysis/u104_stacked_ring_pass_run.md; earlier twin run read exactly +10.0 FAIL, hence the n=100
+    confirmation below). Week-1 units, one per iteration, in this order:
+    U111 fuzzer-contradiction adjudication FIRST (engine_quirks.md logs 193 card_conservation violations
+         whose own itemizations sum to 60 while the checker claims 66; reconcile against
+         tools/fuzz_invariants.py's 0-violations-over-2400-games result; one day, hard-capped; an
+         unadjudicated engine contradiction poisons every downstream measurement).
+    U112 stack confirmation at n=100/arm (same three U104 arms), then seat yushin+ability+attack_first
+         per P3 slot governance and U108 (ring-positive replaces ring-inferior; no sub-band ladder read
+         evicts it afterward).
+    U110 hard ring (enriched arm with the hardest clones plus 800+-rated decks piloted by our stack; the
+         standard ring saturates at 0.875-0.91 and our best build already reads 0.875, so gates above
+         that are unresolvable without this).
+    U105 threat/prize rules per P8 (each rule separately gated: fires-vs-inert, gauntlet direction,
+         hard-ring delta more than +5pp).
+    U109 oracle bound test is a COMPUTE SESSION job, not a loop unit (inject ring clones' true decklists
+         into determinize's opponent_prior, one run, upper-bounds the whole search lane; kill date
+         Jul 13). U113 field-prior search (weeks 2-3) only starts if U109 passes. U106/U107/U103/U102
+         continue per the roadmap's week-2-3 table. Escalate to Dan: the Rules 2.2.b Submissions-page
+         screenshot check (DAN-1) and every pair/exploit design decision (P5).
 
 ## RESUME STATE (2026-07-03): TWO TRACKS. Do not conflate them.
 An audit found the loop had been optimizing an agent that does NOT ship: the shipped ladder agent is
