@@ -102,7 +102,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | meta_archaludon | n/a | n/a | 382.5 |  | meta-deck copy; refuted, well below trolley |
 | search (baseline) | n/a | n/a | 591.9 |  | STALE + INERT: search fell back to heuristic; not real search |
 | heuristic+trolley_thick | n/a | n/a | 446.2 | 0 | SETTLED BAND 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp, inside the M=240 band (not a LOSS threshold of king-240=318). Incorrectly evicted under prior M=60 frame; pre-registered protocol requires BAND: one repeat + U23 scoreboard. Governance correction: ring evidence is the only eviction authority per L9 noise recalibration. |
-| heuristic+trolley (reclaim, 2026-07-03) | n/a | n/a | PENDING | 0 | L2 slot-2 reclaim: byte-identical king copy submitted to evict the settled-LOSS trolley_thick. |
+| heuristic+trolley (reclaim, 2026-07-03) | n/a | n/a | PENDING | 0 | L2 slot-2 reclaim: byte-identical king copy submitted to evict the settled-BAND trolley_thick. |
 | heuristic+trolley-ability | n/a | n/a | PENDING | 0 | L1 ability A/B SUBMITTED into the slot L2 freed. See pre_registrations and in_flight for the settle protocol. |
 | heuristic+trolley (reclaim, cleanup) | n/a | n/a | 691.5 | 0 | L1 fix cleanup slot-1 king copy (ref 54282104): evicts the dead ERRORed ability build (ref 54281824) from the tracked latest-2 window so the ability fix (ref 54282097) has a live floor to be compared against, not a permanently-inert ERROR entry. |
 | heuristic+trolley-ability (ERRORed, superseded) | n/a | n/a | ERROR | 0 | SETTLED (non-scoring): ref 54281824 ERRORed at grader load, missing agents/card_effects.py in the tarball (build command omitted --extra agents/card_effects.py). Never played an episode. Superseded by ref 54282097 (fix: card_effects.py bundled, COMPLETE 536.7 first reading), which carries forward the same pre-registration under a fresh settle-by. |
@@ -304,7 +304,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "build": "heuristic+trolley (reclaim, 2026-07-03)",
       "ladder": "PENDING",
       "move_agreement_delta": "n/a",
-      "note": "L2 slot-2 reclaim: byte-identical king copy submitted to evict the settled-LOSS trolley_thick.",
+      "note": "L2 slot-2 reclaim: byte-identical king copy submitted to evict the settled-BAND trolley_thick.",
       "oracle": "n/a",
       "ref": "54281812",
       "sample_size": 0
