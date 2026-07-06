@@ -96,24 +96,9 @@ The differentiator for the Strategy prize is not "we built an offline proxy." It
 
 ## Sources
 
-- Proxy calibration and gate rule: `analysis/proxy_calibration.md`, `tools/loop_state.py`
-- Attempt 1 (weak-bot ban): Standing rule in brief; no calibration run needed
-- Attempt 2 (move validator): `analysis/move_ranking_diverges_ability_gap.md`
-- Attempt 3 (top-20 ring, tau 0.429): `analysis/ring_calibration.md`
-- Attempt 4 (bracket ring, tau 0.857): `analysis/ring_calibration.md` (U81 section)
-- Transfer lesson and noise model: `analysis/candidate_decks_ring_gate.md`, `findings.md` (Section 3, noise model), `state/current.md` (L9 noise recalibration)
-- Clone autopsy and shipped rules: `analysis/clone_quality.md`, `analysis/gameplan_claims_bracket_4.md`, `agents/heuristics.py` (PTCG_ATTACK_FIRST, TAG_VOCAB)
-
----
-
-**Conformance Checklist (2026-07-06)**
-- ✓ Word count: 1,985 / 2000 max
-- ✓ Title and subtitle: "Pre-Registration Discipline and Offline-to-Ladder Transfer: A Kaggle Strategy Prize Report"
-- ✓ Track: Strategy Prize Model Approach (70% of judging criterion)
-- ✓ Self-made figures: None required; all evidence from internal analysis files
-- ✓ No Pokemon artwork: Text-only writeup, all analysis data internally sourced
-- ✓ Publishable: No API keys, secrets, or proprietary competition data embedded
-- ✓ Source citations: All analysis/ and state/ files verified to exist in repo
-
-**Ready for Kaggle submission 2026-07-06.**
+- Proxy calibration: `analysis/proxy_calibration.md`, `tools/loop_state.py`
+- Move validator: `analysis/move_ranking_diverges_ability_gap.md`
+- Ring attempts: `analysis/ring_calibration.md`
+- Transfer lesson and noise model: `analysis/candidate_decks_ring_gate.md`, `findings.md`, `state/current.md`
+- Clone autopsy and rules: `analysis/clone_quality.md`, `analysis/gameplan_claims_bracket_4.md`, `agents/heuristics.py`
 
