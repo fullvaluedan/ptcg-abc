@@ -12,72 +12,72 @@ game minus this window are dropped before matching).
 
 | rank | team | rating | corpus games | corpus win rate |
 |---|---|---|---|---|
-| 1 | Majkel1337 | 1235.3 | 0 | n/a |
-| 2 | nasuo445 | 1163.2 | 251 | 61% |
-| 3 | zoroark190 | 1162.9 | 325 | 60% |
-| 4 | Yushin Ito | 1159.8 | 341 | 54% |
-| 5 | kashiwashira | 1119.2 | 266 | 57% |
-| 6 | Rmy | 1114.0 | 0 | n/a |
-| 7 | payanotty | 1106.7 | 0 | n/a |
-| 8 | LagrangianLocomotive | 1105.5 | 80 | 44% |
-| 9 | tonakaiiii | 1104.2 | 850 | 57% |
-| 10 | 渡邊征央 | 1102.4 | 630 | 54% |
-| 11 | iwashi | 1102.1 | 165 | 52% |
-| 12 | lmaffei | 1094.4 | 0 | n/a |
-| 13 | やる気元気ミワハルキ | 1090.6 | 40 | 50% |
-| 14 | kidekikish | 1081.8 | 0 | n/a |
-| 15 | junlee789 | 1081.0 | 54 | 65% |
-| 16 | koga_poke | 1077.2 | 0 | n/a |
-| 17 | Hase2727 | 1076.0 | 0 | n/a |
-| 18 | カドラバ Kadoraba | 1074.6 | 4 | 50% |
-| 19 | btk15049 | 1073.0 | 683 | 51% |
-| 20 | WinDecks | 1069.3 | 667 | 51% |
+| 1 | Majkel1337 | 1228.5 | 283 | 67% |
+| 2 | Yushin Ito | 1184.2 | 282 | 59% |
+| 3 | zoroark190 | 1152.8 | 641 | 58% |
+| 4 | Rmy | 1133.8 | 178 | 57% |
+| 5 | nasuo445 | 1133.2 | 746 | 60% |
+| 6 | kidekikish | 1116.2 | 102 | 54% |
+| 7 | lmaffei | 1113.3 | 51 | 59% |
+| 8 | 渡邊征央 | 1103.7 | 321 | 50% |
+| 9 | やる気元気ミワハルキ | 1101.7 | 112 | 61% |
+| 10 | payanotty | 1100.1 | 162 | 52% |
+| 11 | aaa | 1097.4 | 159 | 47% |
+| 12 | iwashi | 1096.1 | 318 | 52% |
+| 13 | The Debauchery Tea Party | 1087.1 | 91 | 46% |
+| 14 | NoOne | 1086.8 | 23 | 57% |
+| 15 | kashiwashira | 1075.3 | 119 | 61% |
+| 16 | tonakaiiii | 1072.3 | 563 | 56% |
+| 17 | koga_poke | 1070.3 | 49 | 55% |
+| 18 | Claude and codex suck ;) | 1070.1 | 99 | 44% |
+| 19 | SamuelSanolume | 1066.4 | 1 | 100% |
+| 20 | btk15049 | 1065.8 | 290 | 49% |
 
 ## Coverage
 
-- Games considered (post recency filter): 4975
-- Games matched to a top-N team: 3466
-- Training rows written: 192242
-- Date range of matched games: 2026-07-04 to 2026-07-04
+- Games considered (post recency filter): 5034
+- Games matched to a top-N team: 3574
+- Training rows written: 213269
+- Date range of matched games: 2026-07-05 to 2026-07-05
 
 ## Archetype breakdown
 
-- meta_grimmsnarl_tonakaiiii: 1939
-- other: 1298
-- meta_archaludon: 1035
-- meta_grimmsnarl: 84
+- meta_grimmsnarl_tonakaiiii: 2376
+- other: 847
+- meta_grimmsnarl: 831
+- meta_archaludon: 536
 
 ## Unmapped team names
 
-- Hase2727 (no game in the scanned dataset names this team)
-- Majkel1337 (no game in the scanned dataset names this team)
-- Rmy (no game in the scanned dataset names this team)
-- kidekikish (no game in the scanned dataset names this team)
-- koga_poke (no game in the scanned dataset names this team)
-- lmaffei (no game in the scanned dataset names this team)
-- payanotty (no game in the scanned dataset names this team)
+- none
 
 ## Losses
 
 | team | losses | dominant loss bucket | most common opponent |
 |---|---|---|---|
-| tonakaiiii | 369 | endgame_misplay | Dũng Đỗ |
-| btk15049 | 334 | slow_search | tonakaiiii |
-| WinDecks | 329 | early_collapse | kazuki0123 |
-| 渡邊征央 | 289 | endgame_misplay | tonakaiiii |
-| Yushin Ito | 157 | early_collapse | tonakaiiii |
-| zoroark190 | 130 | endgame_misplay | Dũng Đỗ |
-| kashiwashira | 114 | endgame_misplay | WinDecks |
-| nasuo445 | 98 | endgame_misplay | Dũng Đỗ |
-| iwashi | 80 | slow_search | tonakaiiii |
-| LagrangianLocomotive | 45 | deckout | 渡邊征央 |
-| やる気元気ミワハルキ | 20 | bad_determinization | tonakaiiii |
-| junlee789 | 19 | endgame_misplay | 渡邊征央 |
-| カドラバ Kadoraba | 2 | deck_matchup | 渡邊征央 |
+| nasuo445 | 298 | bad_determinization | THIRD PTCG Club |
+| zoroark190 | 269 | bad_determinization | Majkel1337 |
+| tonakaiiii | 250 | bad_determinization | nasuo445 |
+| 渡邊征央 | 161 | bad_determinization | zoroark190 |
+| iwashi | 152 | slow_search | zoroark190 |
+| btk15049 | 148 | slow_search | zoroark190 |
+| Yushin Ito | 116 | early_collapse | zoroark190 |
+| Majkel1337 | 92 | endgame_misplay | nasuo445 |
+| aaa | 85 | deckout | kazuki0123 |
+| Rmy | 77 | endgame_misplay | nasuo445 |
+| payanotty | 77 | bad_determinization | aaa |
+| Claude and codex suck ;) | 55 | bad_determinization | nasuo445 |
+| The Debauchery Tea Party | 49 | bad_determinization | nasuo445 |
+| kidekikish | 47 | deck_matchup | zoroark190 |
+| kashiwashira | 46 | bad_determinization | Yushin Ito |
+| やる気元気ミワハルキ | 44 | endgame_misplay | zoroark190 |
+| koga_poke | 22 | deck_matchup | payanotty |
+| lmaffei | 21 | bad_determinization | Yushin Ito |
+| NoOne | 10 | bad_determinization | btk15049 |
 
 ## Staleness
 
-- newest matched game is 1 day(s) old (as of 2026-07-06)
+- newest matched game is 0 day(s) old (as of 2026-07-06)
 
 ## Weekly refresh
 

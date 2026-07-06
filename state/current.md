@@ -6,11 +6,11 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Top loss bucket (what this iteration targets)
 
-**early_collapse** over 808 classified replays (W/D/L 364/1/443).
+**early_collapse** over 809 classified replays (W/D/L 364/1/444).
 
 | bucket | losses |
 | --- | --- |
-| early_collapse | 297 |
+| early_collapse | 298 |
 | deckout | 69 |
 | bad_determinization | 35 |
 | deck_matchup | 29 |
@@ -926,14 +926,14 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "bad_determinization": 35,
       "deck_matchup": 29,
       "deckout": 69,
-      "early_collapse": 297,
+      "early_collapse": 298,
       "endgame_misplay": 13,
       "slow_search": 0
     },
     "draws": 1,
-    "games": 808,
-    "losses": 443,
-    "sample_size": 808,
+    "games": 809,
+    "losses": 444,
+    "sample_size": 809,
     "sources": [
       "data/replays"
     ],
