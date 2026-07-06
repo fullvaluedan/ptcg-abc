@@ -347,6 +347,24 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   for any paired build. Findings: (1) true king estimate is higher when we use aged reads; (2) the M=240 is a
   longer-horizon bound that survived all builds' settling; (3) fresh reads are indeed depressed vs aged,
   confirming P4 hypothesis. `analysis/noise_model_age_stratified.md`.
+- U111 fuzzer-contradiction adjudication (2026-07-06): `analysis/engine_quirks.md` logged 193 card-conservation
+  violations from a 200-game invariant-fuzzer run, but its own itemization counts summed only to 60 vs the
+  claimed 66. Reconciled via `tools/fuzz_invariants.py` (correct checker logic, 2400+ games, 0 violations):
+  the engine is correct, and the bug was in the checker itself. Two bugs fixed: (a) double-counting energyCards
+  attached to Pokemon (counted once as a card and separately in the energy field), and (b) iterating only the
+  first active Pokemon instead of all active slots. Result: `analysis/engine_quirks.md` updated with CHECKER BUG
+  verdict, closed. Added three regression tests (`tests/test_fuzz_invariants.py`) to catch both bugs if
+  reintroduced. U111 gate: PASS. Blocker for U101-U102-U103 lifted. `analysis/engine_quirks.md`.
+- U112 stack confirmation at n=100/arm (2026-07-07): re-ran U104's three-arm factorized ring test
+  (yushin+ability+attack_first vs trolley+ability vs yushin+ability, each n=100 on the calibrated bracket ring)
+  to confirm the earlier +15.0pp delta was not a 1-sigma outlier. First run (n=40): arm_3 - arm_1 = +15.0pp,
+  gate PASS. This run (n=100): arm_3 - arm_1 = +9.0pp, gate FAIL (threshold >+10pp). Result: the +15pp read was
+  indeed in the noise band for the ring's own variance (~5pp per doubling n from 40 to 100). Do not seat
+  yushin+ability+attack_first to the ladder without a run that clears the +10pp gate on the first try (since
+  re-runs consume budget and a third attempt is not preregistered). Stand pat with the trolley-based ability
+  build (+20pp on the ring, already scored at 0.875). U112 gate: FAIL. Seating blocked. See the roadmap Week 1
+  kill criteria (Jul 13, U112 gate): "Confirmed delta more than +0.10 at n=100. Seating honors U108."
+  `analysis/u112_stacked_ring_confirmation.md`.
 - Ability-lever confound re-check (2026-07-04): `LOOP_BRIEF.md` L1 had flagged, but never re-validated, that
   the offline gauntlet gate for `heuristic+trolley-ability` (+4.0pp, `analysis/ability_ab.md`) baked
   `PTCG_ABILITY` into a whole subprocess's environment, so both seats (our pilot AND every `deck:<name>`
