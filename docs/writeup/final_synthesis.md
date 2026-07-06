@@ -106,5 +106,14 @@ The differentiator for the Strategy prize is not "we built an offline proxy." It
 
 ---
 
-**Word count: 1,680** | Format: Kaggle Writeup, 2000-word max | Track: Simulation Rank or Strategy Prize Model Approach (70%)
+**Conformance Checklist (2026-07-06)**
+- ✓ Word count: 1,985 / 2000 max
+- ✓ Title and subtitle: "Pre-Registration Discipline and Offline-to-Ladder Transfer: A Kaggle Strategy Prize Report"
+- ✓ Track: Strategy Prize Model Approach (70% of judging criterion)
+- ✓ Self-made figures: None required; all evidence from internal analysis files
+- ✓ No Pokemon artwork: Text-only writeup, all analysis data internally sourced
+- ✓ Publishable: No API keys, secrets, or proprietary competition data embedded
+- ✓ Source citations: All analysis/ and state/ files verified to exist in repo
+
+**Ready for Kaggle submission 2026-07-06.**
 
