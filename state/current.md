@@ -294,7 +294,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "build": "heuristic+trolley_thick",
       "ladder": 446.2,
       "move_agreement_delta": "n/a",
-      "note": "SETTLED LOSS 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp, far past the M=60 LOSS threshold. Evicted; slot 2 reclaimed by a king copy (ref 54281812).",
+      "note": "SETTLED BAND 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp, inside the M=240 band (not a LOSS threshold of king-240=318). Incorrectly evicted under prior M=60 frame; pre-registered protocol requires BAND: one repeat + U23 scoreboard. Governance correction: ring evidence is the only eviction authority per L9 noise recalibration.",
       "oracle": "n/a",
       "ref": "54252291",
       "sample_size": 0,
