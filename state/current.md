@@ -99,7 +99,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | meta_grimmsnarl | n/a | n/a | 510.1 |  | meta-deck copy; refuted, below trolley |
 | meta_archaludon | n/a | n/a | 382.5 |  | meta-deck copy; refuted, well below trolley |
 | search (baseline) | n/a | n/a | 591.9 |  | STALE + INERT: search fell back to heuristic; not real search |
-| heuristic+trolley_thick | n/a | n/a | 446.2 | 0 | SETTLED LOSS 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp, far past the M=60 LOSS threshold. Evicted; slot 2 reclaimed by a king copy (ref 54281812). |
+| heuristic+trolley_thick | n/a | n/a | 446.2 | 0 | SETTLEMENT ARITHMETIC ERROR 2026-07-03: 446.2 vs reclaim king 558.5 (ref 54252006), -112.3pp. This is a BAND reading (within ±240), not a LOSS (<=−240). Should have been one repeat resubmission, not eviction. Governance violation: violated the M=240 noise model's own rule that readings inside the band require repeat+scoreboard, not immediate eviction. Slot 2 was incorrectly reclaimed by a king copy (ref 54281812). Marked for the governance findings record; trolley_thick's offline collapse fix (-15.4pp empty-bench, 55% head-to-head, analysis/collapse_rate_thick_deck.md) is eligible for ring gating if a future ladder slot opens. |
 | heuristic+trolley (reclaim, 2026-07-03) | n/a | n/a | PENDING | 0 | L2 slot-2 reclaim: byte-identical king copy submitted to evict the settled-LOSS trolley_thick. |
 | heuristic+trolley-ability | n/a | n/a | PENDING | 0 | L1 ability A/B SUBMITTED into the slot L2 freed. See pre_registrations and in_flight for the settle protocol. |
 | heuristic+trolley (reclaim, cleanup) | n/a | n/a | 691.5 | 0 | L1 fix cleanup slot-1 king copy (ref 54282104): evicts the dead ERRORed ability build (ref 54281824) from the tracked latest-2 window so the ability fix (ref 54282097) has a live floor to be compared against, not a permanently-inert ERROR entry. |
@@ -296,7 +296,7 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "oracle": "n/a",
       "ref": "54252291",
       "sample_size": 0,
-      "superseded_2026_07_05": "The M=60 threshold reference is stale. Per L9 noise recalibration, M is now 240 (v3). The 112.3pp loss magnitude still far exceeds the new M=240 band, so the verdict stands unchanged (LOSS verdict unaffected by the M update)."
+      "superseded_2026_07_05": "GOVERNANCE VIOLATION: The M=60 reference is stale. Per L9 noise recalibration, M is now 240 (v3). The 112.3pp magnitude is INSIDE the ±240 band, making this a BAND reading, not a LOSS. The eviction verdict was incorrect under the noise model's own rules. See findings.md 4D governance record."
     },
     {
       "build": "heuristic+trolley (reclaim, 2026-07-03)",
