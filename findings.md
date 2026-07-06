@@ -187,6 +187,18 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   attack_first composition benefit is marginal (~1pp on yushin vs its isolated +10pp on trolley). Same-build
   ring noise varies with sample size; small-n ring measurements need confirmation before design decisions.
   `analysis/u104_stacked_ring_pass_run.md`, `analysis/u112_stacked_ring_confirmation.md`.
+- threat_aware_retreat and prize_close (U105, 2026-07-07): two new flag-gated rules read threat state
+  (opponent's best-attack damage) and prize count from observation, implementing a "retreat when threatened"
+  and "attack to end the game" heuristics motivated by the blindspot audit (P8). Fires-vs-inert measurement on
+  trolley (tools/measure_threat_retreat.py, tools/measure_prize_close.py): threat_retreat captured 30+
+  positions with retreat offered + healthier bench, 0 showed OHKO threats; prize_close captured 7+ positions
+  at 1-2 prize window with attack offered, 2 had lethal attacks, 0 flipped decisions either way. Both rules are
+  INERT on trolley; they do not change real pilot decisions. Implication: either the conditions are too rare
+  (threat mismatches do not occur when bench depth exists; lethal attacks are already chosen by normal priority
+  ladder), or the heuristic's existing decision logic already optimizes these positions correctly. Per P8
+  fires-vs-inert discipline: inert rules do not receive hard-ring or ladder slots. Rules remain implemented
+  (PTCG_THREAT_RETREAT / PTCG_PRIZE_CLOSE, both default off) for future reference but are not promoted.
+  `analysis/u105_threat_prize_inert_check.md`.
 
 ### 4C. Confirmed or positive findings (real signal)
 
