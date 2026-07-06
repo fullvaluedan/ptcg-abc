@@ -94,6 +94,14 @@ The differentiator for the Strategy prize is not "we built an offline proxy." It
 
 ---
 
+## Implication: How Honest Measurement Compounds
+
+The four-attempt arc—three failures with diagnoses, one pass, then validation failure that was actually noise—represents the kind of careful, outcome-driven work the Strategy prize criterion measures. The "model approach" component is not about clever architecture; it is about measuring what actually transfers, admitting when it does not, fixing only the diagnosed flaw instead of tuning around it, and documenting the full chain so future work can build on it rather than repeat it.
+
+In a 30-day sprint to close a 672-point gap to the competition leader, the temptation to ship a ring-positive build on its first ladder read, or to deploy an offline proxy without a retrodict gate, or to blame a transfer "failure" without checking the underlying numbers, is real and understandable. This project's response—to preregister gates before building them, to diagnose instrument defects rather than dismissing results, to correct its own overstatements—is what distinguishes a trustworthy model approach from one that only looks good until the next run reveals it was noise all along.
+
+---
+
 ## Sources
 
 - Proxy calibration: `analysis/proxy_calibration.md`, `tools/loop_state.py`
