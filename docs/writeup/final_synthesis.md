@@ -84,13 +84,19 @@ This convergence—from instrument defects (U71 clone autopsy), to played-decisi
 
 ---
 
+## Robustness Check: The Importance of Confirmation Sample Size
+
+The ring's authority to block a candidate, earned after passing its own gate, comes with an unwritten second test: robustness to sample size. U104 (stacked ring run with three arms) cleared a ring-positive gate at n=40 per arm, promoting the yushin+ability+attack_first stack over trolley. The pre-registered confirmation run (U112, n=100 per arm) was intended to verify this gate was stable at a larger sample. Result: +9.0pp at n=100 vs +15.0pp at n=40 in the same ring, falling below the required +10.0pp threshold. This does not contradict the ring's decision authority (it still earned that); it instead documents a methodological lesson: a ring-positive read at n=20/40 sample size can be real without surviving to n=100, and gate confirmation at scale is worth the compute cost before ladder investment. The U104/U112 sequence—positive gate, followed by failed confirmation—is itself reportable: it shows the gate enforces an external standard (the bracket ring at calibration tau 0.857), but that enforcement is only as strong as the sample size used to test candidates against it.
+
+---
+
 ## Bottom Line: Discipline Over Luck
 
 Three distinct offline designs, of increasing sophistication and cost, were checked against the same ladder-truth bar and none cleared it—until the third failure's diagnosis was fixed and re-tested. The core claim this project can report: matching the offline proxy's opponent distribution to the actual distribution the ladder scores came from mattered more than any amount of added model sophistication. The proxies that were most expensive to build and most theoretically justified still landed at tau 0.429 because they were measuring performance against the wrong field.
 
-This pattern only has teeth paired with measurement discipline on the ladder side: the same-build noise model (396.7–691.5 span, ~295 points) that explodes the original M=60 margin showed that a single ladder read is too noisy to decide between small-delta builds. The ring provides an independent signal (a proxy trained on known opponents at a known rating band, retrodicting real ladder outcomes) that remains valid even when the ladder's own noise swamps confirmation attempts.
+This pattern only has teeth paired with measurement discipline on the ladder side: the same-build noise model (396.7–691.5 span, ~295 points) that explodes the original M=60 margin showed that a single ladder read is too noisy to decide between small-delta builds. The ring provides an independent signal (a proxy trained on known opponents at a known rating band, retrodicting real ladder outcomes) that remains valid even when the ladder's own noise swamps confirmation attempts. The U104/U112 confirmation failure further teaches that a ring-positive read at modest sample size (n=40) requires independent verification at larger scale (n=100) before resorting to expensive ladder validation.
 
-The differentiator for the Strategy prize is not "we built an offline proxy." It is: we built a machine-enforced pre-registration gate, enforced it across four structurally distinct designs, diagnosed and fixed failure modes at the instrument level rather than tuning around them, and learned that the biggest lever—opponent-pool match—was found only by diagnosing why an intuitive-sounding design failed. The Strategy prize asks for model approach. This is the approach: disciplined, quantifiable, failure-focused, and traceable.
+The differentiator for the Strategy prize is not "we built an offline proxy." It is: we built a machine-enforced pre-registration gate, enforced it across four structurally distinct designs, diagnosed and fixed failure modes at the instrument level rather than tuning around them, and learned that the biggest lever—opponent-pool match—was found only by diagnosing why an intuitive-sounding design failed. We further learned when and how that gate itself could fail at scale. The Strategy prize asks for model approach. This is the approach: disciplined, quantifiable, failure-focused, traceable, and self-checking.
 
 ---
 
