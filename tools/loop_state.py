@@ -748,9 +748,17 @@ def classify_dirs_per_build(dirs, ref_filter: list[str] | None = None) -> dict:
     return report
 
 
-def loss_distribution_from_dirs(dirs) -> dict:
-    """Shape classify_dirs into the loss_distribution block current.md expects."""
-    rep = classify_dirs(dirs)
+def loss_distribution_from_dirs(dirs, ref_filter=None) -> dict:
+    """Shape classify_dirs into the loss_distribution block current.md expects.
+
+    When ref_filter is provided (a list of submission refs), filters the loss
+    distribution to only episodes from those builds (U107 per-build ledger).
+    Otherwise, uses the full union of all episodes across dirs.
+    """
+    if ref_filter:
+        rep = classify_dirs_per_build(dirs, ref_filter=ref_filter)
+    else:
+        rep = classify_dirs(dirs)
     return {
         "games": rep.get("games", 0),
         "wins": rep.get("wins", 0),
@@ -760,6 +768,7 @@ def loss_distribution_from_dirs(dirs) -> dict:
         "top_bucket": rep.get("top_bucket"),
         "sample_size": rep.get("sample_size", 0),
         "sources": rep.get("sources", []),
+        "ref_filter": ref_filter or [],
     }
 
 
@@ -767,13 +776,21 @@ def loss_distribution_from_dirs(dirs) -> dict:
 # CLI: refresh the loss distribution, or show the target bucket / re-test list
 # --------------------------------------------------------------------------- #
 def _cmd_refresh(args) -> None:
-    dist = loss_distribution_from_dirs(args.dirs)
+    ref_filter = None
+    if args.ref_filter:
+        ref_filter = args.ref_filter.split(",") if isinstance(args.ref_filter, str) else args.ref_filter
+    dist = loss_distribution_from_dirs(args.dirs, ref_filter=ref_filter)
     data = read_current()
     data["loss_distribution"] = dist
     write_current(data)
-    print(f"current.md updated: top bucket = {dist['top_bucket']} "
-          f"over {dist['sample_size']} replays "
-          f"(W/D/L {dist['wins']}/{dist['draws']}/{dist['losses']})")
+    if ref_filter:
+        print(f"current.md updated (refs: {', '.join(ref_filter)}): "
+              f"top bucket = {dist['top_bucket']} over {dist['sample_size']} replays "
+              f"(W/D/L {dist['wins']}/{dist['draws']}/{dist['losses']})")
+    else:
+        print(f"current.md updated: top bucket = {dist['top_bucket']} "
+              f"over {dist['sample_size']} replays "
+              f"(W/D/L {dist['wins']}/{dist['draws']}/{dist['losses']})")
 
 
 def _cmd_target(args) -> None:
@@ -863,6 +880,9 @@ def main() -> None:
 
     rf = sub.add_parser("refresh", help="re-classify replays and update current.md's loss distribution")
     rf.add_argument("dirs", nargs="+", help="replay directories to classify")
+    rf.add_argument("--ref-filter", default=None,
+                    help="comma-separated submission refs to filter by (U107 per-build ledger); "
+                         "if provided, only episodes from these refs are classified")
 
     sub.add_parser("target", help="print the current top loss bucket from current.md")
 
