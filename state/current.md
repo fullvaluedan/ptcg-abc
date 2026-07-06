@@ -6,11 +6,11 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Top loss bucket (what this iteration targets)
 
-**early_collapse** over 815 classified replays (W/D/L 366/1/448).
+**early_collapse** over 818 classified replays (W/D/L 367/1/450).
 
 | bucket | losses |
 | --- | --- |
-| early_collapse | 301 |
+| early_collapse | 303 |
 | deckout | 69 |
 | bad_determinization | 35 |
 | deck_matchup | 29 |
@@ -928,19 +928,19 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "bad_determinization": 35,
       "deck_matchup": 29,
       "deckout": 69,
-      "early_collapse": 301,
+      "early_collapse": 303,
       "endgame_misplay": 14,
       "slow_search": 0
     },
     "draws": 1,
-    "games": 815,
-    "losses": 448,
-    "sample_size": 815,
+    "games": 818,
+    "losses": 450,
+    "sample_size": 818,
     "sources": [
       "data/replays"
     ],
     "top_bucket": "early_collapse",
-    "wins": 366
+    "wins": 367
   },
   "noise_model": {
     "basis": "tools/refit_noise_model.py statistical refit over 57 pooled same-build reads across heuristic+trolley (n=30, mean=456.4, stdev=59.2), heuristic+trolley-ability (n=27, mean=568.5, stdev=43.9): pooled residual stdev 52.0, worst observed residual 235.1. M set to the larger of 2-sigma and the worst residual, rounded up to nearest 10.",
