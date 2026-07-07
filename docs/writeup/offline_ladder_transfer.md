@@ -321,16 +321,17 @@ them could be explained by a single pilot-missing decision rule. None could,
 and each was closed for a specific, measured reason rather than abandoned on a
 hunch:
 
-- **RETREAT** (analysis/retreat_gap_conditional.md, 163 real expert decisions
-  analyzed): 89.1% of expert retreat decisions are a genuine threshold-miss on
-  active HP, not an ordering artifact, and 75.6% of those happen when the
-  active is at 90-100% HP (barely hurt), a condition the pilot checks correctly.
-  A plausible follow-on theory, that top players swap to a better bench matchup
-  regardless of active HP, was measured directly: when experts retreat a high-HP
-  active, they bring in a new active only 22.9% of the time with a better type
-  matchup than the outgoing one (analysis/matchup_delta.py). The missing signal
-  is not a simple energy/HP/matchup field but something about the game state
-  context the five measurable fields do not capture.
+- **RETREAT** (analysis/retreat_gap_conditional.md, 689 real expert decisions
+  from the 2026-07-02 dataset): 89.1% of expert retreat decisions are a genuine
+  threshold-miss on active HP, not an ordering artifact, and 75.6% of those
+  happen when the active is at 90-100% HP (barely hurt), a condition the pilot
+  checks correctly. A plausible follow-on theory, that top players swap to a
+  better bench matchup regardless of active HP, was measured directly: when
+  experts retreat a high-HP active, they bring in a new active only 22.9% of
+  the time with a better type matchup than the outgoing one
+  (analysis/deck_matchup_is_opponent_agnostic.md). The missing signal is not a
+  simple energy/HP/matchup field but something about the game state context the
+  five measurable fields do not capture.
 
 - **PROMOTE** (analysis/promote_gap_conditional.md, 91 post-knockout decisions):
   the pilot has no rule for promotion after opponent knockout (pure `_first_legal`).
