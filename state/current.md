@@ -223,9 +223,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "source": "analysis/final_scoring_semantics.md"
   },
   "in_flight": {
-    "board_reading": "486.2/570.4 (54339500 fresh roll, 54315802 prior restoration; 151k+ episode advance for 54339500, both ring-gated)",
+    "board_reading": "546.6/611.5 (54367075 ability floor restoration, 54365656 yushin_ito candidate; yushin_ito highest at 611.5)",
     "build": "none (TRACK L HOLDS)",
-    "note": "Board-checked 2026-07-05 (this iteration). Latest-2 pair: 54339500 (fresh roll, newest episode 83920026, public 486.2) and 54315802 (ring-restoration, no new episodes, public 570.4). Both ability builds (same tarball), ring-preferred per L9 noise recalibration. No settlement triggered; both within v3 pooled range (396.7-691.5, M=240). Per P3 POSTURE INVERSION, both slots occupied by ability builds; no free slot, no new TRACK L submission. PLAN FREEZE through 2026-08-16. TRACK L holds.",
+    "note": "Board-checked 2026-07-07. Latest-2 pair: 54367075 (ability floor restoration, newest episode 84585132, public 546.6) and 54365656 (yushin_ito candidate, newest episode 84572661, public 611.5). yushin_ito is current strongest at +65pp over ability. yushin_ito pre-registered M=240, N=30, settle-by 2026-07-18 (11 days remain). Both refs actively playing new episodes (84585k/84572k range). Settlement action: currently BAND (within M=240). No settlement triggered yet. Both slots occupied; no free slot to submit second strongest-pair copy. Per P3 POSTURE INVERSION goal (lock strongest pair by Aug 12-13), awaiting yushin_ito settlement decision or a free slot opening. PLAN FREEZE through 2026-08-16. TRACK L holds.",
     "ref": "n/a"
   },
   "ledger": [
