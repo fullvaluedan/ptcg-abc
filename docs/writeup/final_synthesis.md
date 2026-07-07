@@ -1,7 +1,7 @@
 # Pre-Registration Discipline and Offline-to-Ladder Transfer: A Kaggle Strategy Prize Report
 
 **Track:** Strategy (Model Approach)  
-**Word Count:** ~2,000
+**Word Count:** 1,906
 
 ## Executive Summary
 
@@ -25,7 +25,7 @@ The weakest option available—run a candidate against built-in opponents or sel
 
 ### Attempt 2: Move-Ranking Validator (Real Signal, Never Calibrated)
 
-`analysis/move_ranking_diverges_ability_gap.md` measured a different question: does our pilot choose the same move a top player would? Over 4,524 real MAIN-phase decisions from expert games, the heuristic agreed with expert exact choice only 21.2% overall. More important, it revealed a 0/554 blindspot on ABILITY decisions (the pilot had no code path to ever choose one), and this finding was real: fixing it shipped (+4.0pp on ladder). But the validator itself was never calibrated as a gate. Its own docstring documents why it should not be: it measures relative agreement, not absolute skill; offline agreement is not the ladder. It remained a useful filter (avoid overshooting on obvious misses) but never blocked a slot.
+`analysis/move_ranking_diverges_ability_gap.md` measured a different question: does our pilot choose the same move a top player would? Over 4,524 real MAIN-phase decisions from expert games, the heuristic agreed with expert exact choice only 21.2% overall. It revealed a 0/554 blindspot on ABILITY decisions (the pilot had no code path to choose one); fixing it shipped (+4.0pp on ladder). But the validator itself was never calibrated as a gate. It measures relative agreement, not absolute skill; offline agreement is not the ladder. It remained a useful filter but never blocked a slot.
 
 ### Attempt 3: Top-20 Clone Ring (tau 0.429, Clear Failure)
 
@@ -57,7 +57,7 @@ A prior attempt at learning top-player move patterns (`analysis/clone_quality.md
 
 3. Features were semantically blind: eight regex tags, no card identity, no energy costs, no evolution lines. Boss's Orders and all named effects were invisible.
 
-The same data was re-examined for structure: top players pick the *first option within their own action category* 53–72% of the time vs 33–45% for "first in the whole list." On meta_grimmsnarl alone, END_TURN (option 0) appears 0 of 13,019 times in position-based predictions, yet was the real played choice 556 times (4.3%). The data had learnable structure; the objective and features did not expose it.
+Re-examining the same data revealed structure: top players pick the *first option within their action category* 53–72% of the time vs 33–45% overall. On meta_grimmsnarl, END_TURN appears 0 of 13,019 times in position predictions yet was played 556 times (4.3%). The data had learnable structure; the objective and features did not expose it.
 
 This insight flowed into two shipped improvements:
 
@@ -105,9 +105,9 @@ The differentiator for the Strategy prize is not "we built an offline proxy." It
 
 ## Implication: How Honest Measurement Compounds
 
-The four-attempt arc—three failures with diagnoses, one pass, then validation failure that was actually noise—represents the kind of careful, outcome-driven work the Strategy prize criterion measures. The "model approach" component is not about clever architecture; it is about measuring what actually transfers, admitting when it does not, fixing only the diagnosed flaw instead of tuning around it, and documenting the full chain so future work can build on it rather than repeat it.
+The four-attempt arc—three failures with diagnoses, one pass, then validation failure that was noise—represents careful, outcome-driven work the Strategy prize measures. The "model approach" is not clever architecture; it is measuring what transfers, admitting when it does not, fixing only the diagnosed flaw, and documenting the chain for future work.
 
-In a 30-day sprint to close a 672-point gap to the competition leader, the temptation to ship a ring-positive build on its first ladder read, or to deploy an offline proxy without a retrodict gate, or to blame a transfer "failure" without checking the underlying numbers, is real and understandable. This project's response—to preregister gates before building them, to diagnose instrument defects rather than dismissing results, to correct its own overstatements—is what distinguishes a trustworthy model approach from one that only looks good until the next run reveals it was noise all along.
+In a 672-point sprint to the competition leader, the temptation to ship ring-positive builds on first reads or deploy unvetted proxies is real. This project's response—preregistering gates, diagnosing defects rather than dismissing results, correcting overstatements—distinguishes a trustworthy approach from noise.
 
 ---
 
