@@ -67,6 +67,12 @@ This insight flowed into two shipped improvements:
 
 ---
 
+## The Field-Prior Arc: Stretch Tier Ceiling Closed by Oracle Constraint (U109, 2026-07-07)
+
+The one mechanism rated to reach stretch-tier performance (800–950 rating) was opponent-model search: a learned prior over the opponent's deck, fed into determinized lookahead. A pre-registered oracle test (U109) checked whether even *perfect* opponent information—true decklist as prior—could beat the incumbent. Result: **delta +0.000** (33-0-7 record on both oracle-search and heuristic arms, n=40 each). An oracle prior ties; no learned prior can exceed it. This is not evidence opponent modeling is unimportant, only that the bottleneck lies elsewhere: the leaf evaluator, rollout policy, time allocation, or architectural ceiling. Improving the opponent model from "wrong" to "perfect" buys zero rating. The search lane is closed for this competition per the pre-registered kill criterion. Weeks 2–3 capacity reroutes to rule mining (U105–U107, complete), mirror-deck validation (U103, design-gated), and writeup focus. This finding (a methodological constraint, not a promotion) completes the measured account of what blocks further improvment.
+
+---
+
 ## Parallel Investigation: Category Mining Closes with Archetype Awareness
 
 While comprehension diagnosed clone defects and shipped two rules, a parallel mining effort (U82, `analysis/category_mining_v2.md`) tested single-field gaps on the move-ranking validator's low-agreement categories: RETREAT (0.0%), PROMOTE post-knockout (0.4%), and deck-search picks. Systematic expert-corpus checks on each:
