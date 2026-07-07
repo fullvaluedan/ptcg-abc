@@ -443,6 +443,27 @@ gate blocks U9c unless future work approaches the idea differently (more data,
 richer features, different architecture). This is not evidence the idea is
 wrong, only that this implementation did not meet its own bar.
 
+## The Oracle Bound Test: Search Ceiling Constraint (U109, 2026-07-07)
+
+While investigating whether search improvements could close the remaining gap
+to the ladder leader, the project built an oracle test (U109, `analysis/u109_oracle_
+bound_test.md`): a determinized search agent given the *true* opponent decklist
+as perfect prior information, the best possible opponent model available in
+principle. Tested against the calibrated bracket ring (the same 9-opponent set),
+this oracle-search arm was measured against the best heuristic stack already
+validated in production. Result: **delta +0.000** (33-0-7 record on both arms,
+n=40/arm). The oracle search tied the heuristic baseline exactly; the ceiling
+for learned field-prior search cannot exceed an oracle prior, so learned priors
+can only be at or below the heuristic's current performance. This is not evidence
+that opponent modeling is unimportant, only that improving it from "wrong" to
+"perfect" does not move the needle. The bottleneck for search improvement lies
+elsewhere: the leaf evaluator, the rollout policy being the same heuristic it is
+being compared against, time-budget allocation, or a genuine architectural
+ceiling given a strong rollout policy. None of these are addressed by better
+opponent priors. This finding (a methodological lesson, not a promotion) closes
+the search improvement line for the competition and redirects capacity toward
+rule-mining and calibrated-ring validation instead.
+
 Combined with the pre-registration protocol and the same-build noise band
 (itself openly re-fit when real resubmission data showed the initial estimate
 was roughly five times too narrow, and re-fit again when further resubmissions
@@ -471,6 +492,11 @@ transfer from offline testing to a competitive ladder:
 - **Small-sample offline predictions require validation at scale before ladder
   submission**: A ring prediction at n=20/40 sample size, even with a stable
   delta across independent runs, may not generalize to broad ladder matchmaking.
+- **Search ceilings are hard constraints, not just tuning knobs**: The oracle
+  bound test, which handed search the true opponent decklist instead of a learned
+  guess, tied the heuristic baseline exactly. No learned opponent model can
+  exceed an oracle prior; if the oracle buys zero improvement, neither can any
+  field-calibrated substitute.
 
 Each of these outcomes (three failures with diagnoses, a pass, a subsequent
 ladder read too small to confirm or refute the pass, and a re-pointing of
