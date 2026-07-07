@@ -180,11 +180,17 @@ P9. 30-DAY ROADMAP (2026-07-06): docs/ROADMAP-30D.md is the authoritative plan t
          that are unresolvable without this).
     U105 threat/prize rules per P8 (each rule separately gated: fires-vs-inert, gauntlet direction,
          hard-ring delta more than +5pp).
-    U109 oracle bound test is a COMPUTE SESSION job, not a loop unit (inject ring clones' true decklists
-         into determinize's opponent_prior, one run, upper-bounds the whole search lane; kill date
-         Jul 13). U113 field-prior search (weeks 2-3) only starts if U109 passes. U106/U107/U103/U102
-         continue per the roadmap's week-2-3 table. Escalate to Dan: the Rules 2.2.b Submissions-page
-         screenshot check (DAN-1) and every pair/exploit design decision (P5).
+    U109 oracle bound test: DONE 2026-07-07, FAIL, CLOSED. Oracle-search (determinize given each ring
+         opponent's true decklist as opponent_prior, the best possible opponent model) tied the U112-
+         confirmed stacked incumbent exactly (33-0-7 both arms, n=40/arm, delta +0.000) against the
+         pre-registered +0.05 gate. Per docs/ROADMAP-30D.md section 6's Jul 13 kill criterion (met six
+         days early, with an unambiguous zero-delta margin that needs no larger-n rerun): the SEARCH LANE
+         IS DEAD for this competition. Do NOT start U113 (field-prior search, a/b/c) on the loop; a
+         learned prior can only be worse than the oracle already tested. Analysis: analysis/u109_oracle_
+         bound_test.md, findings.md 4B. Week-2-3 capacity reroutes to U106-driven rule mining, U103, and
+         U102 per the roadmap's own reallocation plan. U106/U107/U103/U102 continue per the roadmap's
+         week-2-3 table. Escalate to Dan: the Rules 2.2.b Submissions-page screenshot check (DAN-1) and
+         every pair/exploit design decision (P5).
 
 ## RESUME STATE (2026-07-03): TWO TRACKS. Do not conflate them.
 An audit found the loop had been optimizing an agent that does NOT ship: the shipped ladder agent is

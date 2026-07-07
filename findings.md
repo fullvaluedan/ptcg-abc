@@ -210,6 +210,16 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   strength; phase2 legality validation completes the mechanical work before step 4 (ring scoring) and allows
   data-driven reassessment of that conclusion once scores arrive. `analysis/top_mined_candidates_legality_audit.md`,
   `analysis/mined_candidates_dedup_report.md`.
+- search_ceiling_above_heuristic (U109 oracle bound test, 2026-07-07): handed determinized search the ring
+  opponent's ACTUAL true decklist as `opponent_prior` (the best possible opponent model, an oracle, not a
+  learned approximation), then measured it same-run against the U112-confirmed stacked incumbent
+  (heuristic+yushin+ability+attack_first) on the same 9-opponent bracket ring at n=40/arm. Result: an exact
+  tie, 33-0-7 both arms, delta +0.000, against a pre-registered +0.05 gate. Since a learned field prior
+  (weeks 2-3's planned U113a) can only ever approximate this oracle and never exceed it, and the oracle
+  itself does not clear the incumbent, no amount of prior-modeling effort can make search beat the heuristic
+  on this ring. This closes the search lane per the Jul 13 kill criterion in `docs/ROADMAP-30D.md` section 6,
+  six days early and with an unambiguous margin (the delta being exactly zero, not merely under the gate,
+  means no larger-n rerun is needed to settle it). `analysis/u109_oracle_bound_test.md`.
 
 ### 4C. Confirmed or positive findings (real signal)
 
