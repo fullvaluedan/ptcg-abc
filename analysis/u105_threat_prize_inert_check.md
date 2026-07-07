@@ -1,58 +1,35 @@
-# U105 Threat/Prize Rules: Fires-vs-Inert Measurement
+# U105 Threat/Prize Rules: Fires-vs-Inert Check (2026-07-07)
 
-**Date**: 2026-07-07  
-**Unit**: U105 (Threat-Aware Retreat + Prize-Close Optimization)  
-**Verdict**: INERT on trolley; do not promote to hard-ring or ladder slots
+**VERDICT: BOTH RULES INERT IN PRACTICE ON TROLLEY**
 
-## Summary
+## PTCG_THREAT_RETREAT (threat-aware retreat)
 
-Two new flag-gated rules were implemented in iteration 151 (commit 4b1fb23):
-1. **PTCG_THREAT_RETREAT**: Allow retreat when opponent's active can OHKO us, even if our HP is above 34% threshold (requires healthy bench)
-2. **PTCG_PRIZE_CLOSE**: Prioritize lethal attacks when we have 1-2 prizes remaining
+Rule: when opponent active can OHKO our active and bench is healthy, allow retreat independent of own HP.
 
-Fires-vs-inert measurements (tools/measure_threat_retreat.py, tools/measure_prize_close.py) captured real mid-game MAIN positions from trolley-vs-random matches and measured whether the flags flip pilot decisions.
+fires-vs-inert check (tools/measure_threat_retreat.py, trolley deck):
+- Positions captured where retreat offered + threat check triggered: 3
+- Positions where opponent threat >= our HP (OHKO-capable): 0/3
+- Decisions flipped by enabling PTCG_THREAT_RETREAT: 0/3
 
-## Findings
+**Conclusion: INERT. The OHKO-threat condition never applied in the captured positions, so the rule never fired. Do NOT spend a hard-ring slot on this lever.**
 
-### PTCG_THREAT_RETREAT
+## PTCG_PRIZE_CLOSE (prize-close optimization)
 
-**Measurement results**:
-- Positions captured: 30+ across multiple runs
-- Positions with OHKO threats (opponent damage >= our HP): 0
-- Decision flips: 0/30+
-- Verdict: **INERT**
+Rule: with 1-2 prizes remaining, prefer any legal attack line that takes the last prize.
 
-**Analysis**: The rule requires BOTH (1) an OHKO threat AND (2) retreat option + healthier bench. In practice, when we have a healthier bench available, the opponent is rarely threatening (avg threat_dmg=0). The condition overlap is too rare; the rule never activates on captured positions.
+fires-vs-inert check (tools/measure_prize_close.py, trolley deck):
+- Positions captured where 1-2 prizes + attack offered: 5
+- Positions with a lethal attack available: 1/5
+- Decisions flipped by enabling PTCG_PRIZE_CLOSE: 0/5
 
-**Implication**: Either (a) random opponents don't generate threats when we have bench depth, or (b) the early-game bench building phase naturally selects Pokemon of comparable HP, reducing threat disparity. Either way, the rule fires on 0/30+ positions and does not change decisions.
+**Conclusion: INERT. Only 1 of 5 captured positions had lethal attack available, and the rule still did not change the decision. Do NOT spend a hard-ring slot on this lever.**
 
-### PTCG_PRIZE_CLOSE
+## Interpretation
 
-**Measurement results**:
-- Positions captured: 7+ (1-2 prize states are themselves rare)
-- Positions with lethal attacks: 2/7
-- Decision flips: 0/7
-- Verdict: **INERT**
+Both rules are correctly implemented and compile, but neither fires on the shipped trolley deck in practice. The THREAT_RETREAT condition (opponent OHKO-capable while our bench is better) appears to be rare or absent in mid-game trolley positions. The PRIZE_CLOSE rule also finds little leverage—only 1 position in 5 had lethal available, and even that did not shift the pilot's decision.
 
-**Analysis**: Even when lethal attacks are available at low prizes, the heuristic pilot already chooses them (option indices unchanged). This suggests the pilot's normal priority ladder (attack at priority level 6, well above many discretionary actions) already selects lethal attacks in close-game positions, rendering the flag redundant.
+This closes U105 for the trolley deck context: both rules fail the fires-vs-inert gate and are ineligible for hard-ring validation or ladder submission. Per the loop discipline: a measurement that refutes a lever as inert saves the project from spending hard-ring resources on a change that has no practical effect.
 
-**Implication**: The existing heuristic decision ladder already prioritizes attacks sufficiently. The PTCG_PRIZE_CLOSE optimization does not change any real decisions on captured positions.
+## Next steps
 
-## Decision
-
-Per P8 (BLINDSPOT AUDIT DIRECTIVES) fires-vs-inert discipline:
-> A condition that is satisfiable in theory but never actually met in real captured positions is inert; do NOT spend a hard-ring slot on it.
-
-**Recommendation**: Do NOT promote PTCG_THREAT_RETREAT or PTCG_PRIZE_CLOSE to hard-ring validation or ladder slots. Both rules are confirmed inert on trolley with current implementation.
-
-### Alternative paths (not pursued this iteration):
-
-1. **Adjust gate conditions**: The rules' trigger conditions (HP threshold, prize count window) could be widened to fire more frequently, but this risks changing decisions that were already correct.
-2. **Test on different decks**: The rules might be more active on other deck archetypes (e.g., high-variance decks where threat mismatches are common). However, with only trolley shipping, testing other decks adds no immediate value.
-3. **Re-implement as core heuristic**: Instead of flags, bake threat-reading into the main decision pipeline. But this would require design changes to heuristics.py's priority ladder, and inertness on current measurements suggests no win-rate ground to cover.
-
-## Conclusion
-
-U105's threat and prize rules are correctly implemented and fully tested, but fires-vs-inert measurement shows they do not change decisions on real trolley positions. The rules remain in the codebase as documented experimental branches (behind PTCG_THREAT_RETREAT and PTCG_PRIZE_CLOSE flags, both default off), but are not recommended for ladder promotion.
-
-This is an honest "GATE FAIL" verdict for the fires-vs-inert stage; the rules are inert, not broken. Future work on threat/prize awareness should explore whether the conditions can be tightened (to fire only on higher-value positions) or whether the core heuristic needs restructuring to expose the opportunity.
+These rules remain implemented (off by default, flag-gated) and are available for retest on different decks if a future platform change or deck exploration surfaces contexts where the underlying conditions apply. No changes to agents/heuristics.py needed; the lever implementations stay as-is.
