@@ -199,6 +199,17 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   fires-vs-inert discipline: inert rules do not receive hard-ring or ladder slots. Rules remain implemented
   (PTCG_THREAT_RETREAT / PTCG_PRIZE_CLOSE, both default off) for future reference but are not promoted.
   `analysis/u105_threat_prize_inert_check.md`.
+- deck_exploration_phase2_legality_validation (U39 step 3, 2026-07-07): following the deduplication of the
+  800+-rated mining dataset (which extracted 26 genuinely new candidate decks), the top 5 by play count
+  (THIRD PTCG Club 19 plays, disgruntled.coffee 18, XP3RiX 12, kenkoooo 11, chamboabi 10) were validated
+  for legality using `tools/deck_validate.py` against the official 60-card, 4-copy, ACE SPEC 1, and engine
+  compatibility checks. All 5/5 PASS. These candidates are queued for ring scoring via external ptcgcompute
+  (n=40/arm vs trolley baseline 0.85), with advancement to pre-registration only if a candidate clears the
+  +0.10 ring delta gate on the same scale as candidate_yushin_ito in step 2. The phase2 verdict (step 2,
+  section 4B) concluded elite-tier mining does not yield ring-beatable decks at the heuristic's current play
+  strength; phase2 legality validation completes the mechanical work before step 4 (ring scoring) and allows
+  data-driven reassessment of that conclusion once scores arrive. `analysis/top_mined_candidates_legality_audit.md`,
+  `analysis/mined_candidates_dedup_report.md`.
 
 ### 4C. Confirmed or positive findings (real signal)
 
