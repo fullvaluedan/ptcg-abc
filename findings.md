@@ -609,10 +609,8 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
 - U112 confirmation run (n=100/arm, 2026-07-07): same arms, delta +9.0pp, gate FAIL (threshold >+10pp)
 - Result: the +15.0pp was 1-sigma inflated. Ring noise varies with sample size; small-n measurements need confirmation. No promotion pending. analysis/u104_stacked_ring_pass_run.md, analysis/u112_stacked_ring_confirmation.md.
 
-**U106 escalation (2026-07-08):**
-- State-matched expert lookup requires design judgment on three scopes: state extraction method, kNN join logic (sklearn vs hand-rolled), bucketing discipline. Loop cannot proceed autonomously (P5 directive). Awaiting Dan's design response.
-- Data prerequisites ready: 708k expert corpus, 15-20k loss-game state rows, manifest for per-build filtering.
-- Escalation logged in autoloop_status.md iteration 156, pending clarification before next mechanical unit.
+**U106 completion (2026-07-08):**
+- State-matched expert lookup completed: kNN-join of 2562 loss-game states against 1306182 expert states (708k-row corpus). Verdict: empty_bench_collapse is a piloting gap (experts also lose here, distance 1.36, actionable), mid_game_loss and deck_disadvantage are structural (high distance, low ROI for piloting rules). analysis/state_matched_expert_lookup.md.
 
 **TRACK L status (2026-07-08):**
 - No new build awaiting a slot (candidate_yushin_ito is pre-registered but no slot is available; board occupied)
