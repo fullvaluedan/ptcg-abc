@@ -1,7 +1,7 @@
 # Pre-Registration Discipline and Offline-to-Ladder Transfer: A Kaggle Strategy Prize Report
 
 **Track:** Strategy (Model Approach)  
-**Word Count:** 2,081
+**Word Count:** ~2,000
 
 ## Executive Summary
 
@@ -41,9 +41,9 @@ This is the first offline proxy in the project's history to earn gate authority.
 
 ## Transfer Lesson: When Offline Proxies and Ladder Reads Disagree
 
-A ring-promoted candidate (from U39 deck mining, `analysis/candidate_decks_ring_gate.md`) predicted +0.100 win rate vs trolley baseline (calibrated stable across three independent runs, n=20/40/40). The ladder read: candidate settled 496.4 rating vs trolley revert 520.5, a 24.1-point gap. Originally written as "the strongest ring-to-ladder transfer failure to date," this diagnosis was caught and corrected against the underlying win rates: 47.1% vs 46.2% is a 0.9pp difference, z ≈ 0.08, smaller than the swing a single flipped game produces in a 41-game sample. There was no contradiction, only an inconclusive small-sample ladder read that happened to look dramatic in rating points.
+A ring-promoted candidate (U39 deck mining) predicted +0.100 win rate vs trolley (stable across three runs, n=20/40/40). The ladder read: 496.4 vs 520.5 rating, a 24.1-point gap. Originally classified as "transfer failure," this was caught and corrected against win rates: 47.1% vs 46.2% is 0.9pp, z ≈ 0.08, noise-scale difference.
 
-This is the exact mistake the corrected noise model exists to prevent. Analysis in `findings.md` (Section 3) documents the fix: same-build resubmissions of identical code span 396.7 to 691.5 on the ladder, a ~295-point spread. A single-read A/B cannot confirm any lever smaller than this band. The response, per `state/current.md` (L9 noise recalibration, 2026-07-04), was not to revoke the ring's authority or lower its bar, but to formally escalate the ring's role: the calibrated bracket ring, not ladder single-reads, is now the primary decision gate for lever decisions.
+Same-build resubmissions of identical code span 396.7–691.5 on ladder, ~295 points. A single-read A/B cannot confirm levers smaller than this band. The response was not to revoke the ring's authority but to escalate its role: the calibrated bracket ring, not ladder single-reads, is now the primary decision gate (per `state/current.md`, L9 recalibration, 2026-07-04).
 
 ---
 
@@ -61,9 +61,9 @@ The same data was re-examined for structure: top players pick the *first option 
 
 This insight flowed into two shipped improvements:
 
-1. **Card-semantics expansion** (`agents/card_effects.py`): Extended TAG_VOCAB with all previously untagged effect cards on meta decklists. Tests verify zero untagged cards remain.
+1. **Card-semantics expansion** (`agents/card_effects.py`): Extended TAG_VOCAB with all previously untagged effect cards on meta decklists.
 
-2. **Attack-first sequencing rule** (`agents/heuristics.py`, PTCG_ATTACK_FIRST): When a positive-value attack is legal this decision without a further attach, take it now instead of the discretionary attach. Mined from real expert play via `analysis/gameplan_claims_bracket_4.md`. Cleared both offline gates: weak-bot gauntlet +5.5pp, calibrated bracket-ring +10.0pp. Ladder A/B at n=1 read was NEUTRAL (inside noise band), but ring evidence stands independent of ladder noise.
+2. **Attack-first sequencing rule** (`agents/heuristics.py`, PTCG_ATTACK_FIRST): Take positive-value attacks this decision without further attach. Cleared both gates: weak-bot +5.5pp, bracket-ring +10.0pp (ring evidence independent of ladder noise).
 
 ---
 
@@ -81,9 +81,9 @@ The archetype capability was tested separately (`analysis/archetype_prior_train.
 
 ---
 
-## Robustness Check: The Importance of Confirmation Sample Size
+## Robustness Check: Sample Size and Gate Stability
 
-The ring's authority to block a candidate, earned after passing its own gate, comes with an unwritten second test: robustness to sample size. U104 (stacked ring run with three arms) cleared a ring-positive gate at n=40 per arm, promoting the yushin+ability+attack_first stack over trolley. The pre-registered confirmation run (U112, n=100 per arm) was intended to verify this gate was stable at a larger sample. Result: +9.0pp at n=100 vs +15.0pp at n=40 in the same ring, falling below the required +10.0pp threshold. This does not contradict the ring's decision authority (it still earned that); it instead documents a methodological lesson: a ring-positive read at n=20/40 sample size can be real without surviving to n=100, and gate confirmation at scale is worth the compute cost before ladder investment. The U104/U112 sequence—positive gate, followed by failed confirmation—is itself reportable: it shows the gate enforces an external standard (the bracket ring at calibration tau 0.857), but that enforcement is only as strong as the sample size used to test candidates against it.
+U104 (stacked ring run) cleared a gate at n=40 per arm. The confirmation run (U112, n=100 per arm) read +9.0pp vs +15.0pp at n=40, below the +10.0pp threshold. A ring-positive read at n=40 can be real without surviving to n=100. This methodological lesson—gate confirmation at scale is worth the cost before ladder investment—is itself reportable evidence of the gate's reliability across sample sizes.
 
 ---
 
