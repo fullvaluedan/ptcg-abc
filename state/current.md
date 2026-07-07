@@ -173,6 +173,8 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 441.1 | 0 | Board check 2026-07-04 (this iteration): 441.1, BREAKING a thirteen-check freeze (new episode id 83782915, up from the long-frozen 83768597). Small same-build drift (443.1 -> 441.1), well within the v3 pooled range (heuristic+trolley family mean 456.4, stdev 59.2). Plain king-copy floor; no action taken (no active pre-registration for this slot). |
 | heuristic+trolley-ability (floor restoration) | n/a | n/a | 563.8 | 0 | Board check 2026-07-05: 563.8, BREAKS the eighth-check freeze (down from 602.4). tools/scout.py episodes confirms new games played: newest episode id advanced from the frozen 83776251 to 83878807 (8 new completed episodes). Within the v3 pooled range, no new low/high. Ring-gated per L9; no action taken. |
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 422.2 | 0 | Board check 2026-07-05: 422.2, BREAKS the thirteenth-check-plus freeze (down from 441.1). tools/scout.py episodes confirms new games played: newest episode id advanced from 83782915 to 83894390 (8 new completed episodes). Slightly below the prior observed low (423.5) but within the v3 pooled noise band (M=240 sized to a worst residual of 235.1, refit ce4e928). Plain king-copy floor; no action taken. |
+| heuristic+trolley-ability (floor restoration) | n/a | n/a | 546.6 | 0 | Board check 2026-07-07 (iteration 185): 546.6 (unchanged from prior checks). Within the v3 pooled range, no new low/high. Ring-gated per L9; no action taken. |
+| heuristic+candidate_yushin_ito | n/a | n/a | 606.9 | 0 | Board check 2026-07-07 (iteration 185): 606.9 (drifted down from 611.5, -4.6pp same-build noise). Within pre-registered M=240 BAND (diff +60.3pp vs ability floor 546.6, well inside M=240). Settlement window remains 2026-07-18 (10 days remain). Ring-gated per L9; no action taken. |
 
 ```json STATE
 {
@@ -223,9 +225,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "source": "analysis/final_scoring_semantics.md"
   },
   "in_flight": {
-    "board_reading": "546.6/611.5 (54367075 ability floor restoration, 54365656 yushin_ito candidate; yushin_ito highest at 611.5)",
+    "board_reading": "546.6/606.9 (54367075 ability floor restoration, 54365656 yushin_ito candidate; yushin_ito highest at 606.9)",
     "build": "none (TRACK L HOLDS)",
-    "note": "Board-checked 2026-07-07. Latest-2 pair: 54367075 (ability floor restoration, newest episode 84585132, public 546.6) and 54365656 (yushin_ito candidate, newest episode 84572661, public 611.5). yushin_ito is current strongest at +65pp over ability. yushin_ito pre-registered M=240, N=30, settle-by 2026-07-18 (11 days remain). Both refs actively playing new episodes (84585k/84572k range). Settlement action: currently BAND (within M=240). No settlement triggered yet. Both slots occupied; no free slot to submit second strongest-pair copy. Per P3 POSTURE INVERSION goal (lock strongest pair by Aug 12-13), awaiting yushin_ito settlement decision or a free slot opening. PLAN FREEZE through 2026-08-16. TRACK L holds.",
+    "note": "Board-checked 2026-07-07 iteration 185. Latest-2 pair: 54367075 (ability floor restoration, public 546.6) and 54365656 (yushin_ito candidate, public 606.9, drifted -4.6pp from 611.5). yushin_ito is current strongest at +60.3pp over ability. yushin_ito pre-registered M=240, N=30, settle-by 2026-07-18 (11 days remain). Settlement action: currently BAND (within M=240). No settlement triggered yet. Both slots occupied; no free slot to submit second strongest-pair copy. Per P3 POSTURE INVERSION goal (lock strongest pair by Aug 12-13), awaiting yushin_ito settlement decision or a free slot opening. PLAN FREEZE through 2026-08-16. TRACK L holds.",
     "ref": "n/a"
   },
   "ledger": [
