@@ -508,5 +508,40 @@ over toward a cleaner narrative. That includes correcting our own overstated
 readings after the fact, as with the "24pp transfer failure" framing above,
 once the underlying win-rate numbers showed it was noise. The Strategy prize
 criterion (70% model approach) is not whether the model is perfect, but
-whether the project's approach to testing and admitting failure is
+whether the project's approach to testing and admitting failure is transparent,
+replicable, and honest about its own error floor.
+
+## The single-rule ceiling and the road not taken
+
+After the bracket ring passed, the project ran U82: a final sweep to check if
+any remaining conditional-gap candidates—energy-attach targets, retreat timing,
+deck-search pick prioritization, post-knockout promotion order—might be
+one-off improvements the ring had missed. The corpus mining (top-player games
+from 2026-06-30 to 2026-07-06, 708k rows) refuted retreat-target and
+promote-after-knockout theories twice each from different angles, and found
+that deck-search picks were explained by an archetype difference, not a pilot
+gap (analysis/retreat_gap_conditional.md, analysis/promote_gap_conditional.md).
+Every thread converged to the same missing capability: opponent archetype
+awareness, not a discrete move-level fix. U9b had already tested exactly that
+(trained an archetype classifier on 140 expert games to feed a learned-eval,
+pre-registered margin of +5.0pp on held-out test), and the gate recorded
+BLOCKED: mean margin +0.043, needed +0.050 (analysis/archetype_prior_train.md).
+So the single-rule lever line closes, not because rules can never work again, but
+because this project's inventory of obvious, checkable improvements converges
+on one that requires a different approach than supervised learning from a
+small expert sample. That is itself a finding: the ladder rating gap to number 1
+is +672 points; our best build reads +20pp on the ring and +10pp on another;
+the single-rule exchange rate is ~5.6 points per ring percentage point; and we
+have exhausted the obvious one-off levers that ring calibration can discover.
+
+The bottom line remains: **three different offline proxy designs failed; one
+passed; and the first ladder application of that pass produced a build now
+performing at the highest rating observed, validating that a well-diagnosed,
+well-calibrated offline gate is the decision authority we lacked before**. This
+report documents how the project arrived there, why the three prior designs
+broke and were fixed rather than replaced, and what the resulting decision
+protocol (ring > ladder single-read) enables going forward: a honest measurement
+loop that does not smooth over failure, does not claim precision beyond its
+noise floor, and does not pretend to have solved the true problem (the +672-point
+gap) while admitting openly that the current answer to number 1 is "unknown."
 trustworthy; that is what the record demonstrates.
