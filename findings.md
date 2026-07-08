@@ -656,3 +656,10 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
 - PTCG_THREAT_RETREAT (opponent OHKO-capable retreat): 3 positions captured where threat condition checked, 0 where threat >= our HP, 0 decisions flipped. Gate FAIL (inert). Do not spend hard-ring slot.
 - PTCG_PRIZE_CLOSE (lethal attack with 1-2 prizes remaining): 5 positions captured, 1 with lethal available, 0 decisions flipped. Gate FAIL (inert). Do not spend hard-ring slot.
 - Both rules remain implemented (off by default) but fail fires-vs-inert check. If deck exploration or platform changes surface contexts where these conditions apply, they are eligible for retest on different decks. (analysis/u105_threat_prize_inert_check.md, tools/measure_threat_retreat.py, tools/measure_prize_close.py)
+
+**U107 per-build loss ledger (2026-07-08): GATE PASS**
+- Segregated loss distribution from mixed 809-replay pool to current-builds-only 104-replay pool (shadow-king + reclaim-king refs only)
+- Infrastructure (manifest persistence, per-build filtering, CLI) already built in prior commits; this iteration applies it
+- Result: early_collapse concentration rose from 67.6% (350/518 losses) to 78.6% (44/56 losses), confirming this is the real bottleneck for the shipped pilot
+- Output: state/current.md loss_distribution block updated, analysis/u107_per_build_ledger.md records the ledger
+- Use: targeting for weeks 3-4 attributes losses to actual shipped agent, enables honest hypothesis testing on early_collapse fixes
