@@ -1,7 +1,7 @@
 # Pre-Registration Discipline and Offline-to-Ladder Transfer: A Kaggle Strategy Prize Report
 
 **Track:** Strategy (Model Approach)  
-**Word Count:** 2,007
+**Word Count:** 1,979
 
 ## Executive Summary
 
@@ -13,7 +13,7 @@ This report documents one thesis: disciplined offline proxy development, where p
 
 Every offline proxy in this project started refused by default. None earned the right to make ladder decisions without first clearing a pre-registered gate: **retrodict the ordering of six known ladder scores (heuristic+trolley 569.6, heuristic+benchguard 554.5, search+trolley 514.7, meta_grimmsnarl 510.1, trolley_thick 446.2, meta_archaludon 382.5) at Kendall tau >= 0.7**.
 
-This rule is machine-enforced, not advisory: `tools/loop_state.py check-gate --proxy <name>` returns refused unless a passing calibration report exists. The gate survived unchanged across all four attempts because it measures something simple and hard to game: can the proxy reproduce a real ladder result we already know the answer to? If yes, it has earned the right to block (refuse to ship) a new candidate. If no, it stays refused regardless of other virtues. Proxies are never trusted to promote—only to refuse a bad decision, after proving they can reproduce known facts.
+This rule is machine-enforced, not advisory: `tools/loop_state.py check-gate --proxy <name>` returns refused unless a passing calibration report exists. The gate survived unchanged across all four attempts because it measures something simple and hard to game: can the proxy reproduce a real ladder result we already know the answer to? If yes, it has earned the right to block (refuse to ship) a new candidate. If no, it stays refused regardless of other virtues. Proxies only refuse, after proving they retrodict known facts.
 
 ---
 
@@ -51,13 +51,13 @@ On the ladder, yushin_ito read 496.4 vs 520.5, initially flagged as a "transfer 
 
 A prior attempt at learning top-player move patterns (`analysis/clone_quality.md`, U71) collapsed: three different model families (linear, boosted tree, richer features) all picked the first legal option 100% of the time. The recorded verdict: "top-20 play is too subtle to imitate." An autopsy found three independent instrument defects, not unlearnable skill:
 
-1. The training objective's zero-risk optimum *was already first-legal*. Every attempt used pointwise log-loss. First-legal clears 33–45% accuracy per family before any fitting, so deviating from position only looks worse. Verified directly: meta_grimmsnarl 13,019 decisions, model output 0 every time, coefficients non-degenerate but powerless against the position weight. Intrinsic ceiling at first-legal, not a learning failure.
+1. The training objective's zero-risk optimum *was already first-legal*. Every attempt used pointwise log-loss. First-legal clears 33–45% accuracy per family before any fitting, so deviating from position only looks worse. Verified: meta_grimmsnarl output 0 of 13,019 times; coefficients powerless vs position weight. Intrinsic ceiling, not failure.
 
 2. The baseline (opt_is_first, opt_index_norm) was a feature while the gate measured margin over that baseline. The model was given a direct representation of what it was trying to outperform.
 
 3. Features were semantically blind: eight regex tags, no card identity, no energy costs, no evolution lines. Boss's Orders and all named effects were invisible to the model.
 
-Re-examining the same data revealed structure: top players pick the *first option within their action category* 53–72% of the time vs 33–45% overall. On meta_grimmsnarl, END_TURN appears 0 of 13,019 times in position predictions yet was played 556 times (4.3%). The data had learnable structure; the objective and features did not expose it.
+Re-examining the same data revealed structure: top players pick the *first option within their action category* 53–72% of the time vs 33–45% overall. END_TURN: 0 in predictions, 556 in play (4.3%). The data had learnable structure; the objective and features did not expose it.
 
 This insight flowed into two shipped improvements:
 
