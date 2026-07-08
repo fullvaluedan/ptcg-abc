@@ -75,7 +75,7 @@ The one mechanism rated to reach stretch-tier performance (800–950 rating) was
 
 ## Parallel Investigation: Category Mining Closes with Archetype Awareness
 
-While comprehension diagnosed clone defects and shipped two rules, a parallel mining effort (U82, `analysis/category_mining_v2.md`) tested single-field gaps on the move-ranking validator's low-agreement categories: RETREAT (0.0%), PROMOTE post-knockout (0.4%), and deck-search picks. Systematic expert-corpus checks on each:
+While comprehension diagnosed clone defects and shipped two rules, a parallel mining effort (U82) tested single-field gaps on the move-ranking validator's low-agreement categories: RETREAT, PROMOTE post-knockout, and deck-search picks. Systematic expert-corpus checks on each (`analysis/retreat_gap_conditional.md`, `analysis/promote_gap_conditional.md`):
 
 - **RETREAT** (163 decisions): 89.1% of expert retreats are active-HP misses, not position-dependent. No bench-matchup signal found.
 - **PROMOTE post-knockout** (91 decisions): no consistent signal ranked promoted benches above the pilot's first choice.
