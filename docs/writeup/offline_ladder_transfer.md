@@ -185,8 +185,8 @@ despite the ambiguous initial ladder read, and a fresh ring run (2026-07-07,
 iteration 154) re-confirmed the ring's advantage at +0.15 delta (n=20/arm per
 candidate, analysis/u39_ring_scores_analysis.md). Upon resubmission to the
 ladder (2026-07-07), the candidate climbed to 611.5 and is currently the
-strongest active build on the scored board at 606.9 (as of 2026-07-08, iteration
-178, drifting within M=240 BAND toward settlement by 2026-07-18). This arc—ring
+strongest active build on the scored board at 626.4 (as of 2026-07-08 board check,
+drifting within M=240 BAND toward settlement by 2026-07-18). This arc—ring
 prediction that initially appeared contradicted by ladder noise, recalibration
 toward ring authority, fresh ring confirmation, and now the highest-performing
 build on ladder—validates the L9 decision to treat the calibrated ring as the
