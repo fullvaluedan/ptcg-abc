@@ -12,45 +12,45 @@ game minus this window are dropped before matching).
 
 | rank | team | rating | corpus games | corpus win rate |
 |---|---|---|---|---|
-| 1 | Majkel1337 | 1147.5 | 638 | 58% |
-| 2 | Yushin Ito | 1132.0 | 433 | 59% |
-| 3 | bono | 1119.9 | 585 | 58% |
-| 4 | Rmy | 1103.7 | 443 | 51% |
-| 5 | THIRD PTCG Club | 1100.3 | 286 | 48% |
-| 6 | nasuo445 | 1100.1 | 688 | 54% |
-| 7 | WinDecks | 1093.3 | 265 | 53% |
-| 8 | tonakaiiii | 1091.1 | 144 | 42% |
-| 9 | senkin13 | 1085.5 | 3 | 33% |
-| 10 | wkonishi | 1083.2 | 16 | 25% |
-| 11 | zoroark190 | 1080.1 | 456 | 53% |
-| 12 | ShumpeiNomura | 1076.2 | 102 | 48% |
-| 13 | matsurih | 1075.9 | 124 | 50% |
-| 14 | LiamK | 1074.6 | 124 | 56% |
-| 15 | Hase2727 | 1067.5 | 0 | n/a |
-| 16 | kazuki0123 | 1066.1 | 41 | 37% |
-| 17 | Bozo Boys | 1065.4 | 72 | 51% |
-| 18 | btk15049 | 1064.2 | 328 | 52% |
-| 19 | Michael Long | 1063.2 | 0 | n/a |
-| 20 | Sota Uchiyama | 1061.8 | 33 | 36% |
+| 1 | Majkel1337 | 1169.0 | 638 | 58% |
+| 2 | bono | 1127.8 | 585 | 58% |
+| 3 | Yushin Ito | 1123.4 | 433 | 59% |
+| 4 | WinDecks | 1106.4 | 265 | 53% |
+| 5 | wkonishi | 1100.4 | 16 | 25% |
+| 6 | nasuo445 | 1099.1 | 688 | 54% |
+| 7 | LiamK | 1097.9 | 124 | 56% |
+| 8 | THIRD PTCG Club | 1097.6 | 286 | 48% |
+| 9 | Michael Long | 1085.6 | 0 | n/a |
+| 10 | tonakaiiii | 1078.4 | 144 | 42% |
+| 11 | kazuki0123 | 1072.4 | 41 | 37% |
+| 12 | btk15049 | 1070.1 | 328 | 52% |
+| 13 | Rmy | 1068.7 | 443 | 51% |
+| 14 | matsurih | 1068.5 | 124 | 50% |
+| 15 | zoroark190 | 1066.8 | 456 | 53% |
+| 16 | ごんさくよねきち | 1058.1 | 203 | 51% |
+| 17 | 于笑非lilishyxf | 1057.2 | 0 | n/a |
+| 18 | wally0593 | 1055.7 | 62 | 42% |
+| 19 | aaa | 1055.3 | 176 | 52% |
+| 20 | 豆本豆豆包 | 1052.9 | 144 | 42% |
 
 ## Coverage
 
 - Games considered (post recency filter): 5202
-- Games matched to a top-N team: 3735
-- Training rows written: 191801
+- Games matched to a top-N team: 3942
+- Training rows written: 207673
 - Date range of matched games: 2026-07-07 to 2026-07-07
 
 ## Archetype breakdown
 
-- meta_grimmsnarl: 1835
+- meta_grimmsnarl: 2345
 - other: 1103
-- meta_grimmsnarl_tonakaiiii: 1083
-- meta_archaludon: 760
+- meta_grimmsnarl_tonakaiiii: 1050
+- meta_archaludon: 658
 
 ## Unmapped team names
 
-- Hase2727 (no game in the scanned dataset names this team)
 - Michael Long (no game in the scanned dataset names this team)
+- 于笑非lilishyxf (no game in the scanned dataset names this team)
 
 ## Losses
 
@@ -65,15 +65,15 @@ game minus this window are dropped before matching).
 | btk15049 | 157 | slow_search | bono |
 | THIRD PTCG Club | 148 | endgame_misplay | nasuo445 |
 | WinDecks | 125 | early_collapse | nasuo445 |
+| ごんさくよねきち | 100 | endgame_misplay | nasuo445 |
+| aaa | 84 | deckout | LiamKirwin |
 | tonakaiiii | 84 | bad_determinization | nasuo445 |
+| 豆本豆豆包 | 84 | bad_determinization | Yushin Ito |
 | matsurih | 62 | slow_search | bono |
 | LiamK | 55 | slow_search | Majkel1337 |
-| ShumpeiNomura | 53 | early_collapse | Yushin Ito |
-| Bozo Boys | 35 | endgame_misplay | Rmy |
+| wally0593 | 36 | endgame_misplay | zoroark190 |
 | kazuki0123 | 26 | bad_determinization | Bozo Boys |
-| Sota Uchiyama | 21 | bad_determinization | Akira-Ninth |
 | wkonishi | 12 | deck_matchup | 渡邊征央 |
-| senkin13 | 2 | early_collapse | bono |
 
 ## Staleness
 
