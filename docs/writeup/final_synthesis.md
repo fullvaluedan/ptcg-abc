@@ -1,7 +1,7 @@
 # Pre-Registration Discipline and Offline-to-Ladder Transfer: A Kaggle Strategy Prize Report
 
 **Track:** Strategy (Model Approach)  
-**Word Count:** 1,906
+**Word Count:** 2,007
 
 ## Executive Summary
 
@@ -39,11 +39,11 @@ This is the first offline proxy in the project's history to earn gate authority.
 
 ---
 
-## Transfer Lesson: When Offline Proxies and Ladder Reads Disagree
+## Transfer Lesson: From Offline Ring to Ladder, and What Noise Teaches
 
-A ring-promoted candidate (U39 deck mining) predicted +0.100 win rate vs trolley (stable across three runs, n=20/40/40). The ladder read: 496.4 vs 520.5 rating, a 24.1-point gap. Originally classified as "transfer failure," this was caught and corrected against win rates: 47.1% vs 46.2% is 0.9pp, z ≈ 0.08, noise-scale difference.
+The bracket ring identified a new candidate via deck mining (U39): top-rated public player decks from episode data, deduped against known test decks by full 60-card signature. One candidate, yushin_ito, scored 20/20 (+0.100 delta vs trolley). Two confirmation runs (n=40 each) sustained this delta, confirming it was not a luck artifact.
 
-Same-build resubmissions of identical code span 396.7–691.5 on ladder, ~295 points. A single-read A/B cannot confirm levers smaller than this band. The response was not to revoke the ring's authority but to escalate its role: the calibrated bracket ring, not ladder single-reads, is now the primary decision gate (per `state/current.md`, L9 recalibration, 2026-07-04).
+On the ladder, yushin_ito read 496.4 vs 520.5, initially flagged as a "transfer failure." Converting to win rates: 47.1% vs 46.2% is 0.9pp, z ≈ 0.08—pure noise. Observed same-build resubmissions span 396.7–691.5 on ladder (~295 points); single-read A/Bs cannot confirm levers smaller than this band. The ring's decision held: when ladder results are normalized by noise, both agreed (~47%). The escalated response: the bracket ring is now the primary gate for discovery. Ladder slots are for confirmation and endgame lock-the-pair execution, not candidate hunting (per `state/current.md`, L9 recalibration, 2026-07-04).
 
 ---
 
@@ -51,11 +51,11 @@ Same-build resubmissions of identical code span 396.7–691.5 on ladder, ~295 po
 
 A prior attempt at learning top-player move patterns (`analysis/clone_quality.md`, U71) collapsed: three different model families (linear, boosted tree, richer features) all picked the first legal option 100% of the time. The recorded verdict: "top-20 play is too subtle to imitate." An autopsy found three independent instrument defects, not unlearnable skill:
 
-1. The training objective's zero-risk optimum *was already first-legal*. Every attempt used pointwise log-loss. First-legal clears 33–45% accuracy per family before any fitting, so deviating from position only looks worse. Verified directly: meta_grimmsnarl 13,019 decisions, model output 0 every time, coefficients non-degenerate but powerless against the position weight.
+1. The training objective's zero-risk optimum *was already first-legal*. Every attempt used pointwise log-loss. First-legal clears 33–45% accuracy per family before any fitting, so deviating from position only looks worse. Verified directly: meta_grimmsnarl 13,019 decisions, model output 0 every time, coefficients non-degenerate but powerless against the position weight. Intrinsic ceiling at first-legal, not a learning failure.
 
-2. The baseline (opt_is_first, opt_index_norm) was a feature while the gate measured margin over that baseline.
+2. The baseline (opt_is_first, opt_index_norm) was a feature while the gate measured margin over that baseline. The model was given a direct representation of what it was trying to outperform.
 
-3. Features were semantically blind: eight regex tags, no card identity, no energy costs, no evolution lines. Boss's Orders and all named effects were invisible.
+3. Features were semantically blind: eight regex tags, no card identity, no energy costs, no evolution lines. Boss's Orders and all named effects were invisible to the model.
 
 Re-examining the same data revealed structure: top players pick the *first option within their action category* 53–72% of the time vs 33–45% overall. On meta_grimmsnarl, END_TURN appears 0 of 13,019 times in position predictions yet was played 556 times (4.3%). The data had learnable structure; the objective and features did not expose it.
 
@@ -75,29 +75,29 @@ The one mechanism rated to reach stretch-tier performance (800–950 rating) was
 
 ## Parallel Investigation: Category Mining Closes with Archetype Awareness
 
-While comprehension diagnosed clone defects and shipped two rules, a parallel mining effort (U82) tested single-field gaps on the move-ranking validator's low-agreement categories: RETREAT, PROMOTE post-knockout, and deck-search picks. Systematic expert-corpus checks on each (`analysis/retreat_gap_conditional.md`, `analysis/promote_gap_conditional.md`):
+While comprehension diagnosed clone defects and shipped two rules, a parallel mining effort (U82) tested single-field gaps on the move-ranking validator's low-agreement categories: RETREAT, PROMOTE post-knockout, and deck-search picks. Systematic expert-corpus checks on each:
 
 - **RETREAT** (163 decisions): 89.1% of expert retreats are active-HP misses, not position-dependent. No bench-matchup signal found.
 - **PROMOTE post-knockout** (91 decisions): no consistent signal ranked promoted benches above the pilot's first choice.
-- **Deck-search picks**: already category-explained by existing rules, no gap.
+- **Deck-search picks**: already explained by existing rules.
 
-All three independently pointed to the same missing capability: high-level game-plan/archetype awareness, not a simple rule. Context-dependent decisions need understanding of the game state's arc, not isolated fields.
+All three pointed independently to the same gap: high-level game-plan/archetype awareness. Context-dependent decisions require understanding the game's arc, not isolated fields.
 
-The archetype capability was tested separately (`analysis/archetype_prior_train.md`, U9b): a classifier pre-registered to clear +5.0pp held-out margin. Result: +4.3pp. Gate missed; nothing shipped. This convergence—autopsy → playbook mining → single-field mining → archetype testing—all pointing to the same gap, then failing its own gate, is reportable evidence that the implementation did not clear the bar. The discipline stands: record the miss and move on.
+Archetype capability was tested separately: a pre-registered classifier cleared +5.0pp held-out margin. Result: +4.3pp. Gate missed. This full convergence—autopsy → playbook mining → single-field testing → archetype validation—all pointing to one gap, then failing validation, is reportable evidence the implementation did not clear the bar. The discipline: record failures and move on, do not force implementation through a failed gate.
 
 ---
 
 ## Robustness Check: Sample Size and Gate Stability
 
-U104 (stacked ring run) cleared a gate at n=40 per arm. The confirmation run (U112, n=100 per arm) read +9.0pp vs +15.0pp at n=40, below the +10.0pp threshold. A ring-positive read at n=40 can be real without surviving to n=100. This methodological lesson—gate confirmation at scale is worth the cost before ladder investment—is itself reportable evidence of the gate's reliability across sample sizes.
+U104 (stacked ring run, three arms testing yushin+ability+attack_first variants) cleared a gate at n=40 per arm. The confirmation run (U112, n=100 per arm) read +9.0pp vs +15.0pp at n=40, falling below the +10.0pp threshold. A ring-positive read at n=40 can be partially luck-driven and requires verification at larger scale (n=100) before ladder investment. This pattern—confirmation runs catching luck-driven variations—is itself reportable evidence that disciplined gate verification makes failures visible rather than costly.
 
 ---
 
 ## Bottom Line: Discipline Over Luck
 
-Three distinct offline designs, of increasing sophistication and cost, were checked against the same ladder-truth bar and none cleared it—until the third failure's diagnosis was fixed and re-tested. The core claim this project can report: matching the offline proxy's opponent distribution to the actual distribution the ladder scores came from mattered more than any amount of added model sophistication. The proxies that were most expensive to build and most theoretically justified still landed at tau 0.429 because they were measuring performance against the wrong field.
+Three distinct offline designs, of increasing sophistication and cost, were checked against the same ladder-truth bar and none cleared it—until the third failure's diagnosis was fixed and re-tested. The core reportable claim: matching the offline proxy's opponent distribution to the actual distribution the ladder scores came from mattered more than added model sophistication. The most expensive and theoretically justified proxies landed at tau 0.429 because they were measuring against the wrong field.
 
-This pattern only has teeth paired with measurement discipline on the ladder side: the same-build noise model (396.7–691.5 span, ~295 points) that explodes the original M=60 margin showed that a single ladder read is too noisy to decide between small-delta builds. The ring provides an independent signal (a proxy trained on known opponents at a known rating band, retrodicting real ladder outcomes) that remains valid even when the ladder's own noise swamps confirmation attempts. The U104/U112 confirmation failure further teaches that a ring-positive read at modest sample size (n=40) requires independent verification at larger scale (n=100) before resorting to expensive ladder validation.
+This only has teeth paired with disciplined measurement on the ladder side: the same-build noise model (396.7–691.5 span, ~295 points) showed that single ladder reads cannot distinguish small deltas. The ring provides an independent signal (a proxy retrodicting real ladder outcomes against known opponents at a known rating band) valid even when ladder noise swamps confirmation. The U104/U112 pattern further teaches that ring-positive reads at modest sample size (n=40) require verification at larger scale (n=100) before ladder investment. The compound lesson: offline proxies need pre-registered gates, gate failures need diagnosis not dismissal, and confirmation runs exist to prevent luck from becoming mistaken belief.
 
 The differentiator for the Strategy prize is not "we built an offline proxy." It is: we built a machine-enforced pre-registration gate, enforced it across four structurally distinct designs, diagnosed and fixed failure modes at the instrument level rather than tuning around them, and learned that the biggest lever—opponent-pool match—was found only by diagnosing why an intuitive-sounding design failed. We further learned when and how that gate itself could fail at scale. The Strategy prize asks for model approach. This is the approach: disciplined, quantifiable, failure-focused, traceable, and self-checking.
 
@@ -105,17 +105,18 @@ The differentiator for the Strategy prize is not "we built an offline proxy." It
 
 ## Implication: How Honest Measurement Compounds
 
-The four-attempt arc—three failures with diagnoses, one pass, then validation failure that was noise—represents careful, outcome-driven work the Strategy prize measures. The "model approach" is not clever architecture; it is measuring what transfers, admitting when it does not, fixing only the diagnosed flaw, and documenting the chain for future work.
+The four-attempt arc—three failures with specific diagnoses, one pass via diagnosis-driven repair, then validation that collapsed to noise—represents the outcome-driven work the Strategy prize measures. The "model approach" is not architectural novelty; it is: measuring what transfers, admitting when it does not, fixing only the diagnosed flaw, and documenting the chain for future use.
 
-In a 672-point sprint to the competition leader, the temptation to ship ring-positive builds on first reads or deploy unvetted proxies is real. This project's response—preregistering gates, diagnosing defects rather than dismissing results, correcting overstatements—distinguishes a trustworthy approach from noise.
+In a 672-point race to the leader, the temptation to ship ring-positive builds on first reads or skip gate verification is real. This project's approach—machine-enforced gates, diagnosis-driven repair, honest record-keeping, noise-aware settlement rules—distinguishes trustworthy work from noise-chasing. The differentiator is not "we built a proxy" but "we built one that must prove it retrodicts known outcomes before it decides anything new."
 
 ---
 
-## Sources
+## Sources and Evidence Chain
 
-- Proxy calibration: `analysis/proxy_calibration.md`, `tools/loop_state.py`
-- Move validator: `analysis/move_ranking_diverges_ability_gap.md`
-- Ring attempts: `analysis/ring_calibration.md`
-- Transfer lesson and noise model: `analysis/candidate_decks_ring_gate.md`, `findings.md`, `state/current.md`
-- Clone autopsy and rules: `analysis/clone_quality.md`, `analysis/gameplan_claims_bracket_4.md`, `agents/heuristics.py`
+- **Pre-registration and gate math**: `analysis/proxy_calibration.md`, `tools/loop_state.py`, `findings.md`
+- **Move-decision validator**: `analysis/move_ranking_diverges_ability_gap.md` (4,524-decision expert agreement)
+- **Ring calibration**: `analysis/ring_calibration.md` (tau=0.857), `analysis/candidate_decks_ring_gate.md` (U39 yushin_ito promotion)
+- **Noise model and ladder ledger**: `findings.md`, `state/current.md` (pre-registration and L9 recalibration)
+- **Clone autopsy and shipped rules**: `analysis/clone_quality.md`, `analysis/gameplan_claims_bracket_4.md`, `agents/heuristics.py` (PTCG_ATTACK_FIRST)
+- **Field-prior oracle bound**: `analysis/u109_oracle_bound_test.md` (opponent-prior search ties heuristic, delta +0.000)
 
