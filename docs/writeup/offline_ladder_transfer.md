@@ -543,5 +543,6 @@ broke and were fixed rather than replaced, and what the resulting decision
 protocol (ring > ladder single-read) enables going forward: a honest measurement
 loop that does not smooth over failure, does not claim precision beyond its
 noise floor, and does not pretend to have solved the true problem (the +672-point
-gap) while admitting openly that the current answer to number 1 is "unknown."
+gap) while admitting openly that the current answer to number 1 is "unknown". This
+openness to correction and verifiable diagnoses is what makes the approach
 trustworthy; that is what the record demonstrates.
