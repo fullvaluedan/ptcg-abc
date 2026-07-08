@@ -12,45 +12,44 @@ game minus this window are dropped before matching).
 
 | rank | team | rating | corpus games | corpus win rate |
 |---|---|---|---|---|
-| 1 | Majkel1337 | 1169.0 | 638 | 58% |
-| 2 | bono | 1127.8 | 585 | 58% |
-| 3 | Yushin Ito | 1123.4 | 433 | 59% |
-| 4 | WinDecks | 1106.4 | 265 | 53% |
-| 5 | wkonishi | 1100.4 | 16 | 25% |
-| 6 | nasuo445 | 1099.1 | 688 | 54% |
-| 7 | LiamK | 1097.9 | 124 | 56% |
-| 8 | THIRD PTCG Club | 1097.6 | 286 | 48% |
-| 9 | Michael Long | 1085.6 | 0 | n/a |
-| 10 | tonakaiiii | 1078.4 | 144 | 42% |
-| 11 | kazuki0123 | 1072.4 | 41 | 37% |
-| 12 | btk15049 | 1070.1 | 328 | 52% |
-| 13 | Rmy | 1068.7 | 443 | 51% |
-| 14 | matsurih | 1068.5 | 124 | 50% |
-| 15 | zoroark190 | 1066.8 | 456 | 53% |
-| 16 | ごんさくよねきち | 1058.1 | 203 | 51% |
-| 17 | 于笑非lilishyxf | 1057.2 | 0 | n/a |
-| 18 | wally0593 | 1055.7 | 62 | 42% |
-| 19 | aaa | 1055.3 | 176 | 52% |
-| 20 | 豆本豆豆包 | 1052.9 | 144 | 42% |
+| 1 | Raihan Ramadistra | 1139.5 | 70 | 41% |
+| 2 | THIRD PTCG Club | 1132.4 | 286 | 48% |
+| 3 | Yushin Ito | 1132.2 | 433 | 59% |
+| 4 | LiamK | 1128.7 | 124 | 56% |
+| 5 | Majkel1337 | 1127.1 | 638 | 58% |
+| 6 | nasuo445 | 1123.2 | 688 | 54% |
+| 7 | aaa | 1111.5 | 176 | 52% |
+| 8 | Rmy | 1109.5 | 443 | 51% |
+| 9 | bono | 1098.4 | 585 | 58% |
+| 10 | zoroark190 | 1093.2 | 456 | 53% |
+| 11 | kazuki0123 | 1091.3 | 41 | 37% |
+| 12 | WinDecks | 1086.7 | 265 | 53% |
+| 13 | kashiwashira | 1082.0 | 71 | 55% |
+| 14 | ごんさくよねきち | 1078.9 | 203 | 51% |
+| 15 | Bozo Boys | 1078.0 | 72 | 51% |
+| 16 | Michael Long | 1075.9 | 0 | n/a |
+| 17 | 5.5 | 1063.3 | 97 | 47% |
+| 18 | btk15049 | 1060.3 | 328 | 52% |
+| 19 | wkonishi | 1059.3 | 16 | 25% |
+| 20 | Boss's Orders Are All You Need | 1054.9 | 33 | 42% |
 
 ## Coverage
 
 - Games considered (post recency filter): 5202
-- Games matched to a top-N team: 3942
-- Training rows written: 207673
+- Games matched to a top-N team: 3872
+- Training rows written: 202553
 - Date range of matched games: 2026-07-07 to 2026-07-07
 
 ## Archetype breakdown
 
-- meta_grimmsnarl: 2345
-- other: 1103
-- meta_grimmsnarl_tonakaiiii: 1050
-- meta_archaludon: 658
+- meta_grimmsnarl: 2280
+- other: 1174
+- meta_grimmsnarl_tonakaiiii: 906
+- meta_archaludon: 665
 
 ## Unmapped team names
 
 - Michael Long (no game in the scanned dataset names this team)
-- 于笑非lilishyxf (no game in the scanned dataset names this team)
 
 ## Losses
 
@@ -67,12 +66,13 @@ game minus this window are dropped before matching).
 | WinDecks | 125 | early_collapse | nasuo445 |
 | ごんさくよねきち | 100 | endgame_misplay | nasuo445 |
 | aaa | 84 | deckout | LiamKirwin |
-| tonakaiiii | 84 | bad_determinization | nasuo445 |
-| 豆本豆豆包 | 84 | bad_determinization | Yushin Ito |
-| matsurih | 62 | slow_search | bono |
 | LiamK | 55 | slow_search | Majkel1337 |
-| wally0593 | 36 | endgame_misplay | zoroark190 |
+| 5.5 | 51 | deck_matchup | Yushin Ito |
+| Raihan Ramadistra | 41 | bad_determinization | bono |
+| Bozo Boys | 35 | endgame_misplay | Rmy |
+| kashiwashira | 32 | endgame_misplay | btk15049 |
 | kazuki0123 | 26 | bad_determinization | Bozo Boys |
+| Boss's Orders Are All You Need | 19 | endgame_misplay | Rmy |
 | wkonishi | 12 | deck_matchup | 渡邊征央 |
 
 ## Staleness
