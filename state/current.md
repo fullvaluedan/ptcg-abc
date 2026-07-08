@@ -6,14 +6,15 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Top loss bucket (what this iteration targets)
 
-**early_collapse** over 65 classified replays (W/D/L 33/0/32).
+**early_collapse** over 936 classified replays (W/D/L 419/1/516).
 
 | bucket | losses |
 | --- | --- |
-| early_collapse | 25 |
-| deckout | 5 |
-| deck_matchup | 1 |
-| bad_determinization | 1 |
+| early_collapse | 349 |
+| deckout | 74 |
+| bad_determinization | 44 |
+| deck_matchup | 31 |
+| endgame_misplay | 18 |
 
 ## Kings
 
@@ -39,9 +40,8 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
 | heuristic+trolley_thick | trolley_thick basic-density cuts early_collapse (thin_bench_threshold deck-change re-test) | up | 60 | 30 | 2026-07-06 | yes |
 | heuristic+trolley-ability | PTCG_ABILITY on (once-per-turn ability activation) improves ladder win rate; pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md) | up | 60 | 30 | 2026-07-08 | yes |
 | heuristic+trolley-attack_first | PTCG_ATTACK_FIRST on (take an already-legal positive-value attack over a discretionary attach) improves ladder win rate; U91 mined winners attach-before-attack 3.4pp less than losers, and the shipped pilot over-attaches relative to both cohorts (analysis/gameplan_claims_bracket_4.md) | up | 60 | 30 | 2026-07-11 | yes |
-| heuristic+candidate_yushin_ito | New deck candidate mined from 800+-rated top teams (Yushin Ito); ring-gated through calibrated bracket ring (tau 0.857, analysis/candidate_decks_ring_gate.md), confirmed +0.100 delta over trolley in two independent n=40 runs; legality verified (analysis/candidate_yushin_ito_legality_audit.md) | up | 240 | 30 | 2026-07-18 | yes |
 
-- **heuristic+trolley_thick** filters: mirror empty-bench collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md); tarball grader-verified. GOVERNANCE (U108, 2026-07-06): settled 446.2 vs king 558.5 (diff -112.3pp) on 2026-07-03, which is BAND under M=240 (not LOSS). The pre-registered BAND action requires one repeat + U23 scoreboard, but immediate eviction was applied instead. Per L9 correction, ladder reads inside the M band can never evict a ring-positive build; ring evidence is sole eviction authority. This build remains ring-eligible for re-test (offline collapse fix -15.4pp empty-bench, 55% head-to-head vs baseline deck, analysis/collapse_rate_thick_deck.md) if a future ladder slot opens.
+- **heuristic+trolley_thick** filters: mirror empty-bench collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md); tarball grader-verified
   - WIN: promote heuristic+trolley_thick to shadow-king; reclaim-king stays heuristic+trolley
   - LOSS: evict trolley_thick, revert slot 2 to a king copy
   - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king, record thin_bench_threshold re-test condition
@@ -49,14 +49,10 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
   - WIN: promote heuristic+trolley-ability to shadow-king; reclaim-king stays heuristic+trolley
   - LOSS: evict the ability build, revert slot to a king copy
   - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king
-- **heuristic+trolley-attack_first** filters: offline gauntlet deck:trolley vs 8-deck pool 200 games/arm: off 71.5% (143/57), on 77.0% (154/46), diff_pp +5.5, no regression, 0 invalid moves (analysis/attack_first_ab.md); bracket-ring A/B 20 games/arm: off 75.0%, on 85.0%, diff_pp +10.0, agrees in direction (analysis/attack_first_ring_check.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-attack_first]) incl extracted-tarball env.run. GOVERNANCE (U108, 2026-07-06): settled NEUTRAL via U23 scoreboard at 3 decisive shared-bracket episodes (candidate 1/3, king 4/6, confidence 0.171). Pre-registered scoreboard settlement requires N>=30 decisive episodes for 90% confidence; n=3 fell below threshold. The NEUTRAL verdict itself is pre-registered-correct (per the rule "if confidence < 0.90, revert to king"), but the settlement occurred with weak confidence. Both offline gates stand unchanged (gauntlet +5.5pp, ring +10.0pp), so the lever remains re-eligible for a future ladder slot without new offline work.
+- **heuristic+trolley-attack_first** filters: offline gauntlet deck:trolley vs 8-deck pool 200 games/arm: off 71.5% (143/57), on 77.0% (154/46), diff_pp +5.5, no regression, 0 invalid moves (analysis/attack_first_ab.md); bracket-ring A/B 20 games/arm: off 75.0%, on 85.0%, diff_pp +10.0, agrees in direction (analysis/attack_first_ring_check.md); tarball grader-verified (tests/test_grader_submission.py[heuristic-trolley-attack_first]) incl extracted-tarball env.run
   - WIN: promote heuristic+trolley-attack_first to shadow-king; reclaim-king stays heuristic+trolley
   - LOSS: evict the attack_first build, revert slot to a king copy
   - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king
-- **heuristic+candidate_yushin_ito** gates: ring gate PASSED (two independent n=40 runs, +0.100 delta over trolley baseline each time, analysis/candidate_decks_ring_gate.md); deck legality VERIFIED (tools/deck_validate.py, analysis/candidate_yushin_ito_legality_audit.md). Ring evidence is decision authority per L9 (ladder reads do not gate deck candidates; only ring evidence does). Pre-registered per L9 noise recalibration: M=240, N=30 settlement protocol, settle-by 2026-07-18. Do NOT submit until a ladder slot is free.
-  - WIN: promote heuristic+candidate_yushin_ito to shadow-king; reclaim-king stays heuristic+trolley
-  - LOSS: do not submit
-  - BAND: one repeat resubmission, then U23 scoreboard; else NEUTRAL, do not submit
 
 ## Calibrated proxies (U24 retrodiction gate)
 
@@ -173,10 +169,6 @@ _none calibrated; every proxy gate is refused (default-deny)_
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 441.1 | 0 | Board check 2026-07-04 (this iteration): 441.1, BREAKING a thirteen-check freeze (new episode id 83782915, up from the long-frozen 83768597). Small same-build drift (443.1 -> 441.1), well within the v3 pooled range (heuristic+trolley family mean 456.4, stdev 59.2). Plain king-copy floor; no action taken (no active pre-registration for this slot). |
 | heuristic+trolley-ability (floor restoration) | n/a | n/a | 563.8 | 0 | Board check 2026-07-05: 563.8, BREAKS the eighth-check freeze (down from 602.4). tools/scout.py episodes confirms new games played: newest episode id advanced from the frozen 83776251 to 83878807 (8 new completed episodes). Within the v3 pooled range, no new low/high. Ring-gated per L9; no action taken. |
 | heuristic+trolley (king-copy revert, 2026-07-04) | n/a | n/a | 422.2 | 0 | Board check 2026-07-05: 422.2, BREAKS the thirteenth-check-plus freeze (down from 441.1). tools/scout.py episodes confirms new games played: newest episode id advanced from 83782915 to 83894390 (8 new completed episodes). Slightly below the prior observed low (423.5) but within the v3 pooled noise band (M=240 sized to a worst residual of 235.1, refit ce4e928). Plain king-copy floor; no action taken. |
-| heuristic+trolley-ability (floor restoration) | n/a | n/a | 546.6 | 0 | Board check 2026-07-07 (iteration 185): 546.6 (unchanged from prior checks). Within the v3 pooled range, no new low/high. Ring-gated per L9; no action taken. |
-| heuristic+candidate_yushin_ito | n/a | n/a | 606.9 | 0 | Board check 2026-07-07 (iteration 185): 606.9 (drifted down from 611.5, -4.6pp same-build noise). Within pre-registered M=240 BAND (diff +60.3pp vs ability floor 546.6, well inside M=240). Settlement window remains 2026-07-18 (10 days remain). Ring-gated per L9; no action taken. |
-| heuristic+trolley-ability (floor restoration) | n/a | n/a | 530.5 | 0 | Board check 2026-07-08: 530.5 (drifted down from 546.6, -16.1pp same-build noise). Within the v3 pooled range, no new low/high. Ring-gated per L9; no action taken. |
-| heuristic+candidate_yushin_ito | n/a | n/a | 626.4 | 0 | Board check 2026-07-08: 626.4 (up from 606.9, +19.5pp same-build noise). Within pre-registered M=240 BAND (diff +95.9pp vs ability floor 530.5, well inside M=240). Settlement window remains 2026-07-18 (9 days remain). yushin_ito remains strongest on board; no settlement triggered. Ring-gated per L9; no action taken. TRACK L HOLDS (both slots occupied). |
 
 ```json STATE
 {
@@ -931,25 +923,23 @@ _none calibrated; every proxy gate is refused (default-deny)_
   ],
   "loss_distribution": {
     "buckets": {
-      "bad_determinization": 1,
-      "deck_matchup": 1,
-      "deckout": 5,
-      "early_collapse": 25,
-      "endgame_misplay": 0,
+      "bad_determinization": 44,
+      "deck_matchup": 31,
+      "deckout": 74,
+      "early_collapse": 349,
+      "endgame_misplay": 18,
       "slow_search": 0
     },
-    "draws": 0,
-    "games": 65,
-    "losses": 32,
-    "ref_filter": [
-      "54315802"
-    ],
-    "sample_size": 65,
+    "draws": 1,
+    "games": 936,
+    "losses": 516,
+    "ref_filter": [],
+    "sample_size": 936,
     "sources": [
       "data/replays"
     ],
     "top_bucket": "early_collapse",
-    "wins": 33
+    "wins": 419
   },
   "noise_model": {
     "basis": "tools/refit_noise_model.py statistical refit over 57 pooled same-build reads across heuristic+trolley (n=30, mean=456.4, stdev=59.2), heuristic+trolley-ability (n=27, mean=568.5, stdev=43.9): pooled residual stdev 52.0, worst observed residual 235.1. M set to the larger of 2-sigma and the worst residual, rounded up to nearest 10.",
