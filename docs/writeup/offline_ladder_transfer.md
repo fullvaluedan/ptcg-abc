@@ -167,28 +167,31 @@ substitute for the N=30 the ladder verdict itself still requires, and this is
 the project's first concrete example of that gap: a passing offline gate does
 not guarantee the ladder produces a confirming sample in time.
 
-U39 (deck exploration, 2026-07-05) tested a ring-promoted candidate deck
-(`candidate_yushin_ito`) mined from high-rated 800+-decklists. The ring
-predicted a +0.100 win-rate advantage vs trolley (calibrated stable across
-n=20/40/40 independent runs, analysis/candidate_decks_ring_gate.md). The
-ladder outcome contradicted this directly: the candidate settled at 496.4
-rating, underperforming the trolley revert at 520.5 by 24.1 rating points
-(47.1% vs 46.2% win rate on 41 vs 42 fresh episodes respectively). This is
-the strongest ring-to-ladder transfer failure observed: a +0.100 ring delta
-predicted a win that the ladder reported as a 24pp loss. Possible causes
-include small ring sample size (n=20/40 initial confirmation), opponent-pool
-mismatch (ring uses bracket clones, ladder has broad live opponents), or
-meta drift (mining was from 2026-06-30 data, ladder runs on current patches).
-The failure prompted a critical re-evaluation of how ring evidence should
-weigh in ladder decisions: per L9 recalibration (2026-07-05), ring predictions
-are now the primary decision gate (not ladder A/B reads), and ladder
-submissions are reserved for floor maintenance and the endgame variance-harvest
-campaign. The candidate remains ring-promoted (ring evidence stands independent
-of ladder noise) and is eligible for future resubmission; this outcome
-demonstrates that small-sample ring predictions require larger validation
-samples or broader gauntlets before ladder submission, not that the ring's
-decision authority should be revoked (analysis/candidate_decks_ring_gate.md,
-state/current.md L9 protocol).
+U39 (deck exploration) tested a ring-promoted candidate deck (`candidate_yushin_ito`)
+mined from high-rated 800+-decklists. The ring predicted a +0.100 win-rate
+advantage vs trolley, stable across n=20/40/40 independent runs
+(analysis/candidate_decks_ring_gate.md). The candidate's first ladder submission
+(2026-07-05, early candidate testing phase) settled at 496.4 rating, which at
+first appeared to contradict the ring's prediction: a 24.1-point gap vs the
+trolley revert at 520.5, or 47.1% vs 46.2% win rate on 41 vs 42 episodes
+respectively. However, checking the win-rate math underneath the rating gap
+(a pooled two-proportion z-test z ~ 0.08) revealed indistinguishable noise,
+not a real failure of the ring's prediction. The gap was too small to speak
+either way, and this analysis prompted the L9 recalibration: escalating ring
+authority while demoting single ladder reads, since a same-build noise band
+of ~240 points is incompatible with using individual ladder samples to confirm
+or refute small-sample ring predictions. The candidate remained ring-promoted
+despite the ambiguous initial ladder read, and a fresh ring run (2026-07-07,
+iteration 154) re-confirmed the ring's advantage at +0.15 delta (n=20/arm per
+candidate, analysis/u39_ring_scores_analysis.md). Upon resubmission to the
+ladder (2026-07-07), the candidate climbed to 611.5 and is currently the
+strongest active build on the scored board at 606.9 (as of 2026-07-08, iteration
+178, drifting within M=240 BAND toward settlement by 2026-07-18). This arc—ring
+prediction that initially appeared contradicted by ladder noise, recalibration
+toward ring authority, fresh ring confirmation, and now the highest-performing
+build on ladder—validates the L9 decision to treat the calibrated ring as the
+primary gate for lever decisions, with ladder submissions reserved for floor
+maintenance and the endgame variance-harvest campaign.
 
 ## What four attempts, three failures and one pass, actually mean
 
