@@ -414,7 +414,7 @@ episodes), it does not: a pooled two-proportion z-test puts the difference at
 z ~ 0.08, indistinguishable from noise, and smaller than the swing a single
 flipped game produces at that sample size. There was no real contradiction to
 explain, only a ladder read too small to speak either way. This still
-prompted a critical recalibration (L9, 2026-07-05), and the recalibration's
+prompted a critical recalibration (L9, 2026-07-04), and the recalibration's
 conclusion holds regardless: the response was not to revoke the ring's
 authority or to lower the ring's tau threshold, but to formally escalate the
 ring's role and demote ladder single-reads. The ladder's M=240 noise band
@@ -431,6 +431,19 @@ mismatch, meta drift), and second in catching that the two had not actually
 disagreed at all once the rating-point framing was checked against the
 win-rate math underneath it, and correcting the record rather than letting
 the more dramatic framing stand.
+
+Upon resubmission to the ladder following the recalibration (2026-07-07), the
+candidate climbed to 611.5 and is currently (as of 2026-07-08 board check) the
+strongest active build on the scored board at 626.4, drifting within the M=240
+noise band toward its settlement date. This arc—ring prediction that initially
+appeared contradicted by ladder noise, recalibration toward ring authority,
+fresh ring confirmation, and now the highest-performing build on ladder—validates
+that the posture inversion's decision to treat the calibrated ring as the
+primary gate for lever decisions was correct. The ring's tau 0.857 retrodiction
+bar proved robust across two real ladder applications (the ability lever at
++20pp on the ring; the candidate deck now at +57pp ahead of the ability floor),
+confirming that opponent-pool matching (correcting Attempt 3's fundamental flaw)
+was the single critical variable, not a small tuning parameter.
 
 In parallel, a second, independent discipline line (U82 category mining followed
 by U9a/U9b's archetype classifier) applied the same "hard gate, no lowering the
