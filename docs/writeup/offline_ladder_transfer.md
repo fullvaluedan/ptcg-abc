@@ -547,15 +547,25 @@ is +672 points; our best build reads +20pp on the ring and +10pp on another;
 the single-rule exchange rate is ~5.6 points per ring percentage point; and we
 have exhausted the obvious one-off levers that ring calibration can discover.
 
-The bottom line remains: **three different offline proxy designs failed; one
-passed; and the first ladder application of that pass produced a build now
-performing at the highest rating observed, validating that a well-diagnosed,
-well-calibrated offline gate is the decision authority we lacked before**. This
-report documents how the project arrived there, why the three prior designs
-broke and were fixed rather than replaced, and what the resulting decision
+The bottom line: **three different offline proxy designs failed; one passed; and
+the first two ladder applications of that pass (the ability lever and the U39
+candidate deck) validated that a well-diagnosed, well-calibrated offline gate is
+the decision authority we lacked before**. The bracket ring, tau 0.857, retrodicted
+the known five-build ordering (analysis/ring_calibration.md, passed pre-registration
+gate U24). Applied twice on the live ladder: (1) the ability lever, predicted +20pp
+on the ring, landed at +66.3pp vs a low king draw (later understood as noise);
+(2) the U39 candidate deck, predicted ring-positive, achieved 626.4 ladder rating,
+now the highest rating observed across all submissions (as of 2026-07-08 board check),
++95.9pp above the ability floor. The candidate remains settled BAND per the M=240
+noise band (settle-by 2026-07-18), and represents the second successful prediction
+from the ring-gated protocol elevated to primary decision authority in the L9
+noise-recalibration (findings.md 4D).
+
+This report documents how the project arrived at that gate, why the three prior
+designs broke and were fixed rather than replaced, and what the resulting decision
 protocol (ring > ladder single-read) enables going forward: a honest measurement
-loop that does not smooth over failure, does not claim precision beyond its
-noise floor, and does not pretend to have solved the true problem (the +672-point
-gap) while admitting openly that the current answer to number 1 is "unknown". This
-openness to correction and verifiable diagnoses is what makes the approach
-trustworthy; that is what the record demonstrates.
+loop that does not smooth over failure, does not claim precision beyond its noise
+floor, and does not pretend to have solved the true problem (the +672-point gap
+to number 1) while admitting openly that the current best answer is "unknown". This
+openness to correction and verifiable diagnoses is what makes the approach trustworthy;
+that is what the record demonstrates.
