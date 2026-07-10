@@ -26,7 +26,7 @@ fires-vs-inert check (tools/measure_prize_close.py, trolley deck):
 
 ## Interpretation
 
-Both rules are correctly implemented and compile, but neither fires on the shipped trolley deck in practice. The THREAT_RETREAT condition (opponent OHKO-capable while our bench is better) appears to be rare or absent in mid-game trolley positions. The PRIZE_CLOSE rule also finds little leverage—only 1 position in 5 had lethal available, and even that did not shift the pilot's decision.
+Both rules are correctly implemented and compile, but neither fires on the shipped trolley deck in practice. The THREAT_RETREAT condition (opponent OHKO-capable while our bench is better) appears to be rare or absent in mid-game trolley positions. The PRIZE_CLOSE rule also finds little leverage: only 1 position in 5 had lethal available, and even that did not shift the pilot's decision.
 
 This closes U105 for the trolley deck context: both rules fail the fires-vs-inert gate and are ineligible for hard-ring validation or ladder submission. Per the loop discipline: a measurement that refutes a lever as inert saves the project from spending hard-ring resources on a change that has no practical effect.
 

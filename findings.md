@@ -547,6 +547,33 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   going forward. `LOOP_BRIEF.md` P8, audit transcript in the session workflow record.
 - U108 settlement arithmetic governance fix (2026-07-06): recorded two methodological corrections. (1) trolley_thick settled on ladder at 446 vs king 558 (diff -112.3), which is INSIDE the M=240 band, not a LOSS threshold (LOSS is king - 240 or below, i.e., 318 or below). The build was logged as evicted when the pre-registered filter says BAND settle to a repeat resubmission, then U23 scoreboard; the recorded protocol action (evict) was not the pre-registered filter. Going forward, a ladder read inside the band margin can never evict a ring-positive build (ring evidence is the sole eviction authority per L9). (2) attack_first settled NEUTRAL via the pre-registered U23 scoreboard tiebreak, not a confirmed LOSS: only 3 candidate decisive shared-bracket episodes vs the required N=30 confidence bar, confidence 0.171 vs required 0.90. The NEUTRAL verdict is correct (per the pre-registered action for a scoreboard below threshold), but the settlement record itself is in a two-ref small-sample regime where the lever stays re-eligible for future testing without new offline work. Both cases are recorded in `state/current.md` governance note and pre-registration filters to prevent recurrence. `analysis/attack_first_settlement.md`, `state/current.md`.
 
+- Second blindspot audit, 33-agent adversarially-verified (2026-07-08), triggered by "we don't seem to be
+  improving": six investigators plus per-finding refutation passes. Three structural discoveries. (1) THE
+  U105 INERT CLOSURE MEASURED A BUG, NOT THE GAME: _opponent_best_attack_damage passed CardData.attacks'
+  raw int IDs into effective_damage (getattr(int, "damage", 0) is always 0), so the OHKO fire condition was
+  unsatisfiable for all 1057 cards, and the unit test masked it by monkeypatching that exact function to
+  return 100. Fixed same day (resolve IDs via attack_index() like best_attack; non-mocked regression test,
+  953/1057 attackers nonzero); the fires-vs-inert re-run flips 3/12 threatened positions on trolley and
+  7/25 on yushin, so PTCG_THREAT_RETREAT is LIVE and ring-eligible, targeting the top loss bucket (78.1% of
+  the shadow-king's own losses per the U107 per-build ledger). Meta-lesson for the writeup: a fires-vs-inert
+  gate is itself an instrument that needs a positive control (one synthetic position known to fire); zeros
+  from a measurement tool are indistinguishable from zeros from a broken probe. (2) U106's state-matched
+  expert lookup is UNSOUND: it joined against a corpus that is 100% expert WIN states so "do experts also
+  lose here" was never answerable, its loss categories were invented per-state (the real loss-classifier
+  buckets were computed then discarded on a failed game-id join), its distance bands were hand-authored
+  with no null calibration (an expert-to-expert null of 1.712 inverts both headline verdicts), and it
+  sampled 10k of the claimed 1.3M rows. The salvage path exists: episode zips carry per-decision actions,
+  so matched-ACTION extraction (keep neighbor keys, look up what the expert actually did) is a half-day
+  compute job. (3) LOOP CHURN QUANTIFIED: of ~121 loop iterations (174-295), 26% produced commits and ~10%
+  produced anything substantive; 7 commits thrashed the writeup back and forth across the 2000-word line
+  (subjects alternately call 2000 a "target" and a "limit"); 46% of commit subjects since Jul 7 contain em
+  dashes despite the hard rule. Mechanical fixes installed: a commit-msg hook that rejects em/en dashes,
+  a hard-ceiling freeze band (1900-1990) for the writeup, and JSON-only pre-registration writes after the
+  yushin pre-reg row was found silently deleted by a prose regeneration (commit ea4029d, the 4th
+  regeneration-loss incident; restored 2026-07-08 with the settlement protocol intact, settle-by
+  2026-07-18). `analysis/u105_threat_prize_inert_check.md` (superseded header), `LOOP_BRIEF.md` P9 U105
+  block, session workflow record.
+
 ---
 
 ## 5. Key pivots and decisions (dated)

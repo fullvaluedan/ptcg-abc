@@ -40,6 +40,7 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
 | heuristic+trolley_thick | trolley_thick basic-density cuts early_collapse (thin_bench_threshold deck-change re-test) | up | 60 | 30 | 2026-07-06 | yes |
 | heuristic+trolley-ability | PTCG_ABILITY on (once-per-turn ability activation) improves ladder win rate; pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md) | up | 60 | 30 | 2026-07-08 | yes |
 | heuristic+trolley-attack_first | PTCG_ATTACK_FIRST on (take an already-legal positive-value attack over a discretionary attach) improves ladder win rate; U91 mined winners attach-before-attack 3.4pp less than losers, and the shipped pilot over-attaches relative to both cohorts (analysis/gameplan_claims_bracket_4.md) | up | 60 | 30 | 2026-07-11 | yes |
+| heuristic+candidate_yushin_ito | New deck candidate mined from 800+-rated top teams (Yushin Ito) beats the king on the ladder; ring evidence is the decision authority per L9 | up | 240 | 30 | 2026-07-18 | yes |
 
 - **heuristic+trolley_thick** filters: mirror empty-bench collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md); tarball grader-verified
   - WIN: promote heuristic+trolley_thick to shadow-king; reclaim-king stays heuristic+trolley
@@ -53,6 +54,10 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
   - WIN: promote heuristic+trolley-attack_first to shadow-king; reclaim-king stays heuristic+trolley
   - LOSS: evict the attack_first build, revert slot to a king copy
   - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king
+- **heuristic+candidate_yushin_ito** filters: ring-gated through the calibrated bracket ring (tau 0.857): +0.100 delta over trolley in two independent n=40 runs (analysis/candidate_decks_ring_gate.md) and +8.0pp yushin-vs-trolley at n=100 (analysis/u112_stacked_ring_confirmation.md arm 2); legality verified (analysis/candidate_yushin_ito_legality_audit.md). RESTORED 2026-07-08: this row was lost from the JSON STATE block by a data-regeneration overwrite (commit ea4029d, the 4th prose-vs-JSON loss incident); no settlement ever triggered, board reads 611.5/606.9/626.4 are all within M=240 BAND.
+  - WIN: promote heuristic+candidate_yushin_ito to shadow-king; reclaim-king stays heuristic+trolley
+  - LOSS: evict the yushin_ito candidate, revert slot to a king copy
+  - BAND: hold through settle-by; pooled aged reads vs king true estimate decide; no eviction on any within-band read per U108
 
 ## Calibrated proxies (U24 retrodiction gate)
 
@@ -1008,6 +1013,20 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "margin": 60,
       "n": 30,
       "settle_by": "2026-07-11"
+    },
+    {
+      "actions": {
+        "band": "hold through settle-by; pooled aged reads vs king true estimate decide; no eviction on any within-band read per U108",
+        "loss": "evict the yushin_ito candidate, revert slot to a king copy",
+        "win": "promote heuristic+candidate_yushin_ito to shadow-king; reclaim-king stays heuristic+trolley"
+      },
+      "build": "heuristic+candidate_yushin_ito",
+      "direction": "up",
+      "filters": "ring-gated through the calibrated bracket ring (tau 0.857): +0.100 delta over trolley in two independent n=40 runs (analysis/candidate_decks_ring_gate.md) and +8.0pp yushin-vs-trolley at n=100 (analysis/u112_stacked_ring_confirmation.md arm 2); legality verified (analysis/candidate_yushin_ito_legality_audit.md). RESTORED 2026-07-08: this row was lost from the JSON STATE block by a data-regeneration overwrite (commit ea4029d, the 4th prose-vs-JSON loss incident); no settlement ever triggered, board reads 611.5/606.9/626.4 are all within M=240 BAND.",
+      "hypothesis": "New deck candidate mined from 800+-rated top teams (Yushin Ito) beats the king on the ladder; ring evidence is the decision authority per L9",
+      "margin": 240,
+      "n": 30,
+      "settle_by": "2026-07-18"
     }
   ],
   "reclaim_king": {
