@@ -17,6 +17,9 @@ UNITS="U2 U3 U4 U5 U6 U7 U8 U9 U10"
 BUDGET_HOURS=36
 MAX_ATTEMPTS=12
 export PYTHONIOENCODING=utf-8
+# Attempt 3 (2026-07-10) was terminated by print-mode's 600s background-task wait
+# ceiling while six unit subagents were mid-build; wait indefinitely instead.
+export CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0
 cd "$PROJ" || exit 1
 
 cleanup() { rm -f "$SENTINEL"; }
@@ -46,6 +49,9 @@ all_done() {
 }
 
 while true; do
+  # Self-healing: something deleted the sentinel mid-push once (2026-07-10);
+  # re-assert it every pass so the autoloop guard cannot silently disengage.
+  touch "$SENTINEL"
   all_done && { echo "all units done or blocked; push complete" | tee -a "$LOG"; break; }
   [ $(date +%s) -ge "$deadline" ] && {
     echo "$(date '+%Y-%m-%d %H:%M:%S') NEEDS-DAN: cework push hit the ${BUDGET_HOURS}h budget with units unfinished; see .cework_done" >> "$PROJ/autoloop_status.md"
