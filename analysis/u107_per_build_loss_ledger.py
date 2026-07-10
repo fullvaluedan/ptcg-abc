@@ -1,20 +1,14 @@
-"""U107: Per-build loss ledger (segregate losses by submission ref).
+"""Per-build loss ledger generation (plan U107).
 
-Generates loss distributions restricted to specific submission refs, allowing
-us to attribute losses to the actual shipped agent rather than a historical
-mix of all submissions.
+Segregates the loss distribution by submission ref so that targeting can be
+attributed to the actual shipped agent, not a historical mix of all builds.
 
-Usage:
-  python analysis/u107_per_build_loss_ledger.py --ref 54315802 54315565
-
-Output: analysis/u107_per_build_loss_ledger.md
-
-The current shadow-king and reclaim-king refs are read from state/current.md
-if they exist (matching live board), or passed via --ref flags.
+Reads data/episode_to_ref.json (the manifest), data/replays/, and the current
+live refs from state/current.md, then outputs a per-build loss distribution
+report to analysis/u107_per_build_loss_ledger.md.
 """
 from __future__ import annotations
 
-import argparse
 import json
 import sys
 from pathlib import Path
@@ -24,85 +18,127 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from tools.loop_state import read_current  # noqa: E402
+from tools import loop_state
+from tools.harvest_replays import DEFAULT_MANIFEST
 
 
-def extract_refs_from_current() -> dict:
-    """Read shadow-king and reclaim-king refs from state/current.md."""
-    data = read_current()
-    in_flight = data.get("in_flight", {})
-    kings = {}
+def get_live_refs() -> list[str]:
+    """Load the current shadow-king and reclaim-king refs from state/current.md."""
+    data = loop_state.read_current()
+    return data.get("live_refs") or loop_state.DEFAULT_LIVE_REFS
 
-    # Try to find refs from the in_flight section or per-build ledger
-    if "board_reading" in in_flight and "/" in in_flight["board_reading"]:
-        readings = in_flight["board_reading"].split("/")
-        if len(readings) >= 2:
-            # Format is typically "reading1/reading2 (ref1 ..., ref2 ...)"
-            # Extract refs from the parenthesized part
-            if "(" in readings[-1]:
-                text = readings[-1]
-                # Parse out refs
-                if "54315802" in text or "54339500" in text:
-                    kings["shadow_king"] = None
-                if "54315565" in text:
-                    kings["reclaim_king"] = None
 
-    # Fallback: grep the ledger for recent COMPLETE readings
-    return kings
+def load_episode_to_ref() -> dict:
+    """Load the episode-to-ref manifest, or return empty dict if it doesn't exist."""
+    manifest_path = Path(DEFAULT_MANIFEST)
+    if not manifest_path.exists():
+        return {}
+    try:
+        return json.loads(manifest_path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def generate_per_build_report(replay_dir="data/replays") -> dict:
+    """Generate the per-build loss distribution for current live refs.
+
+    Returns a dict with per_build_reports (keyed by ref) and live_refs.
+    """
+    live_refs = get_live_refs()
+    per_build_reports = {}
+
+    for ref in live_refs:
+        dist = loop_state.loss_distribution_from_dirs([replay_dir], ref_filter=[ref])
+        per_build_reports[str(ref)] = dist
+
+    return {
+        "live_refs": live_refs,
+        "per_build_reports": per_build_reports,
+        "replay_dir": replay_dir,
+    }
+
+
+def render_markdown(report: dict) -> str:
+    """Render the per-build report as markdown."""
+    lines = [
+        "# Per-Build Loss Ledger (U107)",
+        "",
+        "Loss distribution segregated by submission ref so targeting is attributed",
+        "to the actual shipped agent, not a historical mix of all builds.",
+        "",
+        "## Summary",
+        "",
+    ]
+
+    live_refs = report.get("live_refs", [])
+    per_build = report.get("per_build_reports", {})
+
+    if not per_build:
+        lines.append("_No per-build reports generated._")
+        return "\n".join(lines)
+
+    for ref in live_refs:
+        dist = per_build.get(str(ref), {})
+        games = dist.get("sample_size", 0)
+        wins = dist.get("wins", 0)
+        draws = dist.get("draws", 0)
+        losses = dist.get("losses", 0)
+        top_bucket = dist.get("top_bucket", "unknown")
+
+        lines.append(f"### Ref {ref}")
+        lines.append(f"- Sample: {games} games (W/D/L {wins}/{draws}/{losses})")
+        lines.append(f"- Top bucket: **{top_bucket}**")
+        lines.append("")
+
+    lines.append("## Per-Bucket Breakdown")
+    lines.append("")
+
+    # Show bucket-by-bucket for each ref
+    for ref in live_refs:
+        dist = per_build.get(str(ref), {})
+        games = dist.get("sample_size", 0)
+        if games == 0:
+            lines.append(f"### Ref {ref}: No games")
+            lines.append("")
+            continue
+
+        buckets = dist.get("buckets", {})
+        lines.append(f"### Ref {ref} (n={games})")
+        lines.append("")
+        lines.append("| Bucket | Count | % |")
+        lines.append("| --- | --- | --- |")
+
+        for bucket in sorted(buckets.keys()):
+            count = buckets[bucket]
+            pct = 100.0 * count / games if games > 0 else 0.0
+            lines.append(f"| {bucket} | {count} | {pct:.1f}% |")
+
+        lines.append("")
+
+    lines.append("## Targeting Priority")
+    lines.append("")
+    lines.append("Each build targets its own top loss bucket for the next unit.")
+    lines.append("")
+
+    return "\n".join(lines)
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--ref", nargs="+", help="submission refs to analyze (default: current king refs)")
-    ap.add_argument("--output", default=str(_ROOT / "analysis" / "u107_per_build_loss_ledger.md"),
-                    help="output markdown file (default analysis/u107_per_build_loss_ledger.md)")
-    args = ap.parse_args()
+    report = generate_per_build_report()
+    markdown = render_markdown(report)
 
-    refs = args.ref if args.ref else ["54315802", "54315565"]  # shadow-king, reclaim-king
-
-    output_path = Path(args.output)
-
-    # For now, output a stub indicating the feature is being developed
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    markdown = f"""# U107: Per-Build Loss Ledger
-
-## Summary
-
-Per-build loss segregation for submission refs: {", ".join(refs)}.
-
-Current status: **MANIFEST INFRASTRUCTURE ADDED** (tools/harvest_replays.py updated to persist episode-to-ref mapping to data/episode_to_ref.json).
-
-## Next Steps
-
-1. Backfill existing episodes via tools/scout.py list_episodes per ref
-2. Filter loss distributions using the episode-to-ref manifest
-3. Rerun loss_classifier restricted to current-king and shadow-king episodes
-
-## Refs Analyzed
-
-- shadow-king (best live): 54315802 (heuristic+trolley-ability)
-- reclaim-king (safe floor): 54315565 (heuristic+trolley)
-
-## Implementation Status
-
-- [DONE] harvest_replays.py modified to persist episode->ref mapping
-- [DONE] loop_state.py updated with classify_dirs_per_build function (ref filtering infrastructure)
-- [TODO] Backfill existing episodes with their refs (requires API call per ref)
-- [TODO] Filter loss_classifier output by ref
-
-## Note
-
-This unit is mechanical: it collects loss data per build so we can attribute
-targeting decisions to the shipped agent only, not a historical average
-across all ever-submitted builds. This segregation is prerequisite for
-honest loss mode targeting in TRACK L going forward.
-"""
-
+    output_path = _ROOT / "analysis" / "u107_per_build_loss_ledger.md"
     output_path.write_text(markdown)
-    print(f"Per-build loss ledger stub written to {output_path}")
-    print(f"Next: backfill episode-to-ref manifest via tools/scout.py list_episodes")
+
+    print(f"Per-build loss ledger written to {output_path}")
+    live_refs = report.get("live_refs", [])
+    per_build = report.get("per_build_reports", {})
+    for ref in live_refs:
+        dist = per_build.get(str(ref), {})
+        games = dist.get("sample_size", 0)
+        top = dist.get("top_bucket", "unknown")
+        print(f"  Ref {ref}: {games} games, top bucket = {top}")
 
 
 if __name__ == "__main__":
-    sys.exit(main() or 0)
+    main()
