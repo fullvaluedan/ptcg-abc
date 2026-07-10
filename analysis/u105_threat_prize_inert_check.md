@@ -1,6 +1,38 @@
 # U105 Threat/Prize Rules: Fires-vs-Inert Check (2026-07-07)
 
-**VERDICT: BOTH RULES INERT IN PRACTICE ON TROLLEY**
+## SUPERSEDED 2026-07-08: the INERT verdict below measured an implementation bug, not the game
+
+The zeros this check observed were produced by a defect in
+`agents/heuristics.py`'s `_opponent_best_attack_damage`: `CardData.attacks`
+holds attack IDs (ints), and the function passed those raw ints into
+`effective_damage`, whose `getattr(int, "damage", 0)` is always 0. The OHKO
+fire condition was therefore unsatisfiable for EVERY card in the game (0 of
+1057 attackers returned nonzero threat damage). The unit test masked the bug
+by monkeypatching this exact function to return 100. Fixed 2026-07-08 by
+resolving IDs through `attack_index()` exactly as `best_attack` does, with a
+non-mocked regression test (`test_opponent_threat_damage_nonzero_on_real_card_data`,
+953 of 1057 attackers nonzero, the remainder status-only).
+
+Re-run of this same tool with the fixed code (n=25 target positions):
+
+| deck | positions captured | OHKO-capable | decisions flipped | verdict |
+|---|---|---|---|---|
+| trolley | 12 | 7/12 | 3/12 | LIVE |
+| candidate_yushin_ito | 25 | 22/25 | 7/25 | LIVE |
+
+PTCG_THREAT_RETREAT is LIVE on both decks and is re-eligible for its ring
+A/B (standard calibrated ring, n=100/arm, same-run delta vs the same build
+with the flag off; the "hard ring" named in the original gate does not exist
+yet, U110 unbuilt). The PRIZE_CLOSE half of the original verdict is
+structurally different: choose() takes any lethal at step 1 before the
+resolver ladder runs, so the rule as written can never flip a decision; that
+half of the closure stands, though for a different reason than the doc gave
+(subsumed by the lethal FORCE, not distribution rarity). The original text
+is preserved below as the record of what was believed on 2026-07-07.
+
+---
+
+**VERDICT (2026-07-07, superseded above): BOTH RULES INERT IN PRACTICE ON TROLLEY**
 
 ## PTCG_THREAT_RETREAT (threat-aware retreat)
 

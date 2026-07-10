@@ -529,9 +529,14 @@ def _opponent_best_attack_damage(opp_active_id, my_active_id, my_active_hp) -> i
     if not opp_card:
         return 0
     max_dmg = 0
-    # Enumerate all attacks on the opponent's card and find the max damage.
-    attacks_list = getattr(opp_card, 'attacks', [])
-    for attack in attacks_list:
+    # CardData.attacks holds attack IDs (ints), not attack objects; resolve
+    # each through attack_index() exactly like best_attack does, or
+    # effective_damage reads .damage off an int and always returns 0.
+    attacks = attack_index()
+    for attack_id in getattr(opp_card, 'attacks', []):
+        attack = attacks.get(attack_id)
+        if attack is None:
+            continue
         dmg = effective_damage(opp_active_id, attack, my_active_id)
         max_dmg = max(max_dmg, dmg)
     return max_dmg

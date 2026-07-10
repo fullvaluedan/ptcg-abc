@@ -178,8 +178,34 @@ P9. 30-DAY ROADMAP (2026-07-06): docs/ROADMAP-30D.md is the authoritative plan t
     U110 hard ring (enriched arm with the hardest clones plus 800+-rated decks piloted by our stack; the
          standard ring saturates at 0.875-0.91 and our best build already reads 0.875, so gates above
          that are unresolvable without this).
-    U105 threat/prize rules per P8 (each rule separately gated: fires-vs-inert, gauntlet direction,
-         hard-ring delta more than +5pp).
+    U105 threat/prize rules per P8: the 2026-07-07 INERT closure is SUPERSEDED (it measured an
+         implementation bug: _opponent_best_attack_damage passed raw attack-ID ints into
+         effective_damage, so threat damage read 0 for all 1057 cards; the unit test masked it by
+         monkeypatching that exact function). Fixed 2026-07-08 with a non-mocked regression test; the
+         fires-vs-inert re-run reads LIVE on both decks (trolley 3/12 flips, yushin 7/25 flips,
+         analysis/u105_threat_prize_inert_check.md top section). NEXT for the compute session, not the
+         loop: PTCG_THREAT_RETREAT ring A/B on the STANDARD calibrated ring (the hard ring does not
+         exist, U110 unbuilt), n=100/arm, same-run delta vs the identical build with the flag off,
+         promote-if more than +5pp, on the yushin deck first (its fire rate is higher and it is the
+         best live build). PRIZE_CLOSE stays closed for a corrected reason: subsumed by choose()'s
+         step-1 lethal FORCE, it can never flip a decision as written.
+         PROCESS RULES from the 2026-07-08 audit, mechanical from now on: (1) a commit-msg hook now
+         REJECTS em/en dashes in commit messages (the written rule was violated in 46% of subjects on
+         Jul 7-8; if your commit fails, reword it, never bypass with --no-verify); (2) the writeup word
+         budget is a HARD CEILING of 2000 with a freeze band: hold final_synthesis.md at 1900-1990
+         words and never expand toward the line (7 commits thrashed expand/trim across it on Jul 6-8;
+         2000 is a limit, not a target); (3) pre-registrations live in the JSON STATE block ONLY (the
+         yushin row was silently lost by a prose regeneration, restored 2026-07-08; never hand-edit the
+         prose tables); (4) U106's state_matched_expert_lookup verdicts are UNSOUND, do not build on
+         them (win-only corpus so "experts also lose here" was never answerable, per-state invented
+         buckets instead of real loss buckets, uncalibrated distance bands that an expert-to-expert
+         null inverts, and 10k sampling while claiming 1.3M); the corrected follow-up is
+         matched-ACTION extraction from the episode zips (data/episodes/, per-decision entry['action']
+         exists; keep neighbor keys in knn_join), which is a compute-session job; (5) NEVER discard,
+         stash, or checkout-over foreign uncommitted working-tree changes: a concurrent session's
+         in-flight edits were wiped on 2026-07-08 (this correction block itself had to be reapplied);
+         if the tree has modifications you did not make, leave those files alone and commit only your
+         own unit's files.
     U109 oracle bound test: DONE 2026-07-07, FAIL, CLOSED. Oracle-search (determinize given each ring
          opponent's true decklist as opponent_prior, the best possible opponent model) tied the U112-
          confirmed stacked incumbent exactly (33-0-7 both arms, n=40/arm, delta +0.000) against the

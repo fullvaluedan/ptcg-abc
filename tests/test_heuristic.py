@@ -1222,3 +1222,26 @@ def test_prize_close_inactive_by_default(monkeypatch):
     # With flag off and no low-prize condition: normal logic applies
     # The attack should still be chosen when lethal is available (lethal is always taken)
     assert move == [0]
+
+
+# Regression: _opponent_best_attack_damage must resolve attack IDs through
+# attack_index() (CardData.attacks holds ints). Before the 2026-07-08 fix it
+# passed raw ints into effective_damage, so every card read 0 threat damage
+# and the PTCG_THREAT_RETREAT fire condition was unsatisfiable on any deck.
+# No mocks here on purpose: the earlier test masked the bug by monkeypatching
+# this exact function.
+def test_opponent_threat_damage_nonzero_on_real_card_data():
+    cards = heuristics.card_index()
+    defender_id = next(iter(cards))
+    nonzero = 0
+    checked = 0
+    for cid, card in cards.items():
+        if not getattr(card, "attacks", []):
+            continue
+        checked += 1
+        if heuristics._opponent_best_attack_damage(cid, defender_id, 100) > 0:
+            nonzero += 1
+    assert checked > 500  # sanity: real card index loaded
+    # The overwhelming majority of attackers must threaten nonzero damage;
+    # status-only attackers may legitimately read 0.
+    assert nonzero > checked * 0.8
