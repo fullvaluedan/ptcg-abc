@@ -47,6 +47,7 @@ The 33-agent audit (findings.md section 4D, 2026-07-08 entry) established that t
 - **Matched-action extraction joins across all episode zips.** Corpus game_ids lag zip dates by about one day, so the join searches every zip's member index, not the same-day zip. Neighbor keys are retained in the kNN join; expert actions come from the existing `move_rows_from_replay` machinery via a thin zip-reader adapter.
 - **Pre-registrations and live-ref lists are written only through the JSON STATE block** via `tools/loop_state.py`'s canonical writer. Hand-edited prose has been silently destroyed four times; prose is a rendered view.
 - **Gates settle at n=100 on the first try.** n=40 ring reads are 1-sigma; U104's +15pp shrank to a failing +9pp at n=100. Screening may run at n=40, but no promote/close decision lands on it.
+- **One orchestrated run rather than discrete compute jobs.** U109/U110/U112 ran successfully as standalone compute-session jobs, and U2/U3/U4/U7 could too; the coupled ce-work form is chosen because half the units are code-plus-test builds with cross-unit sequencing (U5 consumes U2/U4; U10 consumes U7), the delegation mapping needs one orchestrator, and one process owns the completion ledger. The completion-marker relaunch in U1 is the mitigation for coupling everything to one process's survival.
 
 ---
 
@@ -218,6 +219,7 @@ File-ownership partition while the push runs:
 - Hard-ring full calibration against ladder truth (only the ordering check lands in U5 if built).
 - Logging our own per-decision actions at loss states (unblocks expert-vs-us action deltas in a U106c).
 - The HOLD sentinel for the autoloop launcher (stop invoking the model when the queue is empty), noted in the audit as a cost fix.
+- The U117 rehearsal execution itself (Dan-owned, after the pair is signed and before Aug 12: build both tarballs, pass the grader test on the exact bytes, submit one rehearsal copy, confirm COMPLETE). U10 delivers the checklist; Dan executes it against the quota.
 
 ---
 
