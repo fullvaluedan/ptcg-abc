@@ -29,7 +29,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import tempfile
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -63,6 +66,16 @@ DEFAULT_MARGIN = 240
 # Settlement needs at least this many rated episodes (the pre-committed episode
 # floor N in every pre-registration must be >= this), per the loop protocol.
 MIN_EPISODES = 30
+
+# The two currently-live scored-slot refs (U107b): shadow-king heuristic+trolley-
+# ability and reclaim-king heuristic+trolley, per state/current.md's Kings section
+# and findings.md's "Board FROZEN: 2 scored slots occupied" note (2026-07-04); the
+# same pair analysis/u107_per_build_loss_ledger.py already defaults to. Seeds
+# current-state's live_refs array on the first write that has never carried the
+# key at all, so per-build targeting has a default without a manual edit to the
+# shared state file. A later shadow-king/reclaim-king swap updates live_refs the
+# same way the kings themselves are updated: through the canonical writer.
+DEFAULT_LIVE_REFS = ["54315802", "54315565"]
 
 # The fenced json block that carries the machine-readable state. Kept explicit so
 # both the writer and the reader agree on the exact fence, and a human editing the
@@ -121,8 +134,93 @@ def _read_file(path: Path) -> str:
 
 
 def _write_file(path: Path, text: str) -> None:
+    """Write text to path atomically: a temp file in the same directory, then
+    os.replace() into place.
+
+    A plain path.write_text() truncates the destination before writing the new
+    bytes, so a crash or exception mid-write (disk full, process killed) can leave
+    current.md or hypotheses.md half-written. Writing to a sibling temp file first
+    and only replacing the real path once that write is fully flushed means the
+    destination is always either the old content or the new content in full, never
+    a truncated in-between state. os.replace is atomic on both POSIX and Windows
+    when source and destination are on the same filesystem, which a sibling temp
+    file always is. On any failure the orphaned temp file is cleaned up and the
+    exception re-raised; the destination is left untouched.
+    """
     STATE_DIR.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=path.name + ".", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(tmp_name, str(path))
+    except BaseException:
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+        raise
+
+
+class LockTimeout(RuntimeError):
+    """Raised when a state-file lock could not be acquired within its bound."""
+
+
+class _FileLock:
+    """Cross-process advisory lock via an O_CREAT|O_EXCL lock file.
+
+    Serializes read-modify-write access to a state file: the autoloop refreshes
+    current.md from its own bash-driven schedule while this push's canonical
+    writer also reads-mutates-writes the same file, and without serialization the
+    later writer's write can clobber the earlier writer's update (a lost-update
+    race). os.open with O_CREAT|O_EXCL is atomic on both POSIX and Windows, so the
+    lock-file-exists check and its creation cannot race between two processes.
+    Acquired with bounded retry, never a busy spin forever; a caller that cannot
+    get the lock within the timeout raises LockTimeout rather than silently
+    proceeding unlocked (which would defeat the whole point). Always release in a
+    finally block (the context-manager form does this automatically).
+    """
+
+    def __init__(self, target: Path, timeout: float = 10.0, poll_s: float = 0.02):
+        self._lock_path = Path(str(target) + ".lock")
+        self._timeout = timeout
+        self._poll_s = poll_s
+        self._fd = None
+
+    def acquire(self) -> None:
+        self._lock_path.parent.mkdir(parents=True, exist_ok=True)
+        deadline = time.monotonic() + self._timeout
+        while True:
+            try:
+                self._fd = os.open(str(self._lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                return
+            except FileExistsError:
+                if time.monotonic() >= deadline:
+                    raise LockTimeout(
+                        f"could not acquire lock {self._lock_path} within {self._timeout}s "
+                        "(another writer is holding it; retry later rather than write unlocked)"
+                    )
+                time.sleep(self._poll_s)
+
+    def release(self) -> None:
+        if self._fd is not None:
+            try:
+                os.close(self._fd)
+            except OSError:
+                pass
+            self._fd = None
+        try:
+            self._lock_path.unlink()
+        except OSError:
+            pass
+
+    def __enter__(self):
+        self.acquire()
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self.release()
+        return False
 
 
 # --------------------------------------------------------------------------- #
@@ -138,6 +236,43 @@ def write_current(data: dict) -> None:
     _write_file(CURRENT_PATH, _render_current_md(data))
 
 
+def update_current(mutator) -> dict:
+    """Locked read-modify-write on current.md's state dict; the concurrency-safe path.
+
+    Acquires a lock on current.md (see _FileLock), reads the freshest state,
+    hands it to mutator(data) (which mutates in place and/or returns the dict to
+    write), writes the result back atomically, then releases the lock. Every
+    caller that reads current-state, changes a few keys, and writes it back
+    should route through this instead of a bare read_current()/write_current()
+    pair: without the lock, two concurrent writers (the autoloop's bash-driven
+    refresh and this push's canonical writes, or two of this push's own callers)
+    can each read the same stale snapshot and the later write silently drops the
+    earlier writer's change (a lost-update race). Returns the written dict.
+    """
+    with _FileLock(CURRENT_PATH):
+        data = read_current()
+        result = mutator(data)
+        data = result if isinstance(result, dict) else data
+        write_current(data)
+        return data
+
+
+def ensure_live_refs(data: dict) -> dict:
+    """Seed data['live_refs'] with DEFAULT_LIVE_REFS if the key is absent entirely.
+
+    Mutates and returns data. Only fires when live_refs has never been recorded
+    at all: an operator (or a future unit) who intentionally sets live_refs to an
+    empty list keeps that choice (it is read as "no live build known yet", which
+    correctly forces the pool-wide fallback) until live_refs is explicitly set
+    again. This is the "seeded once via the canonical writer" step U107b calls
+    for; call it from inside an update_current mutator so the seed is written
+    atomically with whatever else that write is doing.
+    """
+    if "live_refs" not in data:
+        data["live_refs"] = list(DEFAULT_LIVE_REFS)
+    return data
+
+
 def _render_current_md(data: dict) -> str:
     dist = data.get("loss_distribution") or {}
     lines = [
@@ -150,6 +285,24 @@ def _render_current_md(data: dict) -> str:
         "## Top loss bucket (what this iteration targets)",
         "",
     ]
+    targeting_mode = dist.get("targeting_mode")
+    fallback_reason = dist.get("fallback_reason")
+    if targeting_mode == "pool_fallback":
+        # LOUD by design (U107b): a silent fallback here would look identical to
+        # real per-build targeting and mask a lost-update regression back to the
+        # audited-broken mixed-pool behavior.
+        lines.append(
+            f"**FALLBACK TO POOL-WIDE TARGETING** ({fallback_reason or 'live_refs unavailable'}). "
+            "This is NOT per-build targeting: it mixes every historical build's "
+            "losses together, the audited-broken behavior U107b closes. See "
+            "tools/daily_refresh.py refresh_loss_distribution."
+        )
+        lines.append("")
+    elif targeting_mode == "per_build":
+        refs = dist.get("ref_filter") or []
+        lines.append(f"_per-build targeting (U107b), live refs: {', '.join(str(r) for r in refs)}_")
+        lines.append("")
+
     top = dist.get("top_bucket")
     if top:
         lines.append(f"**{top}** over {dist.get('sample_size', 0)} classified replays "
@@ -164,6 +317,16 @@ def _render_current_md(data: dict) -> str:
         for name, count in sorted(buckets.items(), key=lambda kv: kv[1] or 0, reverse=True):
             if count:
                 lines.append(f"| {name} | {count} |")
+        lines.append("")
+
+    pool_wide = dist.get("pool_wide")
+    if pool_wide and targeting_mode == "per_build":
+        lines.append(
+            f"_secondary, pool-wide (every build ever submitted): "
+            f"{pool_wide.get('top_bucket', '?')} over {pool_wide.get('sample_size', 0)} "
+            f"replays (W/D/L {pool_wide.get('wins', 0)}/{pool_wide.get('draws', 0)}/"
+            f"{pool_wide.get('losses', 0)})._"
+        )
         lines.append("")
 
     lines.append("## Kings")
@@ -780,9 +943,12 @@ def _cmd_refresh(args) -> None:
     if args.ref_filter:
         ref_filter = args.ref_filter.split(",") if isinstance(args.ref_filter, str) else args.ref_filter
     dist = loss_distribution_from_dirs(args.dirs, ref_filter=ref_filter)
-    data = read_current()
-    data["loss_distribution"] = dist
-    write_current(data)
+
+    def _mutate(data):
+        data["loss_distribution"] = dist
+        return data
+
+    update_current(_mutate)
     if ref_filter:
         print(f"current.md updated (refs: {', '.join(ref_filter)}): "
               f"top bucket = {dist['top_bucket']} over {dist['sample_size']} replays "
@@ -819,13 +985,21 @@ def _cmd_prereg(args) -> None:
         "filters": args.filters,
         "actions": {"win": args.win, "loss": args.loss, "band": args.band},
     }
-    data = read_current()
+    problems_holder = {}
+
+    def _mutate(data):
+        try:
+            upsert_prereg(data, row)
+        except ValueError as exc:
+            problems_holder["error"] = str(exc)
+            raise
+        return data
+
     try:
-        upsert_prereg(data, row)
-    except ValueError as exc:
-        print(str(exc))
+        update_current(_mutate)
+    except ValueError:
+        print(problems_holder["error"])
         raise SystemExit(2)
-    write_current(data)
     print(f"pre-registered '{args.build}' (complete); submission now allowed")
 
 
@@ -845,9 +1019,15 @@ def _cmd_calibrate_proxy(args) -> None:
     if not isinstance(scores, dict):
         print("--scores must be a JSON object mapping build -> score")
         raise SystemExit(2)
-    data = read_current()
-    data, report = record_proxy_calibration(data, args.proxy, scores, note=args.note)
-    write_current(data)
+    report_holder = {}
+
+    def _mutate(data):
+        new_data, report = record_proxy_calibration(data, args.proxy, scores, note=args.note)
+        report_holder["report"] = report
+        return new_data
+
+    update_current(_mutate)
+    report = report_holder["report"]
     verdict = "PASS" if report["passes"] else "FAIL"
     print(f"calibrated '{args.proxy}': {verdict} (tau={report['tau']}, "
           f"covered {report['n_covered']}/{report['n_known']})")

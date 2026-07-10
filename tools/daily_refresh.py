@@ -175,18 +175,73 @@ def refresh_top_player_corpus(dataset_path, top_n=tpt.DEFAULT_TOP_N, days=tpt.DE
     }
 
 
-def refresh_loss_distribution(ladder_dirs=None) -> dict:
-    """Recompute the loss-bucket distribution over our own replays into state/current.md.
+def refresh_loss_distribution(ladder_dirs=None, live_refs=None) -> dict:
+    """Recompute the loss-bucket distribution: per-build primary, pool-wide secondary.
 
-    Thin wrapper over tools.loop_state.loss_distribution_from_dirs, matching
-    the `python tools/loop_state.py refresh` CLI's own write-back behavior.
+    live_refs (a list of submission refs, U107b) filters the PRIMARY "top loss
+    bucket" to just the live shipped builds instead of every build ever
+    submitted. Pass it explicitly (as the ref_filter tools.loop_state.classify_
+    dirs_per_build already understands), or leave it None to read state/current.
+    md's own live_refs array -- seeded with the default two live refs via the
+    canonical locked writer (tools.loop_state.ensure_live_refs) the first time
+    this runs after live_refs has never been recorded at all. The pool-wide
+    distribution over every dir is always computed too and kept under the
+    "pool_wide" key as a secondary line, so the two views stay comparable.
+
+    Falls back to the pool-wide distribution AS the primary -- loudly marked via
+    "targeting_mode": "pool_fallback" and a human-readable "fallback_reason" --
+    when live_refs is empty/absent or the manifest has zero matched episodes for
+    every ref in it. A silent fallback here would render identically to real
+    per-build targeting and mask a lost-update regression back to the audited-
+    broken mixed-pool behavior; loop_state._render_current_md surfaces this field
+    loudly whenever it is set.
+
+    The read-modify-write against state/current.md is serialized through
+    tools.loop_state.update_current (a locked, atomic read-modify-write), closing
+    the standing lost-update race against the autoloop's own bash-driven refresh
+    writing the same file concurrently.
     """
     dirs = ladder_dirs if ladder_dirs is not None else ["data/replays"]
-    dist = loop_state.loss_distribution_from_dirs(dirs)
-    data = loop_state.read_current()
-    data["loss_distribution"] = dist
-    loop_state.write_current(data)
-    return dist
+    pool = loop_state.loss_distribution_from_dirs(dirs)
+
+    def _mutate(data):
+        nonlocal live_refs
+        if live_refs is None:
+            loop_state.ensure_live_refs(data)
+            live_refs = data.get("live_refs") or []
+
+        fallback_reason = None
+        if not live_refs:
+            fallback_reason = "no live_refs recorded in state/current.md"
+            primary = dict(pool)
+        else:
+            filtered = loop_state.loss_distribution_from_dirs(dirs, ref_filter=live_refs)
+            if filtered.get("games", 0) == 0:
+                fallback_reason = (
+                    f"live_refs {list(live_refs)} matched zero episodes in the "
+                    "episode-to-ref manifest (missing coverage); falling back to "
+                    "the pool-wide distribution"
+                )
+                primary = dict(pool)
+            else:
+                primary = filtered
+
+        primary["targeting_mode"] = "pool_fallback" if fallback_reason else "per_build"
+        primary["fallback_reason"] = fallback_reason
+        primary["pool_wide"] = {
+            "games": pool.get("games", 0),
+            "wins": pool.get("wins", 0),
+            "draws": pool.get("draws", 0),
+            "losses": pool.get("losses", 0),
+            "buckets": pool.get("buckets", {}),
+            "top_bucket": pool.get("top_bucket"),
+            "sample_size": pool.get("sample_size", 0),
+        }
+        data["loss_distribution"] = primary
+        return data
+
+    data = loop_state.update_current(_mutate)
+    return data["loss_distribution"]
 
 
 def refresh(episodes_dir=None, replays_dir=None, ladder_dirs=None,
