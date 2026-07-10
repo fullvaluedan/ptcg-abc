@@ -9,6 +9,13 @@ WLOG="$PROJ/watchdog.log"
 STALE_MIN=40
 date '+%Y-%m-%d %H:%M:%S' > "$PROJ/.watchdog_heartbeat"
 
+# Stale-sentinel guard: if the ce-work push session died with its sentinel in
+# place, clear it so the autoloop cannot be pinned in maintenance-only forever.
+if [ -f "$PROJ/.cework_active" ] && ! tmux has-session -t ptcgwork 2>/dev/null; then
+  rm -f "$PROJ/.cework_active"
+  echo "$(date '+%Y-%m-%d %H:%M:%S') watchdog: cleared orphaned .cework_active (ptcgwork session gone)" >> "$WLOG"
+fi
+
 alive=""
 if tmux has-session -t ptcg 2>/dev/null; then
   now=$(date +%s); mtime=$(stat -c %Y "$LOG" 2>/dev/null || echo 0)

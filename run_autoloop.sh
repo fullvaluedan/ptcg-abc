@@ -37,7 +37,17 @@ while true; do
   # Pipe the brief via stdin instead of as a CLI argument: LOOP_BRIEF.md has grown
   # large enough (>40KB) that passing it inline hit the OS/shell argv-length limit
   # ("Argument list too long"), which silently looked like a usage-limit backoff.
-  MSYS_NO_PATHCONV=1 cat "$PROJ/LOOP_BRIEF.md" | "$CLAUDE" -p \
+  # Maintenance guard (P10): while the ce-work push session holds .cework_active,
+  # this loop runs a maintenance-only mini-brief instead of the full LOOP_BRIEF.
+  # Enforced here in bash, not left to the model's judgment, and the sentinel is
+  # honored only while the ptcgwork session actually exists (stale-sentinel guard;
+  # watchdog_check.sh also clears orphans).
+  BRIEF="$PROJ/LOOP_BRIEF.md"
+  if [ -f "$PROJ/.cework_active" ] && tmux has-session -t ptcgwork 2>/dev/null; then
+    BRIEF="$PROJ/MAINTENANCE_BRIEF.md"
+    echo "-- cework sentinel present: maintenance-only iteration --" | tee -a "$LOG"
+  fi
+  MSYS_NO_PATHCONV=1 cat "$BRIEF" | "$CLAUDE" -p \
       --model claude-haiku-4-5-20251001 \
       --dangerously-skip-permissions >> "$LOG" 2>&1
   code=$?
