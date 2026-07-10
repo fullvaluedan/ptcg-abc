@@ -66,17 +66,18 @@ flowchart TB
   A3 --> C9
   B5 --> C9
   B7 --> D10[U10 pair pre-reg package, opus + Dan]
-  C9 --> D10
 ```
+
+U9 and U10 are independent: U10 must ship by Aug 5 and reads none of U9's files; U9 runs toward Sep 1.
 
 File-ownership partition while the push runs:
 
 | Owner | Files |
 |---|---|
-| ce-work units | tools/threat_retreat_ring_check.py, analysis/matched_action_extraction.py, tools/score_wave2_candidates.py, tools/convergence_sigma.py, tests/test_engine_mechanics.py, docs/writeup/*, new analysis/*.md, run_cework.sh |
+| ce-work units | run_cework.sh, run_autoloop.sh (U1 guard), watchdog_check.sh (U1 sentinel expiry), LOOP_BRIEF.md, tools/threat_retreat_ring_check.py, tools/score_wave2_candidates.py, tools/convergence_sigma.py, tools/loop_state.py and tools/daily_refresh.py (U6), tools/hard_ring.py (U5 if built), analysis/matched_action_extraction.py, new analysis/*.md, decks/candidate_*_w2.csv, tests/test_engine_mechanics.py plus every new tests/test_*.py named in the units, docs/writeup/*, docs/rules_as_implemented.md (U8), docs/lock_rehearsal_checklist.md, findings.md (autoloop logs board notes to autoloop_status.md only while the sentinel exists) |
 | autoloop (maintenance-only) | state/current.md regeneration, data/leaderboard_cache/*, autoloop_status.md |
-| shared, canonical-writer only | state/current.md JSON STATE block (U6 and U10 write through tools/loop_state.py, never by hand) |
-| Dan | Kaggle submissions, the Rules 2.2.b screenshot check, pair pre-registration sign-off |
+| shared, serialized writer only | state/current.md JSON STATE block (U6 and U10 write through tools/loop_state.py, which U6 makes lock-serialized and atomic; never by hand) |
+| Dan | Kaggle submissions, the Rules 2.2.b screenshot check, pair pre-registration sign-off, the U117 rehearsal submission |
 
 ---
 
@@ -88,11 +89,11 @@ File-ownership partition while the push runs:
 - **Requirements:** R10
 - **Dependencies:** none
 - **Delegation:** sonnet
-- **Files:** run_cework.sh (create), LOOP_BRIEF.md (append P10 block), docs/plans/2026-07-10-001-feat-improvement-push-plan.md (this plan, read-only input)
-- **Approach:** Mirror run_autoloop.sh: full claude path, stdin-piped prompt (`cat <prompt file> | claude -p --model claude-sonnet-5 --dangerously-skip-permissions`), MSYS_NO_PATHCONV=1, PYTHONIOENCODING=utf-8, own tmux session name (ptcgwork) and log (cework.log), touch `.cework_active` on start and remove on exit via trap, restart-on-nonzero-exit up to 3 attempts (ce-work resumes from git state). The prompt file instructs the orchestrator to execute this plan via ce-work, honoring each unit's Delegation field through subagent model overrides, committing only its own unit's files, and never discarding foreign working-tree changes. P10 block: while `.cework_active` exists the autoloop does only board checks and daily refresh, and never touches docs/writeup/ or files named in this plan.
+- **Files:** run_cework.sh (create), CEWORK_PROMPT.md (create), run_autoloop.sh (modify: maintenance guard), watchdog_check.sh (modify: sentinel expiry), LOOP_BRIEF.md (append P10 block), docs/plans/2026-07-10-001-feat-improvement-push-plan.md (this plan, read-only input)
+- **Approach:** Mirror run_autoloop.sh: full claude path, stdin-piped prompt (`cat CEWORK_PROMPT.md | claude -p --model claude-sonnet-5 --dangerously-skip-permissions`), MSYS_NO_PATHCONV=1, PYTHONIOENCODING=utf-8, own tmux session name (ptcgwork) and log (cework.log). The restriction is enforced in bash, not prose: run_autoloop.sh gains a launcher-level guard that, while `.cework_active` exists, pipes a maintenance-only mini-brief (board check plus daily refresh) instead of the full LOOP_BRIEF.md; run_cework.sh waits for any in-flight autoloop iteration to end (poll the iteration-end marker in autoloop.log) before dispatching units. The P10 block documents the guard and amends the ONE-loop rule: while the sentinel exists, ptcgwork is the sanctioned second session and the prohibition applies to additional autoloop instances only. Relaunch gates on completion, not exit code: the orchestrator maintains `.cework_done` naming completed units; run_cework.sh relaunches until the marker lists all units or a wall-clock budget expires, with run_autoloop.sh's short-iteration long-backoff (backoff sleeps do not count against the attempt budget), and on giving up appends a NEEDS-DAN note to autoloop_status.md instead of exiting silently. Sentinel self-expiry: watchdog_check.sh deletes `.cework_active` when the ptcgwork session is gone (and logs the event), so a tmux-server death can never pin the autoloop in maintenance-only. The prompt file instructs the orchestrator: execute this plan via ce-work in non-interactive mode (never block on a question; take the documented default and record the choice), honor each unit's Delegation field through subagent model overrides, commit only the unit's own files, never discard foreign working-tree changes, and update `.cework_done` after each unit's commit.
 - **Patterns to follow:** run_autoloop.sh (stdin pipe, iteration counter, backoff), watchdog_check.sh (session liveness checks).
-- **Test scenarios:** Test expectation: none, shell launcher and doc edit; verified by launch behavior (sentinel appears, log accumulates, session survives a simulated nonzero exit).
-- **Verification:** tmux session ptcgwork running the orchestrator; `.cework_active` present; autoloop's next iterations show maintenance-only behavior in autoloop_status.md.
+- **Test scenarios:** Test expectation: none, shell launcher and doc edits; verified by launch behavior (sentinel appears, autoloop's next iteration runs the mini-brief, log accumulates, a simulated ptcgwork death gets the sentinel cleared by the watchdog).
+- **Verification:** the orchestrator model id is verified with a one-off `claude -p --model claude-sonnet-5` echo before launch; tmux session ptcgwork running; `.cework_active` present; the autoloop's next iteration logs maintenance-only behavior.
 
 ### U2. Threat-retreat ring A/B (U105b)
 
@@ -112,7 +113,7 @@ File-ownership partition while the push runs:
 - **Requirements:** R2
 - **Dependencies:** U1
 - **Delegation:** sonnet
-- **Files:** analysis/matched_action_extraction.py (create), analysis/matched_expert_actions.md (create), tests/test_matched_action_extraction.py (create)
+- **Files:** analysis/matched_action_extraction.py (create), analysis/matched_expert_actions.md (create), tests/test_matched_action_extraction.py (create), findings.md (dated entry)
 - **Approach:** Extend the kNN join to retain neighbor identity (expert game_id, seat, turn). Resolve each neighbor's episode JSON by searching all data/episodes zip member indexes (one-day offset; build a stem-to-zip index once). Extract the expert's chosen MAIN action at the matched turn via tools/replays_to_rows.py's `move_rows_from_replay` behind a zip-reader adapter. Aggregate expert action types per loss cluster, weighted per game, with neighbor-distance support reported alongside. Scope note: first pass reports expert action distributions only; our own actions at those states are unlogged (recorded limitation, not silently skipped). Interpret under the deck-blind feature caveat carried from the audit.
 - **Patterns to follow:** analysis/state_matched_expert_lookup.py (join scaffolding, corrected per LOOP_BRIEF P9 rule 4), tools/replays_to_rows.py, agents/imitation_features.py.
 - **Test scenarios:** neighbor keys survive the join (fixture with known nearest neighbor); zip index maps a corpus game_id found only in the prior day's zip; action extraction returns the recorded `entry["action"]` index for a fixture replay; per-game weighting: a game contributing 50 states does not dominate a cluster 50:1; empty-support cluster reports support=0 instead of fabricating a verdict.
@@ -124,11 +125,11 @@ File-ownership partition while the push runs:
 - **Requirements:** R3
 - **Dependencies:** U1
 - **Delegation:** sonnet
-- **Files:** tools/score_wave2_candidates.py (create), analysis/wave2_ring_scores.md (create), tests/test_score_wave2_candidates.py (create)
-- **Approach:** Custom builds dict: baseline `deck:candidate_yushin_ito` plus the wave-2 stems present on disk (third_ptcg_club, kashiwashira, zoroark190, bluezlee); the fifth (a non-ASCII-named deck) has no CSV on disk, so regenerate it via tools/dedupe_mined_candidates.py if the mined source still yields it, else record the gap. Screen at n=40; any candidate clearing +0.10 over yushin re-runs at n=100 in the same tool before any promote verdict. Reuse `promote_verdicts(results, baseline="candidate_yushin_ito")`.
-- **Patterns to follow:** tools/score_candidate_decks.py (verdict math, float tolerance), tools/ring_calibrate.py run_ring.
-- **Test scenarios:** builds dict contains only the yushin baseline plus wave-2 stems, never the full 40-candidate pool; missing-CSV stem is skipped with a recorded reason, not a crash; screen-then-confirm flow only confirms candidates that cleared the screen; promote verdict at exactly +0.10 uses the established inclusive tolerance.
-- **Verification:** analysis doc with per-candidate W-D-L, deltas vs yushin, verdicts, and the fifth-deck disposition; full suite green.
+- **Files:** tools/score_wave2_candidates.py (create), decks/candidate_*_w2.csv (create, materialized from the mined source), analysis/wave2_ring_scores.md (create), tests/test_score_wave2_candidates.py (create)
+- **Approach:** The on-disk same-named CSVs are NOT the wave-2 decks: the dedup report classifies all five wave-2 signatures as new precisely because they match no on-disk CSV, and the on-disk stems were already ring-scored and failed on 2026-07-06 (analysis/new_candidates_phase2_verdict.md). Materialize the five wave-2 signatures directly from data/derived/top_rated_decks.json (the dedup report's New Candidates rows) into fresh collision-free CSVs (candidate_<team>_w2.csv, ASCII-transliterated stem for the non-ASCII team, recording the original name in the analysis doc); do not route through tools/dedupe_mined_candidates.py, whose write path skips existing filenames and non-ASCII names unconditionally. Builds dict: baseline `deck:candidate_yushin_ito` plus the five _w2 stems. Screen at n=40; any candidate clearing +0.10 over yushin re-runs at n=100 in the same tool before any promote verdict. Reuse `promote_verdicts(results, baseline="candidate_yushin_ito")`. Cite the 2026-07-06 phase-2 verdicts for the same-named wave-1 decks in the analysis doc so signature drift between mining windows stays visible.
+- **Patterns to follow:** tools/score_candidate_decks.py (verdict math, float tolerance), tools/ring_calibrate.py run_ring, analysis/mined_candidates_dedup_report.md (the five signatures).
+- **Test scenarios:** each scored _w2 CSV's 60-card signature matches the dedup report's mined signature, not the same-named wave-1 deck; builds dict contains only the yushin baseline plus the five _w2 stems, never the full candidate pool; non-ASCII team name round-trips to an ASCII stem with the original recorded; screen-then-confirm flow only confirms candidates that cleared the screen; promote verdict at exactly +0.10 uses the established inclusive tolerance.
+- **Verification:** analysis doc with per-candidate W-D-L, deltas vs yushin, verdicts, the signature-match confirmation, and the wave-1 prior-verdict citations; full suite green.
 
 ### U5. Hard-ring decision (U110)
 
@@ -149,9 +150,9 @@ File-ownership partition while the push runs:
 - **Dependencies:** U1
 - **Delegation:** sonnet
 - **Files:** tools/loop_state.py (modify), tools/daily_refresh.py (modify), tests/test_per_build_targeting.py (create)
-- **Approach:** Add a `live_refs` array to the JSON STATE block (written once via the canonical writer, seeded with the two live refs); `refresh_loss_distribution` passes it as ref_filter and renders the per-build table as the primary "Top loss bucket", with the pool-wide distribution demoted to a secondary line. Falls back to pool-wide when `live_refs` is absent or the manifest lacks coverage, with the fallback stated in the rendered output. Coordinate with the autoloop: this unit lands while the sentinel restricts the loop, and the loop picks the change up on its next refresh.
+- **Approach:** Add a `live_refs` array to the JSON STATE block (written once via the canonical writer, seeded with the two live refs); `refresh_loss_distribution` passes it as ref_filter and renders the per-build table as the primary "Top loss bucket", with the pool-wide distribution demoted to a secondary line. Falls back to pool-wide when `live_refs` is absent or the manifest lacks coverage, with the fallback stated loudly in the rendered output (a silent fallback would mask a lost-update regression to the audited-broken targeting). This unit also makes the writer concurrency-safe, closing the standing lost-update race between the autoloop's bash-driven refresh and this push's canonical writes: `_write_file` writes a temp file then `os.replace`s it into place, and read-modify-write callers serialize on a lock file acquired via `O_CREAT|O_EXCL` with bounded retry, released in a finally block. Sequence the commit atomically: the autoloop executes these modules every 20th iteration, so land the loop_state and daily_refresh changes in one commit.
 - **Patterns to follow:** tools/loop_state.py classify_dirs_per_build and ref_filter plumbing (already present), analysis/u107_per_build_loss_ledger.py.
-- **Test scenarios:** live_refs present routes targeting to filtered counts (fixture manifest); absent live_refs falls back with an explicit marker; a ref missing from the manifest contributes zero rather than crashing; rendered current.md keeps the JSON block as source of truth (round-trip through the writer preserves pre_registrations).
+- **Test scenarios:** live_refs present routes targeting to filtered counts (fixture manifest); absent live_refs falls back with an explicit marker; a ref missing from the manifest contributes zero rather than crashing; rendered current.md keeps the JSON block as source of truth (round-trip through the writer preserves pre_registrations); two concurrent writers cannot lose an update (lock contention test with a deliberately slow holder); a failed write never leaves a truncated current.md (temp-plus-replace).
 - **Verification:** after the next daily refresh, current.md's top loss bucket is per-build with the pool-wide line secondary; existing network-dependent tools/test_u107_filtering.py left as is; new unit tests are hermetic and green.
 
 ### U7. Convergence residual sigma (U115)
@@ -161,7 +162,7 @@ File-ownership partition while the push runs:
 - **Dependencies:** U1
 - **Delegation:** sonnet
 - **Files:** tools/convergence_sigma.py (create), analysis/convergence_sigma.md (create), tests/test_convergence_sigma.py (create)
-- **Approach:** Fit rating-read spread against episode count from the ledger's 77 repeated board reads plus the age-stratified refit machinery; the 3-snapshot drift log is insufficient alone (repo research). Output: residual sigma estimate after a 200-350 game convergence window with a CI, surviving the fresh-read-depression correction from the aged-reads work.
+- **Approach:** The ledger's board reads carry build, score, and date only; the episode-count covariate must be derived: reconstruct each read's episode count by listing the ref's episodes (tools/scout.py, kaggle CLI) and counting those created before the read's date, with age-hours as the explicit fallback covariate (stated as such in the analysis doc) when the CLI or episode history is unavailable. Fit rating-read spread against that covariate from the ledger's 77 repeated reads plus the age-stratified refit machinery; the 3-snapshot drift log is insufficient alone. Output: residual sigma estimate after a 200-350 game convergence window with a CI, surviving the fresh-read-depression correction from the aged-reads work.
 - **Patterns to follow:** tools/refit_noise_model_age_stratified.py, analysis/age_stratified_refit_findings.md.
 - **Test scenarios:** estimator reproduces a known sigma on synthetic reads with injected noise; age-stratification excludes sub-48h reads from the terminal estimate; output includes n, sigma, CI, and the episode-count curve points.
 - **Verification:** analysis doc with the sigma-vs-episodes curve and a stated end-of-window residual sigma; cited by U10.
@@ -173,7 +174,7 @@ File-ownership partition while the push runs:
 - **Dependencies:** U1 (parallel-safe with U2-U7)
 - **Delegation:** sonnet
 - **Execution note:** characterization-first; the engine's actual behavior is the spec, probe before asserting.
-- **Files:** tests/test_engine_mechanics.py (modify), tests/engine_state_driver.py (create if the driver outgrows the test file)
+- **Files:** tests/test_engine_mechanics.py (modify), tests/engine_state_driver.py (create if the driver outgrows the test file), docs/rules_as_implemented.md (modify where probed behavior contradicts its prose), LOOP_BRIEF.md (U100 status paragraph to DONE)
 - **Approach:** The existing tests are tolerant probes built on the file's GameState wrapper (take_option/take_first_option over search_step) that silently `return` when a needed option never appears. The work: build a state driver that plays toward each mechanic's precondition (choosing options by predicate, not blindly first-legal), replace every silent early-return with either a hard assertion or `pytest.skip` carrying the reason, and assert concrete values (damage after weakness, prize count transitions, energy gating) probed from the live engine. Import cg canonically per the file's module-identity warning; never import data.cg.
 - **Patterns to follow:** the file's own GameState/_setup_fresh_game scaffolding; tools/fuzz_invariants.py's calibrate-then-enforce discipline for anything distribution-dependent.
 - **Test scenarios:** the 21 tests themselves are the deliverable; meta-scenarios: no test body contains a bare silent return path (grep-checkable); a deliberately broken assertion fails the suite (mutation sanity check on two tests); suite runtime stays under a few minutes (drive states, do not brute-force long games).
