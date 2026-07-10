@@ -217,6 +217,16 @@ P9. 30-DAY ROADMAP (2026-07-06): docs/ROADMAP-30D.md is the authoritative plan t
          U102 per the roadmap's own reallocation plan. U106/U107/U103/U102 continue per the roadmap's
          week-2-3 table. Escalate to Dan: the Rules 2.2.b Submissions-page screenshot check (DAN-1) and
          every pair/exploit design decision (P5).
+P10. CE-WORK PUSH ACTIVE (2026-07-10): a sanctioned second session (tmux ptcgwork) executes
+    docs/plans/2026-07-10-001-feat-improvement-push-plan.md unattended. Enforcement is in bash, not
+    here: while .cework_active exists AND the ptcgwork session is alive, run_autoloop.sh pipes
+    MAINTENANCE_BRIEF.md instead of this file, so a full iteration reading this text means the push has
+    ended (sentinel cleared by the launcher trap or the watchdog). The ONE-loop rule is amended for the
+    push's duration: ptcgwork is sanctioned; the prohibition applies to additional autoloop instances
+    only. After the push: its units supersede the matching P8/P9 queue items (U105 ring A/B, U106b
+    matched-action extraction, U107b per-build targeting, U110 decision, U39 wave 2, U115/U116/U117
+    prep, U100 real assertions, writeup conformance); read analysis/cework_push_summary.md before
+    resuming queue work, and never redo a unit its summary lists as done.
 
 ## RESUME STATE (2026-07-03): TWO TRACKS. Do not conflate them.
 An audit found the loop had been optimizing an agent that does NOT ship: the shipped ladder agent is
