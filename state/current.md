@@ -6,15 +6,15 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Top loss bucket (what this iteration targets)
 
-**early_collapse** over 1005 classified replays (W/D/L 448/1/556).
+**early_collapse** over 1007 classified replays (W/D/L 448/1/558).
 
 | bucket | losses |
 | --- | --- |
 | early_collapse | 366 |
 | deckout | 77 |
-| bad_determinization | 57 |
+| bad_determinization | 58 |
 | deck_matchup | 33 |
-| endgame_misplay | 23 |
+| endgame_misplay | 24 |
 
 ## Kings
 
@@ -928,18 +928,18 @@ _none calibrated; every proxy gate is refused (default-deny)_
   ],
   "loss_distribution": {
     "buckets": {
-      "bad_determinization": 57,
+      "bad_determinization": 58,
       "deck_matchup": 33,
       "deckout": 77,
       "early_collapse": 366,
-      "endgame_misplay": 23,
+      "endgame_misplay": 24,
       "slow_search": 0
     },
     "draws": 1,
-    "games": 1005,
-    "losses": 556,
+    "games": 1007,
+    "losses": 558,
     "ref_filter": [],
-    "sample_size": 1005,
+    "sample_size": 1007,
     "sources": [
       "data/replays"
     ],
@@ -1027,6 +1027,20 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "margin": 240,
       "n": 30,
       "settle_by": "2026-07-18"
+    },
+    {
+      "actions": {
+        "band": "hold through settle-by; pooled aged reads vs king true estimate decide; no eviction on any within-band read per U108",
+        "loss": "evict threat-retreat, revert slot to a king copy",
+        "win": "promote heuristic+candidate_yushin_ito-threat_retreat to shadow-king; reclaim-king stays heuristic+trolley"
+      },
+      "build": "heuristic+candidate_yushin_ito-threat_retreat",
+      "direction": "up",
+      "filters": "ring-gated through the calibrated bracket ring (tau 0.857): same-run A/B on yushin+ability baseline, threat-retreat off vs on, diff_pp +6.0 (strictly more than +5.0pp gate), analysis/u105b_threat_retreat_ring_ab.md; off-arm 0.850 (at saturation threshold, saturation routing engaged but gate resolved cleanly without need for hard ring per U110); tarball grader-verified (tests/test_grader_submission.py[heuristic-yushin_ito-threat_retreat]) pending extraction/env.run spot-check",
+      "hypothesis": "PTCG_THREAT_RETREAT on (opponent threat-aware retreat) improves ladder win rate on yushin+ability baseline; pilot awareness gap (do we retreat when facing lethal?) closes via threat-aware policy",
+      "margin": 240,
+      "n": 30,
+      "settle_by": "2026-07-25"
     }
   ],
   "reclaim_king": {
