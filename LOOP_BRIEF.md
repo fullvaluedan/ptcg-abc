@@ -73,7 +73,27 @@ P7. DAN'S DIRECTIVES (2026-07-05), three standing objectives, all offline and qu
         sub-select (CARD/COUNT/YES_NO) meanings, turn structure. Deliverables: docs/rules_as_implemented.md
         (plain-language, card-play oriented) plus tests/test_engine_mechanics.py pinning each VERIFIED
         mechanic as an executable test. The engine's behavior, not the printed text, is the real rulebook.
-        STATUS CHECK (2026-07-06): tests/test_engine_mechanics.py currently has 20 of 21 test bodies as
+        STATUS: DONE (2026-07-10). The 2026-07-06 status check below is superseded: what looked like 21
+        real tests was actually 21 tolerant probes that silently `return`ed whenever a needed game state
+        never appeared (`if attack_idx is None: return`), plus helper predicates that could never match
+        anything (`option.area == 'ATTACK'` compares an AreaType enum to a string; AreaType has no
+        ATTACK/RETREAT/SUPPORTER members). pytest reported "21 passed" while proving nothing. Rebuilt via
+        tests/engine_state_driver.py (a mining driver: drives many real replay-derived games forward with a
+        deliberate policy -- prefer a status-inflicting attack, else any attack, else evolve, else attach
+        energy, else play a card -- and harvests concrete, naturally-occurring evidence for each mechanic
+        into a shared corpus) plus a rewritten tests/test_engine_mechanics.py where all 21 tests assert real
+        values from that corpus (weakness exactly doubles damage confirmed on 71-74 real hits per run with
+        zero exceptions; KO prize awards are TIERED 1/2/3 by ex/mega-ex, not flat-1 as previously documented;
+        energy/retreat gating verified per-attack, not as a blanket zero-energy rule; etc. -- see
+        docs/rules_as_implemented.md for the full corrected write-up, including two mechanics -- resistance's
+        exact reduction, poison's per-turn damage -- that remain genuinely unverified after exhaustively
+        mining the full 1029-replay corpus, and are `pytest.skip`ped with the documented reason rather than
+        asserting an unconfirmed number). `grep -n "return$" tests/test_engine_mechanics.py` returns no
+        matches (no silent early-exits remain). Confirmed the suite actually fails on a wrong assertion via
+        a manual mutation check (reverted before commit). The prior STATUS CHECK (2026-07-06) is kept below
+        for history.
+        STATUS CHECK (2026-07-06, historical -- see STATUS: DONE above): tests/test_engine_mechanics.py
+        currently has 20 of 21 test bodies as
         `pass  # TODO: implement game harness`, each sitting under a docstring/comment claiming the mechanic
         is "VERIFIED" (only test_damage_with_no_modifier_applied_as_base has a real assertion). pytest
         reports "21 passed" but an empty `pass` body cannot fail, so that count proves nothing. This is not
