@@ -1,5 +1,16 @@
 # Unattended autoloop brief: ptcg-abc (Pokemon TCG AI Battle Challenge)
 
+## ALL UNATTENDED LOOPS STOPPED (Dan directive, 2026-07-10)
+
+Dan stopped all unattended LLM execution: the ptcg autoloop, the ptcgwork ce-work push, and the
+ptcg-watchdog scheduled task (disabled) are all down. The regime from now on is work-on-request only,
+plus deterministic data collection via the ptcg-data-refresh scheduled task (tools/daily_refresh.py,
+daily 09:00, no LLM). Do NOT restart any loop, re-enable the watchdog, or resume the ce-work push
+without Dan asking for it. If a future session is asked to resume work, the improvement-push plan
+(docs/plans/2026-07-10-001-feat-improvement-push-plan.md) and the partial unit work parked on the six
+worktree-agent-* branches are the starting inventory; everything below this banner is historical
+context for that resumption, not standing authorization.
+
 You are working UNATTENDED in the ptcg-abc repo, invoked once per iteration by a shell driver.
 Do ONE increment, then STOP. Full autonomy authorized.
 
