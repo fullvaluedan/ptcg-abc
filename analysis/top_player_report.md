@@ -12,72 +12,72 @@ game minus this window are dropped before matching).
 
 | rank | team | rating | corpus games | corpus win rate |
 |---|---|---|---|---|
-| 1 | Raihan Ramadistra | 1139.5 | 70 | 41% |
-| 2 | THIRD PTCG Club | 1132.4 | 286 | 48% |
-| 3 | Yushin Ito | 1132.2 | 433 | 59% |
-| 4 | LiamK | 1128.7 | 124 | 56% |
-| 5 | Majkel1337 | 1127.1 | 638 | 58% |
-| 6 | nasuo445 | 1123.2 | 688 | 54% |
-| 7 | aaa | 1111.5 | 176 | 52% |
-| 8 | Rmy | 1109.5 | 443 | 51% |
-| 9 | bono | 1098.4 | 585 | 58% |
-| 10 | zoroark190 | 1093.2 | 456 | 53% |
-| 11 | kazuki0123 | 1091.3 | 41 | 37% |
-| 12 | WinDecks | 1086.7 | 265 | 53% |
-| 13 | kashiwashira | 1082.0 | 71 | 55% |
-| 14 | ごんさくよねきち | 1078.9 | 203 | 51% |
-| 15 | Bozo Boys | 1078.0 | 72 | 51% |
-| 16 | Michael Long | 1075.9 | 0 | n/a |
-| 17 | 5.5 | 1063.3 | 97 | 47% |
-| 18 | btk15049 | 1060.3 | 328 | 52% |
-| 19 | wkonishi | 1059.3 | 16 | 25% |
-| 20 | Boss's Orders Are All You Need | 1054.9 | 33 | 42% |
+| 1 | Yushin Ito | 1308.8 | 720 | 63% |
+| 2 | MPGaming | 1178.9 | 240 | 58% |
+| 3 | LiamK | 1140.5 | 341 | 51% |
+| 4 | Majkel1337 | 1139.3 | 506 | 56% |
+| 5 | taksai | 1136.2 | 0 | n/a |
+| 6 | nasuo445 | 1127.2 | 554 | 52% |
+| 7 | Alberto Bonsanto | 1100.4 | 155 | 48% |
+| 8 | Raihan Ramadistra | 1098.2 | 422 | 55% |
+| 9 | 213tubo | 1093.0 | 351 | 46% |
+| 10 | Dũng Đỗ | 1092.2 | 247 | 53% |
+| 11 | wkonishi | 1090.7 | 71 | 38% |
+| 12 | bono | 1090.5 | 578 | 54% |
+| 13 | Michael Long | 1089.2 | 264 | 55% |
+| 14 | zoroark190 | 1081.9 | 106 | 45% |
+| 15 | WinDecks | 1079.9 | 246 | 54% |
+| 16 | Rmy | 1071.1 | 201 | 42% |
+| 17 | Sota Uchiyama | 1067.7 | 98 | 47% |
+| 18 | wally0593 | 1062.8 | 95 | 39% |
+| 19 | kazuki0123 | 1061.4 | 50 | 48% |
+| 20 | OSELCOUN | 1060.8 | 122 | 43% |
 
 ## Coverage
 
-- Games considered (post recency filter): 5202
-- Games matched to a top-N team: 3872
-- Training rows written: 202553
-- Date range of matched games: 2026-07-07 to 2026-07-07
+- Games considered (post recency filter): 4870
+- Games matched to a top-N team: 3951
+- Training rows written: 207923
+- Date range of matched games: 2026-07-09 to 2026-07-09
 
 ## Archetype breakdown
 
-- meta_grimmsnarl: 2280
-- other: 1174
-- meta_grimmsnarl_tonakaiiii: 906
-- meta_archaludon: 665
+- meta_grimmsnarl: 2910
+- meta_archaludon: 1218
+- meta_grimmsnarl_tonakaiiii: 652
+- other: 587
 
 ## Unmapped team names
 
-- Michael Long (no game in the scanned dataset names this team)
+- taksai (no game in the scanned dataset names this team)
 
 ## Losses
 
 | team | losses | dominant loss bucket | most common opponent |
 |---|---|---|---|
-| nasuo445 | 316 | bad_determinization | Majkel1337 |
-| Majkel1337 | 266 | endgame_misplay | vibechu |
-| bono | 244 | bad_determinization | Majkel1337 |
-| Rmy | 216 | deckout | nasuo445 |
-| zoroark190 | 215 | endgame_misplay | Majkel1337 |
-| Yushin Ito | 179 | bad_determinization | nasuo445 |
-| btk15049 | 157 | slow_search | bono |
-| THIRD PTCG Club | 148 | endgame_misplay | nasuo445 |
-| WinDecks | 125 | early_collapse | nasuo445 |
-| ごんさくよねきち | 100 | endgame_misplay | nasuo445 |
-| aaa | 84 | deckout | LiamKirwin |
-| LiamK | 55 | slow_search | Majkel1337 |
-| 5.5 | 51 | deck_matchup | Yushin Ito |
-| Raihan Ramadistra | 41 | bad_determinization | bono |
-| Bozo Boys | 35 | endgame_misplay | Rmy |
-| kashiwashira | 32 | endgame_misplay | btk15049 |
-| kazuki0123 | 26 | bad_determinization | Bozo Boys |
-| Boss's Orders Are All You Need | 19 | endgame_misplay | Rmy |
-| wkonishi | 12 | deck_matchup | 渡邊征央 |
+| Yushin Ito | 269 | bad_determinization | nasuo445 |
+| bono | 268 | deckout | Yushin Ito |
+| nasuo445 | 267 | bad_determinization | capbloo |
+| Majkel1337 | 223 | endgame_misplay | Yushin Ito |
+| Raihan Ramadistra | 192 | early_collapse | capbloo |
+| 213tubo | 191 | bad_determinization | Yushin Ito |
+| LiamK | 167 | slow_search | Yushin Ito |
+| Michael Long | 118 | deckout | Yushin Ito |
+| Dũng Đỗ | 116 | early_collapse | capbloo |
+| Rmy | 116 | deckout | Yushin Ito |
+| WinDecks | 113 | early_collapse | ごんさくよねきち |
+| MPGaming | 100 | bad_determinization | Yushin Ito |
+| Alberto Bonsanto | 80 | early_collapse | nasuo445 |
+| OSELCOUN | 70 | slow_search | Raihan Ramadistra |
+| wally0593 | 58 | endgame_misplay | capbloo |
+| zoroark190 | 58 | endgame_misplay | bono |
+| Sota Uchiyama | 52 | bad_determinization | Raihan Ramadistra |
+| wkonishi | 44 | endgame_misplay | bono |
+| kazuki0123 | 26 | bad_determinization | Raihan Ramadistra |
 
 ## Staleness
 
-- newest matched game is 0 day(s) old (as of 2026-07-08)
+- newest matched game is 0 day(s) old (as of 2026-07-10)
 
 ## Weekly refresh
 
