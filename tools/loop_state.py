@@ -389,6 +389,32 @@ def _render_current_md(data: dict) -> str:
         lines.append("_none_")
         lines.append("")
 
+    drafts = data.get("draft_pre_registrations") or []
+    if drafts:
+        lines.append("## Draft pre-registrations (U10 pair package -- NOT a submission gate)")
+        lines.append("")
+        lines.append("Staged proposals awaiting Dan's confirmation. These do NOT allow any "
+                     "submission (check-submit still BLOCKS); a human moves a row into "
+                     "pre_registrations above to finalize it.")
+        lines.append("")
+        lines.append("| build | hypothesis | dir | M | N | settle-by | status | complete |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- |")
+        for r in drafts:
+            complete = "yes" if is_prereg_complete(r) else "NO"
+            lines.append(
+                f"| {r.get('build', '?')} | {r.get('hypothesis', '')} | "
+                f"{r.get('direction', '')} | {r.get('margin', '')} | {r.get('n', '')} | "
+                f"{r.get('settle_by', '')} | {r.get('status', 'DRAFT')} | {complete} |"
+            )
+        lines.append("")
+        for r in drafts:
+            actions = r.get("actions") or {}
+            lines.append(f"- **{r.get('build', '?')}** (DRAFT) filters: {r.get('filters', '')}")
+            lines.append(f"  - WIN: {actions.get('win', '')}")
+            lines.append(f"  - LOSS: {actions.get('loss', '')}")
+            lines.append(f"  - BAND: {actions.get('band', '')}")
+        lines.append("")
+
     proxies = data.get("calibrated_proxies") or []
     lines.append("## Calibrated proxies (U24 retrodiction gate)")
     lines.append("")
@@ -686,6 +712,38 @@ def upsert_prereg(data: dict, row: dict) -> dict:
     rows = [r for r in rows if r.get("build") != build]
     rows.append(row)
     data["pre_registrations"] = rows
+    return data
+
+
+def upsert_draft_prereg(data: dict, row: dict) -> dict:
+    """Add or replace (keyed by build) a DRAFT pre-registration in a state dict.
+
+    A draft is a fully-formed, validate_prereg-clean pre-registration row that is
+    NOT yet a live submission gate: it is written to a separate
+    ``draft_pre_registrations`` list and stamped ``status="DRAFT"``. It is
+    deliberately kept out of ``pre_registrations`` so ``submission_allowed`` still
+    BLOCKS the build -- only a human confirmation promotes a draft into the live
+    ``pre_registrations`` list. This is the canonical writer the U10 pair package
+    uses to stage a proposed final-pair row for Dan to sign, without ever flipping
+    the submission gate open on an unsigned build.
+
+    Raises ValueError if the row is incomplete, so a draft still has to be a
+    complete, well-formed pre-registration (the same schema the live gate uses):
+    a draft is "not yet signed", never "not yet finished". Returns the mutated
+    data for convenience.
+    """
+    problems = validate_prereg(row)
+    if problems:
+        raise ValueError("incomplete pre-registration: " + "; ".join(problems))
+    row = dict(row)
+    row["status"] = "DRAFT"
+    rows = data.get("draft_pre_registrations")
+    if not isinstance(rows, list):
+        rows = []
+    build = row["build"]
+    rows = [r for r in rows if r.get("build") != build]
+    rows.append(row)
+    data["draft_pre_registrations"] = rows
     return data
 
 
@@ -1003,6 +1061,28 @@ def _cmd_prereg(args) -> None:
     print(f"pre-registered '{args.build}' (complete); submission now allowed")
 
 
+def _cmd_prereg_draft(args) -> None:
+    row = {
+        "build": args.build,
+        "hypothesis": args.hypothesis,
+        "direction": args.direction,
+        "margin": args.margin,
+        "n": args.n,
+        "settle_by": args.settle_by,
+        "filters": args.filters,
+        "actions": {"win": args.win, "loss": args.loss, "band": args.band},
+    }
+    data = read_current()
+    try:
+        upsert_draft_prereg(data, row)
+    except ValueError as exc:
+        print(str(exc))
+        raise SystemExit(2)
+    write_current(data)
+    print(f"drafted pre-registration for '{args.build}' (DRAFT, complete); "
+          "submission still BLOCKED until Dan promotes it to pre_registrations")
+
+
 def _cmd_check_submit(args) -> None:
     ok, reason = submission_allowed(read_current(), args.build)
     print(("ALLOW: " if ok else "BLOCK: ") + reason)
@@ -1085,6 +1165,23 @@ def main() -> None:
     pr.add_argument("--loss", required=True, help="committed LOSS action")
     pr.add_argument("--band", required=True, help="committed BAND action")
 
+    prd = sub.add_parser("prereg-draft",
+                         help="stage a DRAFT pre-registration row (U10 pair package); "
+                              "validated but kept out of the live submission gate")
+    prd.add_argument("--build", required=True, help="the exact build/candidate name")
+    prd.add_argument("--hypothesis", required=True, help="hypothesis id or claim under test")
+    prd.add_argument("--direction", required=True, choices=["up", "down"],
+                     help="expected direction of the metric")
+    prd.add_argument("--margin", type=int, default=DEFAULT_MARGIN,
+                     help=f"settlement margin M (default {DEFAULT_MARGIN})")
+    prd.add_argument("--n", type=int, required=True,
+                     help=f"pre-committed episode floor N (>= {MIN_EPISODES})")
+    prd.add_argument("--settle-by", dest="settle_by", required=True, help="YYYY-MM-DD")
+    prd.add_argument("--filters", required=True, help="offline filter values that were met")
+    prd.add_argument("--win", required=True, help="committed WIN action")
+    prd.add_argument("--loss", required=True, help="committed LOSS action")
+    prd.add_argument("--band", required=True, help="committed BAND action")
+
     cs = sub.add_parser("check-submit", help="dry-run the U22 submission gate for a build")
     cs.add_argument("--build", required=True, help="the build about to be submitted")
 
@@ -1118,6 +1215,8 @@ def main() -> None:
         _cmd_retest(args)
     elif args.cmd == "prereg":
         _cmd_prereg(args)
+    elif args.cmd == "prereg-draft":
+        _cmd_prereg_draft(args)
     elif args.cmd == "check-submit":
         _cmd_check_submit(args)
     elif args.cmd == "calibrate-proxy":

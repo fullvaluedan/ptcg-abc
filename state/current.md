@@ -41,6 +41,7 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
 | heuristic+trolley-ability | PTCG_ABILITY on (once-per-turn ability activation) improves ladder win rate; pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md) | up | 60 | 30 | 2026-07-08 | yes |
 | heuristic+trolley-attack_first | PTCG_ATTACK_FIRST on (take an already-legal positive-value attack over a discretionary attach) improves ladder win rate; U91 mined winners attach-before-attack 3.4pp less than losers, and the shipped pilot over-attaches relative to both cohorts (analysis/gameplan_claims_bracket_4.md) | up | 60 | 30 | 2026-07-11 | yes |
 | heuristic+candidate_yushin_ito | New deck candidate mined from 800+-rated top teams (Yushin Ito) beats the king on the ladder; ring evidence is the decision authority per L9 | up | 240 | 30 | 2026-07-18 | yes |
+| heuristic+candidate_yushin_ito-threat_retreat | PTCG_THREAT_RETREAT on (opponent threat-aware retreat) improves ladder win rate on yushin+ability baseline; pilot awareness gap (do we retreat when facing lethal?) closes via threat-aware policy | up | 240 | 30 | 2026-07-25 | yes |
 
 - **heuristic+trolley_thick** filters: mirror empty-bench collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md); tarball grader-verified
   - WIN: promote heuristic+trolley_thick to shadow-king; reclaim-king stays heuristic+trolley
@@ -58,6 +59,23 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
   - WIN: promote heuristic+candidate_yushin_ito to shadow-king; reclaim-king stays heuristic+trolley
   - LOSS: evict the yushin_ito candidate, revert slot to a king copy
   - BAND: hold through settle-by; pooled aged reads vs king true estimate decide; no eviction on any within-band read per U108
+- **heuristic+candidate_yushin_ito-threat_retreat** filters: ring-gated through the calibrated bracket ring (tau 0.857): same-run A/B on yushin+ability baseline, threat-retreat off vs on, diff_pp +6.0 (strictly more than +5.0pp gate), analysis/u105b_threat_retreat_ring_ab.md; off-arm 0.850 (at saturation threshold, saturation routing engaged but gate resolved cleanly without need for hard ring per U110); tarball grader-verified (tests/test_grader_submission.py[heuristic-yushin_ito-threat_retreat]) pending extraction/env.run spot-check
+  - WIN: promote heuristic+candidate_yushin_ito-threat_retreat to shadow-king; reclaim-king stays heuristic+trolley
+  - LOSS: evict threat-retreat, revert slot to a king copy
+  - BAND: hold through settle-by; pooled aged reads vs king true estimate decide; no eviction on any within-band read per U108
+
+## Draft pre-registrations (U10 pair package -- NOT a submission gate)
+
+Staged proposals awaiting Dan's confirmation. These do NOT allow any submission (check-submit still BLOCKS); a human moves a row into pre_registrations above to finalize it.
+
+| build | hypothesis | dir | M | N | settle-by | status | complete |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| heuristic+yushin+ability+threat_retreat | PAIR-U10 final-pair proposal: two byte-identical copies of the ring-leading build maximize E[max] of the scored pair (E[max identical] = mu + sigma/sqrt(pi) = +20.9 rating pts at U7 sigma 37.0); no runner-up ring CI overlaps the leader, so no hedge is justified. DRAFT for Dan to sign by Aug 5 (R7). | up | 240 | 200 | 2026-08-30 | DRAFT | yes |
+
+- **heuristic+yushin+ability+threat_retreat** (DRAFT) filters: Ring leader: threat_retreat A/B ON 0.910 vs OFF 0.850, +6.0pp PASS n=100 (analysis/u105b_threat_retreat_ring_ab.md, U2); yushin+ability+attack_first also ring-PASS +15.0pp (analysis/u104_stacked_ring_pass_run.md, U104). No wave-2 deck promotable (U4, best bluezlee_w2 -0.025 vs baseline; analysis/wave2_ring_scores.md); hard ring not needed (U5; analysis/u110_hard_ring_decision.md). E[max] identical-copies branch selected; hedge strictly dominated at U7 sigma 37.0, 90pct CI [26.0,46.9] (analysis/convergence_sigma.md, proxy via age-hours fallback). Arithmetic: analysis/pair_preregistration_prep.md.
+  - WIN: Locked final pair, no eviction: if the pair's converged leaderboard read exceeds the prior king by >= M=240, record as genuine signal for the writeup; the pair stays locked per the Aug-16 hard lockdown.
+  - LOSS: Locked final pair: a converged read >= M=240 below the king is logged as a warning for the writeup only. DO NOT resubmit or swap after the Aug-16 lock (no best-ever safety net; any post-lock submission evicts a good draw). Ring evidence, not a ladder read, remains the only eviction authority (U108).
+  - BAND: Expected: both copies' converged reads fall within M=240 of each other and the king. Hold the locked pair; take no action; decision authority stays with ring evidence (U2/U4/U5), not ladder reads (U108 standing rule).
 
 ## Calibrated proxies (U24 retrodiction gate)
 
@@ -203,6 +221,23 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "target_family": "meta_grimmsnarl",
     "target_tier": "full"
   },
+  "draft_pre_registrations": [
+    {
+      "actions": {
+        "band": "Expected: both copies' converged reads fall within M=240 of each other and the king. Hold the locked pair; take no action; decision authority stays with ring evidence (U2/U4/U5), not ladder reads (U108 standing rule).",
+        "loss": "Locked final pair: a converged read >= M=240 below the king is logged as a warning for the writeup only. DO NOT resubmit or swap after the Aug-16 lock (no best-ever safety net; any post-lock submission evicts a good draw). Ring evidence, not a ladder read, remains the only eviction authority (U108).",
+        "win": "Locked final pair, no eviction: if the pair's converged leaderboard read exceeds the prior king by >= M=240, record as genuine signal for the writeup; the pair stays locked per the Aug-16 hard lockdown."
+      },
+      "build": "heuristic+yushin+ability+threat_retreat",
+      "direction": "up",
+      "filters": "Ring leader: threat_retreat A/B ON 0.910 vs OFF 0.850, +6.0pp PASS n=100 (analysis/u105b_threat_retreat_ring_ab.md, U2); yushin+ability+attack_first also ring-PASS +15.0pp (analysis/u104_stacked_ring_pass_run.md, U104). No wave-2 deck promotable (U4, best bluezlee_w2 -0.025 vs baseline; analysis/wave2_ring_scores.md); hard ring not needed (U5; analysis/u110_hard_ring_decision.md). E[max] identical-copies branch selected; hedge strictly dominated at U7 sigma 37.0, 90pct CI [26.0,46.9] (analysis/convergence_sigma.md, proxy via age-hours fallback). Arithmetic: analysis/pair_preregistration_prep.md.",
+      "hypothesis": "PAIR-U10 final-pair proposal: two byte-identical copies of the ring-leading build maximize E[max] of the scored pair (E[max identical] = mu + sigma/sqrt(pi) = +20.9 rating pts at U7 sigma 37.0); no runner-up ring CI overlaps the leader, so no hedge is justified. DRAFT for Dan to sign by Aug 5 (R7).",
+      "margin": 240,
+      "n": 200,
+      "settle_by": "2026-08-30",
+      "status": "DRAFT"
+    }
+  ],
   "endgame_campaign": {
     "basis": "tools/endgame_stopping.py, king_true_estimate = mean of 31 pooled same-build reads for heuristic+trolley-ability (tools/refit_noise_model.py family stats, stdev=42.1); stop_target = mean + bonus (40), per U48 (docs/plans/2026-07-02-001-feat-unified-number-one-plan.md).",
     "bonus": 40,

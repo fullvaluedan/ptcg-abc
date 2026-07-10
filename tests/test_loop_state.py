@@ -334,6 +334,35 @@ def test_prereg_round_trips_through_current_md(tmp_state):
     assert ls.read_current()["pre_registrations"] == data["pre_registrations"]
 
 
+def test_draft_prereg_validates_and_stamps_status():
+    data = {}
+    with pytest.raises(ValueError):
+        ls.upsert_draft_prereg(data, _complete_row(margin=0))
+    assert "draft_pre_registrations" not in data  # nothing stored on refusal
+    ls.upsert_draft_prereg(data, _complete_row())
+    assert len(data["draft_pre_registrations"]) == 1
+    assert data["draft_pre_registrations"][0]["status"] == "DRAFT"
+
+
+def test_draft_prereg_does_not_open_the_submission_gate():
+    # A draft is validate-clean but must NEVER allow a submission on its own.
+    data = {}
+    ls.upsert_draft_prereg(data, _complete_row())
+    assert "pre_registrations" not in data  # draft stays out of the live gate list
+    ok, reason = ls.submission_allowed(data, "heuristic+trolley_thick")
+    assert ok is False and "no pre-registration" in reason
+
+
+def test_draft_prereg_replaces_by_build_and_round_trips(tmp_state):
+    data = {"loss_distribution": {}}
+    ls.upsert_draft_prereg(data, _complete_row(n=30))
+    ls.upsert_draft_prereg(data, _complete_row(n=40))
+    assert len(data["draft_pre_registrations"]) == 1  # same build -> replaced
+    assert data["draft_pre_registrations"][0]["n"] == 40
+    ls.write_current(data)
+    assert ls.read_current()["draft_pre_registrations"] == data["draft_pre_registrations"]
+
+
 def test_settle_verdict_margin_arithmetic():
     assert ls.settle_verdict(660, 600, margin=60) == "WIN"    # exactly +M
     assert ls.settle_verdict(661, 600, margin=60) == "WIN"
