@@ -398,6 +398,16 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
   build (+20pp on the ring, already scored at 0.875). U112 gate: FAIL. Seating blocked. See the roadmap Week 1
   kill criteria (Jul 13, U112 gate): "Confirmed delta more than +0.10 at n=100. Seating honors U108."
   `analysis/u112_stacked_ring_confirmation.md`.
+- U105b threat-retreat ring A/B on yushin+ability (2026-07-10, ce-work push U2): the threat-aware retreat lever
+  (`PTCG_THREAT_RETREAT`, agents/heuristics.py) read INERT on trolley (analysis/u105_threat_prize_inert_check.md)
+  but gets re-tested on the stronger yushin+ability baseline via a same-run factorized ring A/B at n=100/arm on the
+  calibrated bracket ring (tau 0.857). Result: off-arm 85.0% (85-0-15), on-arm 91.0% (91-0-9), diff_pp = +6.0,
+  gate PASS (threshold >+5.0pp). Threat-aware retreat is not inert on yushin; it has a real win-rate edge. Secondary
+  metric: on-arm loses slightly more to the three hardest clones (27.3% vs 21.2% off-arm), consistent with trading
+  some contested endgames for a population-wide gain. Saturation flag: off-arm at 85.0% is exactly at the saturation
+  threshold; the next lever tested from this baseline may face saturation risk. Pre-registered as
+  heuristic+candidate_yushin_ito-threat_retreat (state/current.md JSON, M=240, settle-by 2026-07-25), awaiting a
+  free ladder slot. `analysis/u105b_threat_retreat_ring_ab.md`.
 - Ability-lever confound re-check (2026-07-04): `LOOP_BRIEF.md` L1 had flagged, but never re-validated, that
   the offline gauntlet gate for `heuristic+trolley-ability` (+4.0pp, `analysis/ability_ab.md`) baked
   `PTCG_ABILITY` into a whole subprocess's environment, so both seats (our pilot AND every `deck:<name>`
