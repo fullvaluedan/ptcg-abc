@@ -150,6 +150,24 @@ SHIPPED_AGENTS = [
         {},
         id="heuristic-candidate_yushin_ito",
     ),
+    # The project's strongest measured build: the yushin deck stacked with both
+    # confirmed-positive levers. yushin+ability beats the trolley+ability baseline by
+    # +8.0pp at n=100 (analysis/u112_stacked_ring_confirmation.md, arm 2 vs arm 1).
+    # PTCG_THREAT_RETREAT=1 stacked on top of that same yushin+ability baseline adds a
+    # further +6.0pp at n=100/arm, a clean ring-gate PASS (analysis/
+    # u105b_threat_retreat_ring_ab.md). The threat-retreat lever was confirmed LIVE
+    # against real positions only after the 2026-07-08 attack-ID fix to
+    # _opponent_best_attack_damage restored nonzero threat damage (analysis/
+    # u105_threat_prize_inert_check.md, superseded section at the top); the earlier
+    # 2026-07-07 INERT verdict measured that bug, not the game. Lock this stack under
+    # the grader path so its build is de-risked before it ever spends a ladder slot.
+    pytest.param(
+        str(AGENTS / "agent_heuristic.py"),
+        str(DECKS / "candidate_yushin_ito.csv"),
+        _HEUR_EXTRAS,
+        {"PTCG_ABILITY": "1", "PTCG_THREAT_RETREAT": "1"},
+        id="heuristic-yushin-ability-threat_retreat",
+    ),
 ]
 
 
