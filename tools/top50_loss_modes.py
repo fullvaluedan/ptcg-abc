@@ -66,6 +66,67 @@ DEFAULT_HARVEST = _ROOT / "data" / "derived" / "top50_harvest.json"
 DEFAULT_OUT = _ROOT / "data" / "derived" / "top50_loss_modes.json"
 DEFAULT_SUMMARY = _ROOT / "analysis" / "top50_loss_modes.md"
 
+# -- classifier decontamination (verified defect, fixed without touching
+# analysis/expert_cohort.py) --
+#
+# analysis.expert_cohort.classify_family scores a decklist against a family by
+# COVERAGE: len(deck_ids & signature) / len(signature). The three builtin
+# family signatures (analysis.archetype._BUILTIN_DECKLISTS, via
+# tools.expert_census.build_signatures) are the full non-basic-energy card set
+# of one representative decklist, which includes generic format staples that
+# appear in most top-50 decks regardless of archetype (the same list
+# analysis/top50_win_mechanisms.md's own "Separator cards" methodology note
+# already excludes from candidacy, for the same reason: they never separate
+# one archetype from another). At the default 0.35 threshold, a deck that
+# plays several of these staples plus a couple of incidental overlaps can
+# clear the coverage bar on staple overlap alone, with zero archetype-defining
+# cards in common. Verified real examples: nasuo445's Cynthia's Garchomp ex
+# toolbox (episode 85300993, staple overlap only: Buddy-Buddy Poffin, Poke
+# Pad, Lillie's Determination, Night Stretcher, Boss's Orders, raw coverage
+# 6/17 = 0.353) and ZETADIVISION's Dragapult ex toolbox (episode 85299931,
+# same five staples plus Munkidori and Unfair Stamp, raw coverage 8/17 = 0.47)
+# both cleared meta_grimmsnarl_tonakaiiii's threshold with no Grimmsnarl-line
+# card in the deck at all.
+#
+# Fix: strip the staple ids from every family signature before scoring, so a
+# staple can never contribute to either the numerator (deck & signature) or
+# the denominator (signature size) of the coverage fraction. classify_family
+# itself is untouched; this only pre-shrinks the `signatures` dict passed into
+# it, which is exactly the caller-supplied extension point that function
+# already exposes. Re-scored under the decontaminated signatures, both
+# verified examples above drop to 1/10 and 2/10 coverage respectively, well
+# under 0.35, and correctly fall through to "other".
+STAPLE_CARD_IDS = frozenset({
+    1086,  # Buddy-Buddy Poffin
+    1121,  # Ultra Ball
+    1122,  # Pokegear 3.0
+    1152,  # Poke Pad
+    1227,  # Lillie's Determination
+    1182,  # Boss's Orders
+    1213,  # Judge
+    1097,  # Night Stretcher
+    1229,  # Wally's Compassion
+    1231,  # Dawn
+    1079,  # Rare Candy
+    1192,  # Carmine
+    1102,  # Dusk Ball
+    1094,  # Bug Catching Set
+    1233,  # Canari
+    1257,  # Team Rocket's Factory
+})
+
+
+def decontaminate_signatures(signatures: dict) -> dict:
+    """Family-name -> signature, with STAPLE_CARD_IDS stripped from every set.
+
+    Pass the result to classify_family (or label_archetype below) in place of
+    the raw tools.expert_census.build_signatures() output. Never mutates the
+    input; a family whose entire signature is staples (none in this dataset)
+    is left with an empty frozenset, which classify_family already skips (`if
+    not sig: continue`), never dividing by zero. Pure.
+    """
+    return {name: frozenset(sig) - STAPLE_CARD_IDS for name, sig in signatures.items()}
+
 # -- loss-shape thresholds (purpose-built for this report; see module docstring) --
 CLOSE_REMAINING = 2      # loser needed at most this many more prizes: a near win that slipped
 STEAMROLL_REMAINING = 4  # loser had taken at most (6 - this) = 2 prizes: barely scored
@@ -419,6 +480,37 @@ def format_summary(results: list, errors: list, losers: list, predators: list, m
         "(meta_archaludon / meta_grimmsnarl / meta_grimmsnarl_tonakaiiii); anything else "
         "resolves to a top50_harvest.py deck slug when the exact 60-card list matches one, "
         "otherwise \"other:<team name>\".",
+        "- Classifier decontamination: family signatures have generic format staples "
+        "(Buddy-Buddy Poffin, Ultra Ball, Pokegear 3.0, Poke Pad, Lillie's Determination, "
+        "Boss's Orders, Judge, Night Stretcher, Wally's Compassion, Dawn, Rare Candy, "
+        "Carmine, Dusk Ball, Bug Catching Set, Canari, Team Rocket's Factory -- the same "
+        "list top50_win_mechanisms.md's own methodology excludes from separator-card "
+        "candidacy) stripped from BOTH the coverage numerator and denominator before "
+        "classify_family scores a deck (tools/top50_loss_modes.py:STAPLE_CARD_IDS / "
+        "decontaminate_signatures), so a deck that shares only staples with a family "
+        "signature can no longer clear the 0.35 coverage threshold on staple overlap "
+        "alone. Without this, a deck with zero archetype-defining cards in common with a "
+        "family (verified real cases: nasuo445's Cynthia's Garchomp ex toolbox, "
+        "ZETADIVISION's Dragapult ex toolbox) cleared threshold and polluted that "
+        "family's win/loss and predator counts; analysis.expert_cohort.py itself is "
+        "unmodified, only the signatures dict passed into it is pre-shrunk. The effect is "
+        "large, not anecdotal: several teams previously pooled under meta_grimmsnarl (e.g. "
+        "bono's exact decklist, shared with wkonishi/soyukke/Majkel1337) carry none of "
+        "Marnie's Impidimp / Morgrem / Grimmsnarl ex / Morpeko at all (only the generic "
+        "Dunsparce/Dudunsparce draw engine and Xerosic's Machinations, both shared with "
+        "other archetypes), so meta_grimmsnarl's kill count drops from 183 to 29 below; the "
+        "magnitude matches the independently measured 94-of-98 (95.9%) contamination rate "
+        "on meta_archaludon-labeled winners, which drops from 98 to 4 kills here.",
+        "- Legacy slug-name residue: a top50_NN_<team>_meta_<family> \"other\" fallback slug "
+        "was minted by tools/top50_harvest.py, which still runs the UNDECONTAMINATED "
+        "classifier for its own CSV filenames (regenerating top50_harvest.md itself is out "
+        "of scope here; this tool only reads that file, never writes it). A deck that no "
+        "longer clears a named family's decontaminated threshold correctly falls out of "
+        "that family's counts, but the slug text it falls back to can still carry a stale "
+        "\"_meta_grimmsnarl\" / \"_meta_archaludon\" / \"_meta_grimmsnarl_tonakaiiii\" suffix "
+        "from that old classification (e.g. top50_02_bono_meta_grimmsnarl, see above). Read "
+        "every top50_NN_* row below as an opaque per-deck identifier, not an archetype "
+        "claim.",
         "- Winner rank/rating is reported only when the winner is ALSO one of the harvested "
         "top-50 teams (looked up in the same harvest snapshot); this repo has no working "
         "broader leaderboard snapshot to resolve a rating for a winner outside the top 50 "
@@ -451,7 +543,7 @@ def build(harvest_path=DEFAULT_HARVEST, episodes_dir=None) -> dict:
     dumps = all_dumps(episodes_dir or DEFAULT_EPISODES_DIR)
     ep_index = build_episode_index(dumps)
 
-    signatures = build_signatures()
+    signatures = decontaminate_signatures(build_signatures())
     slug_map = build_slug_map(harvest)
 
     losses = collect_losses(harvest)
