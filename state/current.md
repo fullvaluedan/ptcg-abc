@@ -259,9 +259,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "source": "analysis/final_scoring_semantics.md"
   },
   "in_flight": {
-    "board_reading": "530.5/626.4 (54367075 ability floor restoration, 54365656 yushin_ito candidate; yushin_ito highest at 626.4)",
+    "board_reading": "pair now 54367075 (ability floor, last 519.8-530.5) + 54555716 (yushin+ability+threat_retreat, COMPLETE, opening 600.0)",
     "build": "none (TRACK L HOLDS)",
-    "note": "Board-checked 2026-07-08. Latest-2 pair: 54367075 (ability floor restoration, public 530.5, drifted -16.1pp from 546.6) and 54365656 (yushin_ito candidate, public 626.4, drifted +19.5pp from 606.9). yushin_ito is current strongest at +95.9pp over ability. yushin_ito pre-registered M=240, N=30, settle-by 2026-07-18 (9 days remain). Settlement action: currently BAND (within M=240). No settlement triggered yet. Both slots occupied; no free slot to submit second strongest-pair copy. Per P3 POSTURE INVERSION goal (lock strongest pair by Aug 12-13), awaiting yushin_ito settlement decision or a free slot opening. PLAN FREEZE through 2026-08-16. TRACK L holds.",
+    "note": "SEATED 2026-07-11 on Dan's go: heuristic+candidate_yushin_ito-threat_retreat as ref 54555716 (COMPLETE, opening validation read 600.0; sha256 35f39373, grader tests 20 passed, extracted-tarball match verified). Latest-2 semantics evicted the OLDEST ref 54365656 (yushin candidate, last 626.4) as predicted in analysis/seating_recommendation_yushin_threat.md; its 2026-07-18 settlement is moot (no longer scored). Live pair: 54367075 + 54555716. Pre-registration: M=240, N=30, settle-by 2026-07-25, band action holds per U108, no eviction on within-band reads. Early single reads will swing inside ~450-730; they decide nothing.",
     "ref": "n/a"
   },
   "ledger": [
