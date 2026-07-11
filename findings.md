@@ -223,6 +223,17 @@ Canonical registry with re-test conditions is `state/hypotheses.md`. Summary:
 
 ### 4C. Confirmed or positive findings (real signal)
 
+- U105b threat-retreat ring PASS (2026-07-10): PTCG_THREAT_RETREAT on the yushin+ability baseline wins
+  +6.0pp on the calibrated ring at the pre-registered n=100/arm, same-run, alternating seats (off 0.850,
+  85-0-15; on 0.910, 91-0-9; gate more than +5.0pp). First-try pass at the registered gate size, so it
+  banks under the project's own n=100 rule. Two recorded nuances: the off-arm landed exactly at the 0.85
+  saturation threshold (the delta cleared anyway, but the NEXT lever tested from this baseline may have no
+  ring headroom, evidence for the U110 hard-ring question), and the on-arm loses slightly MORE to the three
+  hardest clones (0.273 vs 0.212) while winning more overall, a trade documented for the writeup, not a
+  contradiction. The run was executed by a push subagent minutes before the 2026-07-10 stop directive and
+  salvaged from its worktree afterward. yushin+ability+threat_retreat is now the strongest measured build.
+  `analysis/u105b_threat_retreat_ring_ab.md`, `analysis/u105b_n100_run.log`,
+  `tools/threat_retreat_ring_check.py`.
 - The ability blind spot: our pilot activated abilities 0 times in 554 expert ability decisions (abilities are
   ~12% of top-player MAIN decisions). Turning on a once-per-turn ability lever read +4pp offline gauntlet and
   +20pp against the calibrated ring. It is our best-validated lever shape. `analysis/move_ranking_diverges_ability_gap.md`,
