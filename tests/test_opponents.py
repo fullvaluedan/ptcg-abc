@@ -84,6 +84,49 @@ def test_get_bracket_clone_resolves_without_being_in_clone_families(tmp_path, mo
     assert agent({"select": None}) == list(range(1, 61))
 
 
+def test_top50_clone_names_reads_top50_subdir(tmp_path, monkeypatch):
+    sub = tmp_path / "top50"
+    sub.mkdir()
+    (sub / "top50_02_x.csv").write_text("\n".join(str(i) for i in range(1, 61)))
+    (sub / "top50_01_y.csv").write_text("\n".join(str(i) for i in range(1, 61)))
+    (sub / "not_top50.csv").write_text("\n".join(str(i) for i in range(1, 61)))
+    monkeypatch.setattr(opponents, "_TOP50_DECKS_DIR", sub)
+    assert opponents.top50_clone_names() == ["top50_01_y", "top50_02_x"]
+
+
+def test_top50_clone_names_empty_when_dir_absent(tmp_path, monkeypatch):
+    monkeypatch.setattr(opponents, "_TOP50_DECKS_DIR", tmp_path / "does_not_exist")
+    assert opponents.top50_clone_names() == []
+
+
+def test_top50_clone_names_not_folded_into_clone_family_names():
+    # plan S1: the high-band ring must stay isolated from the existing
+    # calibrated bracket ring (clone_family_names()/names()/pool()), which
+    # analysis/path_above_1000.md says stays untouched as a regression guard.
+    top50 = set(opponents.top50_clone_names())
+    assert top50, "top50 clones should be non-empty when decks/top50/ is harvested"
+    assert top50.isdisjoint(opponents.clone_family_names())
+    assert all(f"clone:{n}" not in opponents.names() for n in top50)
+
+
+def test_get_top50_clone_resolves_without_being_in_clone_families(tmp_path, monkeypatch):
+    sub = tmp_path / "top50"
+    sub.mkdir()
+    (sub / "top50_1.csv").write_text("\n".join(str(i) for i in range(1, 61)))
+    monkeypatch.setattr(opponents, "_TOP50_DECKS_DIR", sub)
+    assert "top50_1" not in opponents.CLONE_FAMILIES
+    assert "top50_1" not in opponents.clone_family_names()
+    agent = opponents.get("clone:top50_1")
+    assert callable(agent)
+    assert agent({"select": None}) == list(range(1, 61))
+
+
+def test_get_unknown_top50_clone_raises_with_known_list(tmp_path, monkeypatch):
+    monkeypatch.setattr(opponents, "_TOP50_DECKS_DIR", tmp_path)
+    with pytest.raises(KeyError):
+        opponents.get("clone:top50_does_not_exist")
+
+
 def test_read_deck_csv_reads_sixty(tmp_path):
     csv = tmp_path / "d.csv"
     csv.write_text("\n".join(str(i) for i in range(1, 71)))  # 70 ids

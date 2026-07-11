@@ -29,6 +29,14 @@ a guaranteed lethal, never activate a repeatable (stateless-loop-risk)
 ability, and never voluntarily over-draw into a deck-out. This makes clone:
 opponents a real, non-mirror foil for the calibration ring (U73), not another
 copy of our own strategic logic wearing a different deck.
+
+`clone:top50_<slug>` (plan S1, analysis/path_above_1000.md) is the same
+first-legal-plus-safety pilot, sourced from decks/top50/ (tools/top50_harvest.py's
+harvest of the live top-50 leaderboard's own decklists) instead of decks/ itself.
+It is a separate, high-band ring for measuring win rate against elite play; unlike
+CLONE_FAMILIES and BRACKET_DECK_PREFIX families it is never folded into
+clone_family_names()/names()/pool(), so the existing calibrated bracket ring is
+untouched. See top50_clone_names().
 """
 import sys
 from pathlib import Path
@@ -76,6 +84,31 @@ CLONE_FAMILIES = (
 # archetype-signature matching, so there is no fixed family name to enumerate
 # ahead of time.
 BRACKET_DECK_PREFIX = "bracket_"
+
+# High-band (top50) clone opponents (plan S1, analysis/path_above_1000.md) are a
+# THIRD, separate auto-discovery path, deliberately not folded into
+# clone_family_names()/names()/pool(): those feed the existing calibrated
+# bracket ring (tools/ring_calibrate.py), which analysis/path_above_1000.md
+# says must stay untouched as a cheap saturated regression guard. The top50
+# decklists (tools/top50_harvest.py) live in their own decks/top50/
+# subdirectory rather than decks/ itself, so this scan can never collide with
+# deck_names()'s flat decks/*.csv glob or bracket_clone_names()'s prefix
+# filter over it. Callers that want the high-band ring (e.g. tools/top50_ring.py)
+# call top50_clone_names() directly instead of going through clone_family_names().
+TOP50_DECK_PREFIX = "top50_"
+_TOP50_DECKS_DIR = _DECKS_DIR / "top50"
+
+
+def top50_clone_names() -> list:
+    """Sorted deck-csv stems under decks/top50/ (plan S1's high-band ring).
+
+    Empty when the directory is absent, the same fault-tolerant shape as
+    deck_names() and bracket_clone_names(). Not included in clone_family_names()
+    or names(): see the module-level note above TOP50_DECK_PREFIX.
+    """
+    if not _TOP50_DECKS_DIR.is_dir():
+        return []
+    return sorted(p.stem for p in _TOP50_DECKS_DIR.glob(f"{TOP50_DECK_PREFIX}*.csv"))
 
 
 def deck_names() -> list:
@@ -269,6 +302,16 @@ def get(name):
         return _deck_opponent(_read_deck_csv(path))
     if isinstance(name, str) and name.startswith("clone:"):
         family = name[len("clone:"):]
+        if family.startswith(TOP50_DECK_PREFIX):
+            # New code path (plan S1): resolved from decks/top50/, not decks/
+            # itself, so it never touches the CLONE_FAMILIES/BRACKET_DECK_PREFIX
+            # branch below or the family-name validation it does.
+            path = _TOP50_DECKS_DIR / f"{family}.csv"
+            if not path.exists():
+                raise KeyError(
+                    f"Unknown top50 clone '{name}'. Known: {top50_clone_names()}"
+                )
+            return _clone_opponent(_read_deck_csv(path))
         if family not in CLONE_FAMILIES and not family.startswith(BRACKET_DECK_PREFIX):
             raise KeyError(
                 f"Unknown clone family '{name}'. Known: {clone_family_names()}"

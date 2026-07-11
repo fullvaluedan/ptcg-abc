@@ -1,0 +1,448 @@
+{
+  "ring_size": 35,
+  "heuristic+yushin+ability+threat_retreat": {
+    "win_rate": 0.6933333333333334,
+    "wins": 104,
+    "draws": 0,
+    "losses": 46,
+    "n": 150,
+    "per_opponent": {
+      "clone:top50_01_shota_hirao_meta_grimmsnarl_tonakaiiii": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 1,
+        "n": 5
+      },
+      "clone:top50_02_bono_meta_grimmsnarl": {
+        "wins": 2,
+        "draws": 0,
+        "losses": 3,
+        "n": 5
+      },
+      "clone:top50_03_ebi_meta_grimmsnarl": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 1,
+        "n": 5
+      },
+      "clone:top50_04_third_ptcg_club": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 1,
+        "n": 5
+      },
+      "clone:top50_05_budew_meta_archaludon": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 1,
+        "n": 5
+      },
+      "clone:top50_06_imanoob1122": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 1,
+        "n": 5
+      },
+      "clone:top50_07_kers_aoyagi": {
+        "wins": 2,
+        "draws": 0,
+        "losses": 3,
+        "n": 5
+      },
+      "clone:top50_08_kashiwashira": {
+        "wins": 5,
+        "draws": 0,
+        "losses": 0,
+        "n": 5
+      },
+      "clone:top50_09_dung_o_meta_archaludon": {
+        "wins": 2,
+        "draws": 0,
+        "losses": 3,
+        "n": 5
+      },
+      "clone:top50_10_legend_brothers_meta_archaludon": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 2,
+        "n": 5
+      },
+      "clone:top50_11_alberto_bonsanto_meta_archaludon": {
+        "wins": 1,
+        "draws": 0,
+        "losses": 3,
+        "n": 4
+      },
+      "clone:top50_12_youtube_com_bigbugginnings_meta_grimmsnarl_tonakaiiii": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 0,
+        "n": 4
+      },
+      "clone:top50_13_windecks": {
+        "wins": 2,
+        "draws": 0,
+        "losses": 2,
+        "n": 4
+      },
+      "clone:top50_14_fujiborozoukin": {
+        "wins": 2,
+        "draws": 0,
+        "losses": 2,
+        "n": 4
+      },
+      "clone:top50_15_mitomeat823": {
+        "wins": 2,
+        "draws": 0,
+        "losses": 2,
+        "n": 4
+      },
+      "clone:top50_16_btk15049_meta_archaludon": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 0,
+        "n": 4
+      },
+      "clone:top50_17_nasuo445_meta_grimmsnarl_tonakaiiii": {
+        "wins": 1,
+        "draws": 0,
+        "losses": 3,
+        "n": 4
+      },
+      "clone:top50_18_team18_meta_grimmsnarl": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 0,
+        "n": 4
+      },
+      "clone:top50_19_payanotty_meta_grimmsnarl_tonakaiiii": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 0,
+        "n": 4
+      },
+      "clone:top50_20_sota_uchiyama_meta_grimmsnarl_tonakaiiii": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 1,
+        "n": 4
+      },
+      "clone:top50_21_shg195_meta_archaludon": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 0,
+        "n": 4
+      },
+      "clone:top50_22_shumpeinomura_meta_archaludon": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 1,
+        "n": 4
+      },
+      "clone:top50_23_liamk_meta_grimmsnarl": {
+        "wins": 2,
+        "draws": 0,
+        "losses": 2,
+        "n": 4
+      },
+      "clone:top50_24_haggle_meta_grimmsnarl": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 0,
+        "n": 4
+      },
+      "clone:top50_25_ajishio": {
+        "wins": 2,
+        "draws": 0,
+        "losses": 2,
+        "n": 4
+      },
+      "clone:top50_26_zhenyu_zhang_meta_archaludon": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 0,
+        "n": 4
+      },
+      "clone:top50_27_ebisu_ya_meta_grimmsnarl": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 1,
+        "n": 4
+      },
+      "clone:top50_28_rtoabc_meta_archaludon": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 0,
+        "n": 4
+      },
+      "clone:top50_29_capbloo_meta_grimmsnarl": {
+        "wins": 1,
+        "draws": 0,
+        "losses": 3,
+        "n": 4
+      },
+      "clone:top50_30_majkel1337_meta_grimmsnarl": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 1,
+        "n": 4
+      },
+      "clone:top50_31_capbloo_meta_grimmsnarl": {
+        "wins": 2,
+        "draws": 0,
+        "losses": 2,
+        "n": 4
+      },
+      "clone:top50_32_lumenliquidity_meta_grimmsnarl": {
+        "wins": 2,
+        "draws": 0,
+        "losses": 2,
+        "n": 4
+      },
+      "clone:top50_33_kohei_meta_archaludon": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 1,
+        "n": 4
+      },
+      "clone:top50_34_ebisu_ya_meta_grimmsnarl": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 0,
+        "n": 4
+      },
+      "clone:top50_35_ajishio": {
+        "wins": 2,
+        "draws": 0,
+        "losses": 2,
+        "n": 4
+      }
+    }
+  },
+  "heuristic+yushin-flags_off": {
+    "win_rate": 0.7533333333333333,
+    "wins": 113,
+    "draws": 0,
+    "losses": 37,
+    "n": 150,
+    "per_opponent": {
+      "clone:top50_01_shota_hirao_meta_grimmsnarl_tonakaiiii": {
+        "wins": 5,
+        "draws": 0,
+        "losses": 0,
+        "n": 5
+      },
+      "clone:top50_02_bono_meta_grimmsnarl": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 1,
+        "n": 5
+      },
+      "clone:top50_03_ebi_meta_grimmsnarl": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 2,
+        "n": 5
+      },
+      "clone:top50_04_third_ptcg_club": {
+        "wins": 5,
+        "draws": 0,
+        "losses": 0,
+        "n": 5
+      },
+      "clone:top50_05_budew_meta_archaludon": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 2,
+        "n": 5
+      },
+      "clone:top50_06_imanoob1122": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 1,
+        "n": 5
+      },
+      "clone:top50_07_kers_aoyagi": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 1,
+        "n": 5
+      },
+      "clone:top50_08_kashiwashira": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 2,
+        "n": 5
+      },
+      "clone:top50_09_dung_o_meta_archaludon": {
+        "wins": 5,
+        "draws": 0,
+        "losses": 0,
+        "n": 5
+      },
+      "clone:top50_10_legend_brothers_meta_archaludon": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 2,
+        "n": 5
+      },
+      "clone:top50_11_alberto_bonsanto_meta_archaludon": {
+        "wins": 1,
+        "draws": 0,
+        "losses": 3,
+        "n": 4
+      },
+      "clone:top50_12_youtube_com_bigbugginnings_meta_grimmsnarl_tonakaiiii": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 0,
+        "n": 4
+      },
+      "clone:top50_13_windecks": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 1,
+        "n": 4
+      },
+      "clone:top50_14_fujiborozoukin": {
+        "wins": 2,
+        "draws": 0,
+        "losses": 2,
+        "n": 4
+      },
+      "clone:top50_15_mitomeat823": {
+        "wins": 1,
+        "draws": 0,
+        "losses": 3,
+        "n": 4
+      },
+      "clone:top50_16_btk15049_meta_archaludon": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 0,
+        "n": 4
+      },
+      "clone:top50_17_nasuo445_meta_grimmsnarl_tonakaiiii": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 1,
+        "n": 4
+      },
+      "clone:top50_18_team18_meta_grimmsnarl": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 1,
+        "n": 4
+      },
+      "clone:top50_19_payanotty_meta_grimmsnarl_tonakaiiii": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 0,
+        "n": 4
+      },
+      "clone:top50_20_sota_uchiyama_meta_grimmsnarl_tonakaiiii": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 0,
+        "n": 4
+      },
+      "clone:top50_21_shg195_meta_archaludon": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 0,
+        "n": 4
+      },
+      "clone:top50_22_shumpeinomura_meta_archaludon": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 1,
+        "n": 4
+      },
+      "clone:top50_23_liamk_meta_grimmsnarl": {
+        "wins": 2,
+        "draws": 0,
+        "losses": 2,
+        "n": 4
+      },
+      "clone:top50_24_haggle_meta_grimmsnarl": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 1,
+        "n": 4
+      },
+      "clone:top50_25_ajishio": {
+        "wins": 2,
+        "draws": 0,
+        "losses": 2,
+        "n": 4
+      },
+      "clone:top50_26_zhenyu_zhang_meta_archaludon": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 1,
+        "n": 4
+      },
+      "clone:top50_27_ebisu_ya_meta_grimmsnarl": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 1,
+        "n": 4
+      },
+      "clone:top50_28_rtoabc_meta_archaludon": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 0,
+        "n": 4
+      },
+      "clone:top50_29_capbloo_meta_grimmsnarl": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 1,
+        "n": 4
+      },
+      "clone:top50_30_majkel1337_meta_grimmsnarl": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 1,
+        "n": 4
+      },
+      "clone:top50_31_capbloo_meta_grimmsnarl": {
+        "wins": 3,
+        "draws": 0,
+        "losses": 1,
+        "n": 4
+      },
+      "clone:top50_32_lumenliquidity_meta_grimmsnarl": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 0,
+        "n": 4
+      },
+      "clone:top50_33_kohei_meta_archaludon": {
+        "wins": 2,
+        "draws": 0,
+        "losses": 2,
+        "n": 4
+      },
+      "clone:top50_34_ebisu_ya_meta_grimmsnarl": {
+        "wins": 2,
+        "draws": 0,
+        "losses": 2,
+        "n": 4
+      },
+      "clone:top50_35_ajishio": {
+        "wins": 4,
+        "draws": 0,
+        "losses": 0,
+        "n": 4
+      }
+    }
+  },
+  "hardest_clones": [
+    "clone:top50_11_alberto_bonsanto_meta_archaludon",
+    "clone:top50_15_mitomeat823",
+    "clone:top50_14_fujiborozoukin"
+  ],
+  "saturated_ring_win_rate": 0.91,
+  "gap_to_saturated_pp": 21.666666666666668
+}
