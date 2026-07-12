@@ -1,0 +1,55 @@
+{
+  "arm_keys": [
+    "ranker_off",
+    "ranker_on"
+  ],
+  "baseline_key": "ranker_off",
+  "opponent_ring_size": 35,
+  "requested_n_per_arm": 700,
+  "jobs": 16,
+  "completed_shards": 13,
+  "shard_errors": [
+    "shard 0: timed out after 240s (killed)",
+    "shard 1: timed out after 240s (killed)",
+    "shard 10: timed out after 240s (killed)"
+  ],
+  "shortfall_per_arm": 132,
+  "arms": {
+    "ranker_off": {
+      "wins": 431,
+      "draws": 0,
+      "losses": 137,
+      "n": 568,
+      "win_rate": 0.7588028169014085,
+      "se": 0.017950494420389557
+    },
+    "ranker_on": {
+      "wins": 140,
+      "draws": 0,
+      "losses": 428,
+      "n": 568,
+      "win_rate": 0.24647887323943662,
+      "se": 0.018082705061317646
+    }
+  },
+  "same_run_deltas_pp": {
+    "ranker_off": {
+      "delta_pp": 0.0,
+      "se_pp": 2.5385832660617482,
+      "ci95_pp": [
+        -4.975623201481026,
+        4.975623201481026
+      ]
+    },
+    "ranker_on": {
+      "delta_pp": -51.232394366197184,
+      "se_pp": 2.5479491209030045,
+      "ci95_pp": [
+        -56.22637464316707,
+        -46.2384140892273
+      ]
+    }
+  },
+  "_ring": "elite",
+  "_elapsed_s": 240.41929936408997
+}

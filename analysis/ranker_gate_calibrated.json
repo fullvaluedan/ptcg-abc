@@ -1,0 +1,51 @@
+{
+  "arm_keys": [
+    "ranker_off",
+    "ranker_on"
+  ],
+  "baseline_key": "ranker_off",
+  "opponent_ring_size": 9,
+  "requested_n_per_arm": 200,
+  "jobs": 16,
+  "completed_shards": 16,
+  "shard_errors": [],
+  "shortfall_per_arm": 0,
+  "arms": {
+    "ranker_off": {
+      "wins": 172,
+      "draws": 0,
+      "losses": 28,
+      "n": 200,
+      "win_rate": 0.86,
+      "se": 0.024535688292770596
+    },
+    "ranker_on": {
+      "wins": 82,
+      "draws": 0,
+      "losses": 118,
+      "n": 200,
+      "win_rate": 0.41,
+      "se": 0.0347778665245584
+    }
+  },
+  "same_run_deltas_pp": {
+    "ranker_off": {
+      "delta_pp": 0.0,
+      "se_pp": 3.469870314579495,
+      "ci95_pp": [
+        -6.80094581657581,
+        6.80094581657581
+      ]
+    },
+    "ranker_on": {
+      "delta_pp": -45.0,
+      "se_pp": 4.256171989006083,
+      "ci95_pp": [
+        -53.34209709845192,
+        -36.65790290154808
+      ]
+    }
+  },
+  "_ring": "calibrated",
+  "_elapsed_s": 29.320002794265747
+}
