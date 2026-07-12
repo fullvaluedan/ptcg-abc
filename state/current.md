@@ -6,15 +6,18 @@ Update this every iteration (loss distribution, kings, candidates, ledger).
 
 ## Top loss bucket (what this iteration targets)
 
-**early_collapse** over 1007 classified replays (W/D/L 448/1/558).
+_per-build targeting (U107b), live refs: 54315802, 54315565_
+
+**early_collapse** over 104 classified replays (W/D/L 48/0/56).
 
 | bucket | losses |
 | --- | --- |
-| early_collapse | 366 |
-| deckout | 77 |
-| bad_determinization | 58 |
-| deck_matchup | 33 |
-| endgame_misplay | 24 |
+| early_collapse | 44 |
+| deckout | 7 |
+| deck_matchup | 3 |
+| bad_determinization | 2 |
+
+_secondary, pool-wide (every build ever submitted): early_collapse over 1028 replays (W/D/L 456/1/571)._
 
 ## Kings
 
@@ -40,7 +43,7 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
 | heuristic+trolley_thick | trolley_thick basic-density cuts early_collapse (thin_bench_threshold deck-change re-test) | up | 60 | 30 | 2026-07-06 | yes |
 | heuristic+trolley-ability | PTCG_ABILITY on (once-per-turn ability activation) improves ladder win rate; pilot agreed with top players on 0/554 real ABILITY decisions with the flag off (analysis/move_ranking_diverges_ability_gap.md) | up | 60 | 30 | 2026-07-08 | yes |
 | heuristic+trolley-attack_first | PTCG_ATTACK_FIRST on (take an already-legal positive-value attack over a discretionary attach) improves ladder win rate; U91 mined winners attach-before-attack 3.4pp less than losers, and the shipped pilot over-attaches relative to both cohorts (analysis/gameplan_claims_bracket_4.md) | up | 60 | 30 | 2026-07-11 | yes |
-| heuristic+candidate_yushin_ito | New deck candidate mined from 800+-rated top teams (Yushin Ito) beats the king on the ladder; ring evidence is the decision authority per L9 | up | 240 | 30 | 2026-07-18 | yes |
+| heuristic+candidate_yushin_ito | New deck candidate mined from 800+-rated top teams (Yushin Ito) beats the king on the ladder; ring evidence is the decision authority per L9 | up | 240 | 30 | 2026-07-22 | yes |
 | heuristic+candidate_yushin_ito-threat_retreat | PTCG_THREAT_RETREAT on (opponent threat-aware retreat) improves ladder win rate on yushin+ability baseline; pilot awareness gap (do we retreat when facing lethal?) closes via threat-aware policy | up | 240 | 30 | 2026-07-25 | yes |
 
 - **heuristic+trolley_thick** filters: mirror empty-bench collapse 80.8->65.4 (n=240, p<0.001), no win-rate regression (analysis/collapse_rate_thick_deck.md); tarball grader-verified
@@ -55,7 +58,7 @@ A build may not be submitted without a complete row here (tools/loop_state.py ch
   - WIN: promote heuristic+trolley-attack_first to shadow-king; reclaim-king stays heuristic+trolley
   - LOSS: evict the attack_first build, revert slot to a king copy
   - BAND: one repeat resubmission, then U23 scoreboard at ~90% binomial confidence on shared brackets; else NEUTRAL, revert to king
-- **heuristic+candidate_yushin_ito** filters: ring-gated through the calibrated bracket ring (tau 0.857): +0.100 delta over trolley in two independent n=40 runs (analysis/candidate_decks_ring_gate.md) and +8.0pp yushin-vs-trolley at n=100 (analysis/u112_stacked_ring_confirmation.md arm 2); legality verified (analysis/candidate_yushin_ito_legality_audit.md). RESTORED 2026-07-08: this row was lost from the JSON STATE block by a data-regeneration overwrite (commit ea4029d, the 4th prose-vs-JSON loss incident); no settlement ever triggered, board reads 611.5/606.9/626.4 are all within M=240 BAND.
+- **heuristic+candidate_yushin_ito** filters: RESEAT 2026-07-12 on Dan's approval: plain config confirmed strongest in the four-arm flag experiment (analysis/top50_flag_config.md: plain 0.850 elite / 0.940 calibrated at n=100 same-run, beating +ability 0.690/0.780, +threat 0.720/0.900, +both 0.740/0.860). Original ring gates: +0.100 over trolley in two independent n=40 runs (analysis/candidate_decks_ring_gate.md), +8.0pp at n=100 (analysis/u112_stacked_ring_confirmation.md arm 2). Legality verified. Tarball submission_yushin_plain.tar.gz sha256 5efec2ebb11b0a2a903d899b0cf97b6f8804df1f11372b0cd9fe773c5f605dc0, grader tests 20 passed, extracted smoke match reward 1 in 120 steps, all four flags confirmed default-off in a fresh process. Replaces the ability floor 54367075 (oldest of the latest-2).
   - WIN: promote heuristic+candidate_yushin_ito to shadow-king; reclaim-king stays heuristic+trolley
   - LOSS: evict the yushin_ito candidate, revert slot to a king copy
   - BAND: hold through settle-by; pooled aged reads vs king true estimate decide; no eviction on any within-band read per U108
@@ -259,9 +262,9 @@ _none calibrated; every proxy gate is refused (default-deny)_
     "source": "analysis/final_scoring_semantics.md"
   },
   "in_flight": {
-    "board_reading": "pair now 54367075 (ability floor, last 519.8-530.5) + 54555716 (yushin+ability+threat_retreat, COMPLETE, opening 600.0)",
+    "board_reading": "pair now 54555716 (yushin+ability+threat, 582.2 climbing) + 54592012 (yushin PLAIN, COMPLETE, opening 600.0)",
     "build": "none (TRACK L HOLDS)",
-    "note": "SEATED 2026-07-11 on Dan's go: heuristic+candidate_yushin_ito-threat_retreat as ref 54555716 (COMPLETE, opening validation read 600.0; sha256 35f39373, grader tests 20 passed, extracted-tarball match verified). Latest-2 semantics evicted the OLDEST ref 54365656 (yushin candidate, last 626.4) as predicted in analysis/seating_recommendation_yushin_threat.md; its 2026-07-18 settlement is moot (no longer scored). Live pair: 54367075 + 54555716. Pre-registration: M=240, N=30, settle-by 2026-07-25, band action holds per U108, no eviction on within-band reads. Early single reads will swing inside ~450-730; they decide nothing.",
+    "note": "RESEAT 2026-07-12 on Dan's approval: heuristic+candidate_yushin_ito PLAIN as ref 54592012 (COMPLETE, opening 600.0; sha256 5efec2eb; grader tests 20 passed; smoke match reward 1 in 120 steps; all flags confirmed default-off). Basis: four-arm flag experiment, plain strongest on BOTH rings (analysis/top50_flag_config.md). Latest-2 evicted the ability floor 54367075 (517.3) as intended. Live pair: 54555716 (flags build, settle-by 2026-07-25) + 54592012 (plain, settle-by 2026-07-22, M=240 N=30). Aug lock decision now gets pooled live data on both configs. Early single reads swing inside ~450-730 and decide nothing per U108.",
     "ref": "n/a"
   },
   "ledger": [
@@ -961,25 +964,50 @@ _none calibrated; every proxy gate is refused (default-deny)_
       "sample_size": 0
     }
   ],
+  "live_refs": [
+    "54315802",
+    "54315565"
+  ],
   "loss_distribution": {
     "buckets": {
-      "bad_determinization": 58,
-      "deck_matchup": 33,
-      "deckout": 77,
-      "early_collapse": 366,
-      "endgame_misplay": 24,
+      "bad_determinization": 2,
+      "deck_matchup": 3,
+      "deckout": 7,
+      "early_collapse": 44,
+      "endgame_misplay": 0,
       "slow_search": 0
     },
-    "draws": 1,
-    "games": 1007,
-    "losses": 558,
-    "ref_filter": [],
-    "sample_size": 1007,
+    "draws": 0,
+    "fallback_reason": null,
+    "games": 104,
+    "losses": 56,
+    "pool_wide": {
+      "buckets": {
+        "bad_determinization": 60,
+        "deck_matchup": 33,
+        "deckout": 77,
+        "early_collapse": 377,
+        "endgame_misplay": 24,
+        "slow_search": 0
+      },
+      "draws": 1,
+      "games": 1028,
+      "losses": 571,
+      "sample_size": 1028,
+      "top_bucket": "early_collapse",
+      "wins": 456
+    },
+    "ref_filter": [
+      "54315802",
+      "54315565"
+    ],
+    "sample_size": 104,
     "sources": [
       "data/replays"
     ],
+    "targeting_mode": "per_build",
     "top_bucket": "early_collapse",
-    "wins": 448
+    "wins": 48
   },
   "noise_model": {
     "basis": "tools/refit_noise_model.py statistical refit over 57 pooled same-build reads across heuristic+trolley (n=30, mean=456.4, stdev=59.2), heuristic+trolley-ability (n=27, mean=568.5, stdev=43.9): pooled residual stdev 52.0, worst observed residual 235.1. M set to the larger of 2-sigma and the worst residual, rounded up to nearest 10.",
@@ -1057,11 +1085,11 @@ _none calibrated; every proxy gate is refused (default-deny)_
       },
       "build": "heuristic+candidate_yushin_ito",
       "direction": "up",
-      "filters": "ring-gated through the calibrated bracket ring (tau 0.857): +0.100 delta over trolley in two independent n=40 runs (analysis/candidate_decks_ring_gate.md) and +8.0pp yushin-vs-trolley at n=100 (analysis/u112_stacked_ring_confirmation.md arm 2); legality verified (analysis/candidate_yushin_ito_legality_audit.md). RESTORED 2026-07-08: this row was lost from the JSON STATE block by a data-regeneration overwrite (commit ea4029d, the 4th prose-vs-JSON loss incident); no settlement ever triggered, board reads 611.5/606.9/626.4 are all within M=240 BAND.",
+      "filters": "RESEAT 2026-07-12 on Dan's approval: plain config confirmed strongest in the four-arm flag experiment (analysis/top50_flag_config.md: plain 0.850 elite / 0.940 calibrated at n=100 same-run, beating +ability 0.690/0.780, +threat 0.720/0.900, +both 0.740/0.860). Original ring gates: +0.100 over trolley in two independent n=40 runs (analysis/candidate_decks_ring_gate.md), +8.0pp at n=100 (analysis/u112_stacked_ring_confirmation.md arm 2). Legality verified. Tarball submission_yushin_plain.tar.gz sha256 5efec2ebb11b0a2a903d899b0cf97b6f8804df1f11372b0cd9fe773c5f605dc0, grader tests 20 passed, extracted smoke match reward 1 in 120 steps, all four flags confirmed default-off in a fresh process. Replaces the ability floor 54367075 (oldest of the latest-2).",
       "hypothesis": "New deck candidate mined from 800+-rated top teams (Yushin Ito) beats the king on the ladder; ring evidence is the decision authority per L9",
       "margin": 240,
       "n": 30,
-      "settle_by": "2026-07-18"
+      "settle_by": "2026-07-22"
     },
     {
       "actions": {
