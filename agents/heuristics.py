@@ -208,6 +208,28 @@ _THREAT_RETREAT = os.environ.get("PTCG_THREAT_RETREAT", "0") != "0"
 # maintains byte-identical submission.
 _PRIZE_CLOSE = os.environ.get("PTCG_PRIZE_CLOSE", "0") != "0"
 
+# Endgame PLAY-priority correction (PTCG_ENDGAME_PLAY, default off). In the
+# near-endgame (either side at or below 2 prizes remaining) with a bloated hand,
+# demote the discretionary EVOLVE below PLAY so the pilot spends its hand
+# (draw/search/gust trainers) before committing a non-finisher evolution, matching
+# the field's top players (176 near-endgame PLAY divergences where the expert
+# played a trainer and the pilot would have evolved instead -- six of the top nine
+# divergence patterns, the single largest homogeneous slice; see
+# analysis/endgame_play_rule_design.md cluster A). This is a within-turn REORDER,
+# not a skip: PLAY and EVOLVE are both legal on every MAIN decision of the turn, so
+# once the hand drops below threshold the evolution still resolves later the same
+# turn. Sits below the L1 lethal FORCE unconditionally (that check returns before
+# the ladder is ever built) and never RAISES evolve, only lowers it relative to the
+# (possibly CEM-tuned) PRIO_PLAY. Flag-gated for A/B validation; default off keeps
+# every shipped build byte-identical.
+_ENDGAME_PLAY = os.environ.get("PTCG_ENDGAME_PLAY", "0") != "0"
+
+# Hand size at or above which the endgame-play demotion engages. Cluster A's hand
+# medians run 11.5 to 19; cluster B (ATTACK-instead, NOT this rule's target) runs
+# 6 to 7, so 10 sits in the wide separating gap. CEM-tunable
+# (PTCG_W_ENDGAME_HAND); defaults to the shipped value when unset.
+ENDGAME_HAND = _env_num("PTCG_W_ENDGAME_HAND", 10, int)
+
 # Deck-aware game-plan seeds (PTCG_SEEDS, default off). The U36 miner distills a
 # target family's WINNING expert episodes into concentrated play seeds (attach /
 # play / evolve card-id targets); analysis/gameplan_seeds.py emits only the blocks
@@ -557,6 +579,29 @@ def _our_prize_count(obs) -> int:
     if isinstance(prize, list):
         return len(prize)
     return 0
+
+
+def _opp_prize_count(obs) -> int:
+    """Number of prize cards the opponent has remaining, or a large sentinel if unknown.
+
+    Mirrors _our_prize_count on the opponent seat (players[1 - yourIndex]), reading
+    the same public prize-pile length (no hidden-information assumption). Unlike
+    _our_prize_count, which defensively returns 0 on a missing seat, this fails
+    CLOSED toward "not near-endgame": a missing or malformed opponent seat returns
+    a large sentinel so min(_our_prize_count, _opp_prize_count) can never look
+    near-endgame on a degenerate observation. Used only by PTCG_ENDGAME_PLAY (see
+    analysis/endgame_play_rule_design.md section 7, the "_opp_prize_count add" risk).
+    """
+    state = obs.get("current") or {}
+    players = state.get("players") or []
+    yi = state.get("yourIndex", 0)
+    oi = 1 - yi
+    if oi < 0 or len(players) <= oi:
+        return 99
+    prize = players[oi].get("prize")
+    if isinstance(prize, list):
+        return len(prize)
+    return 99
 
 
 def _is_prize_winning_attack(opp_active_hp) -> bool:
@@ -1316,10 +1361,27 @@ def choose(obs) -> list:
             return groups[OPT_ATTACK][0][0]
         return None
 
+    # PTCG_ENDGAME_PLAY (default off, see the flag comment above): near-endgame
+    # (either side at or below 2 prizes) with a bloated hand and both OPT_PLAY and
+    # OPT_EVOLVE legal, demote EVOLVE from PRIO_EVOLVE to just below PRIO_PLAY (with
+    # its own tiebreak so it still outranks attach/ability/retreat/attack) so the
+    # hand is spent before the discretionary evolution. Flag off, or the trigger
+    # absent, leaves _evolve_prio/_evolve_tb at their historical values and the
+    # ladder byte-identical.
+    _endgame_play_fires = (
+        _ENDGAME_PLAY
+        and OPT_PLAY in groups
+        and OPT_EVOLVE in groups
+        and len(me.get("hand") or []) >= ENDGAME_HAND
+        and min(_our_prize_count(obs), _opp_prize_count(obs)) <= 2
+    )
+    _evolve_prio = (PRIO_PLAY - 0.5) if _endgame_play_fires else PRIO_EVOLVE
+    _evolve_tb = 2.1 if _endgame_play_fires else 1
+
     # (priority, default-order tiebreak, resolver).
     ladder = (
         (PRIO_CANDY, 0, _resolve_candy),
-        (PRIO_EVOLVE, 1, _resolve_evolve),
+        (_evolve_prio, _evolve_tb, _resolve_evolve),
         (PRIO_PLAY, 2, _resolve_play),
         (PRIO_ATTACH + 0.5, 2.5, _resolve_attack_first),
         (PRIO_ATTACH, 3, _resolve_attach),
