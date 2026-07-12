@@ -297,6 +297,62 @@ def seed_target(block):
     return SEEDS.get(block)
 
 
+# Outcome-labeled per-option policy ranker (PTCG_RANKER, default off). Trained
+# offline (tools/train_ranker.py) on real top-team decisions, each row labeled
+# with whether the SEAT THAT FACED THE DECISION went on to win the game (the
+# "chosen-option outcome model"; exact formulation and rationale in
+# analysis/ranker_outcome_model.md, the open ML cell from
+# analysis/ml_expert_review.md). When on, ranks the full legal MAIN option
+# list by predicted P(win | option taken) (search/learned_ranker.py) and takes
+# the argmax, in place of the category-ladder scorer below. Sits strictly
+# BELOW the L1 lethal FORCE, which is checked unconditionally before this flag
+# is ever consulted (see choose()), and re-derives the L2/L3 safety guards
+# itself (_ranker_safe_indices excludes a repeatable non-once-per-turn ABILITY
+# option and, near a self-deckout, a deck-drilling PLAY option from the
+# candidate set before ranking) so a scorer that never saw those constraints
+# during training can never violate them. It is free to override the L4/L5
+# STRATEGIC forces (thin-bench, rare-candy) and the CEM-tuned PRIO_* category
+# order -- those are tunable heuristics, not safety guards, and improving on
+# them is the point of the ranker. Flag-gated for A/B validation; default off
+# leaves choose() on its historical category-ladder path and every shipped
+# build byte-identical (the resolver below returns None immediately when the
+# flag is off, so no candidate set is ever built and no model is ever loaded).
+_RANKER = os.environ.get("PTCG_RANKER", "0") != "0"
+
+
+def _ranker_safe_indices(options, obs, me) -> list:
+    """Legal MAIN option indices the ranker may consider (L2/L3 respected).
+
+    Excludes a repeatable (non-once-per-turn, or unresolvable) ABILITY option
+    -- mirrors _once_per_turn_ability's stateless-loop guard -- and, near a
+    self-deckout, a PLAY option that provably drills the deck (or whose card
+    id cannot be resolved, treated as a potential driller) -- mirrors
+    choose_play's near-deckout branch. Every other option (a PLAY that does
+    not drill, ATTACH, EVOLVE, RETREAT, ATTACK, END) is a ranking candidate.
+    Pure, never raises: every helper this calls (option_card_id, play_card_id,
+    _is_once_per_turn_ability, _drills_deck, own_deck_count) is already
+    documented never-raise, so no additional guarding is needed here.
+    """
+    deck_n = own_deck_count(obs)
+    near_deckout = deck_n is not None and deck_n <= DRAW_CONSERVE_THRESHOLD
+    sel = obs.get("select") or {}
+    safe = []
+    for oi, opt in enumerate(options):
+        if not isinstance(opt, dict):
+            continue
+        otype = opt.get("type")
+        if otype == OPT_ABILITY:
+            cid = option_card_id(opt, sel, obs)
+            if cid is None or not _is_once_per_turn_ability(cid):
+                continue  # unresolvable or repeatable: L2 loop guard excludes it
+        elif otype == OPT_PLAY and near_deckout:
+            cid = play_card_id(opt, me)
+            if cid is None or _drills_deck(cid):
+                continue  # unresolvable or drilling near deckout: L3 excludes it
+        safe.append(oi)
+    return safe
+
+
 # Category ordering priorities for the pilot's MAIN decision. CEM-tunable: these
 # are the genome levers the U6 gradient diagnostic showed were missing (both
 # fitness channels were flat because the dominant decision driver, choose()'s
@@ -1236,8 +1292,9 @@ def choose(obs) -> list:
     """Return option indices for the current decision. Never raises.
 
     Ordered FORCE/VETO guard stack (U37), each guard scorer-independent: it holds
-    under any PRIO_* weighting, so a future learned option-scorer (U41) inserted
-    below it can never override a safety guard. In priority order:
+    under any PRIO_* weighting, so a learned option-scorer inserted below it can
+    never override a safety guard (PTCG_RANKER, see the flag comment above,
+    re-derives L2/L3 itself before ranking). In priority order:
 
       L1 lethal FORCE      -- a guaranteed knockout is taken first, ahead of the
                               whole category scorer (test_safety guard-order lock).
@@ -1361,6 +1418,41 @@ def choose(obs) -> list:
             return groups[OPT_ATTACK][0][0]
         return None
 
+    def _resolve_ranker():
+        # PTCG_RANKER (default off, see the flag comment above): score every
+        # L2/L3-safe legal MAIN option with the outcome-labeled policy ranker
+        # (search/learned_ranker.py) and take the argmax, replacing the whole
+        # category ladder below when it fires. Returns None (falling through
+        # to the ladder unchanged) when the flag is off, fewer than two safe
+        # candidates exist, the featurizer cannot build a decision matrix, or
+        # no candidate actually scores (a missing, stale, or corrupt
+        # search/ranker_model.json) -- so a broken or absent model degrades
+        # to the historical ladder rather than picking an arbitrary option.
+        if not _RANKER:
+            return None
+        safe = _ranker_safe_indices(options, obs, me)
+        if len(safe) < 2:
+            return None
+        try:
+            from agents import imitation_features as IF
+        except ImportError:  # inside a submission, main.py and these sit together
+            import imitation_features as IF
+        try:
+            from search import learned_ranker as LRk
+        except ImportError:
+            import learned_ranker as LRk
+        feat_rows = IF.decision_features(obs)
+        if feat_rows is None:
+            return None
+        best_idx, best_p = None, None
+        for oi in safe:
+            p = LRk.score_option(feat_rows[oi])
+            if p is None:
+                continue
+            if best_p is None or p > best_p:
+                best_idx, best_p = oi, p
+        return best_idx
+
     # PTCG_ENDGAME_PLAY (default off, see the flag comment above): near-endgame
     # (either side at or below 2 prizes) with a bloated hand and both OPT_PLAY and
     # OPT_EVOLVE legal, demote EVOLVE from PRIO_EVOLVE to just below PRIO_PLAY (with
@@ -1378,8 +1470,13 @@ def choose(obs) -> list:
     _evolve_prio = (PRIO_PLAY - 0.5) if _endgame_play_fires else PRIO_EVOLVE
     _evolve_tb = 2.1 if _endgame_play_fires else 1
 
-    # (priority, default-order tiebreak, resolver).
+    # (priority, default-order tiebreak, resolver). _resolve_ranker sits at a
+    # fixed priority above every CEM-tunable PRIO_* (float("inf"), never
+    # displaced by tuning), so it wins the sort whenever PTCG_RANKER is on and
+    # it returns a non-None pick; off, its first line returns None immediately
+    # and the ladder is unchanged, byte-identical to before this flag existed.
     ladder = (
+        (float("inf"), -1, _resolve_ranker),
         (PRIO_CANDY, 0, _resolve_candy),
         (_evolve_prio, _evolve_tb, _resolve_evolve),
         (PRIO_PLAY, 2, _resolve_play),

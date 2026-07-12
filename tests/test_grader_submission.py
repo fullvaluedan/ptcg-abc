@@ -38,16 +38,25 @@ _FLAT_LAYOUT_SEARCH_DIRS = (AGENTS, SEARCH, ANALYSIS, SRC_PTCG_AGENT)
 # policy) import agents/card_effects.py from agents/heuristics.py, so the
 # card-knowledge layer MUST ship alongside heuristics.py or the delegated import
 # raises at match load and errors the submission. Bundle them as one unit.
+# imitation_features.py and search/learned_ranker.py are pulled in the same way
+# by PTCG_RANKER's resolver (agents/heuristics.py, deferred ImportError-fallback
+# import inside _resolve_ranker): the flag defaults off, so the import line is
+# never actually reached by a shipped build today, but
+# test_extras_cover_flat_layout_imports below is a static (AST) check, not a
+# runtime-reachability one, on purpose -- the whole point is to catch a missing
+# extra before a future build turns the flag on, not after.
 _HEUR_EXTRAS = [
     str(AGENTS / "heuristics.py"),
     str(AGENTS / "card_effects.py"),
+    str(AGENTS / "imitation_features.py"),
+    str(SEARCH / "learned_ranker.py"),
 ]
 
 # The top-level support modules each shipped entrypoint imports inside a built
 # submission (the search agent pulls in the whole search/ and analysis/ stack).
-# rollout needs imitation_features (agents/), eval needs learned_eval (search/),
-# move_prior needs imitation_features too, and learned_eval needs features
-# (src/ptcg_agent/): all four were missing here until
+# rollout needs imitation_features (agents/, via _HEUR_EXTRAS above), eval needs
+# learned_eval (search/), move_prior needs imitation_features too, and
+# learned_eval needs features (src/ptcg_agent/): these were missing here until
 # test_extras_cover_flat_layout_imports below caught the gap (the same ERROR
 # class as ref 54281824, just on the non-shipped search agent). agent_search is
 # not on the ladder today (search has been ladder-negative), so this had never
@@ -55,7 +64,6 @@ _HEUR_EXTRAS = [
 # ships it.
 _SEARCH_EXTRAS = [
     *_HEUR_EXTRAS,
-    str(AGENTS / "imitation_features.py"),
     str(SEARCH / "rollout.py"),
     str(SEARCH / "eval.py"),
     str(SEARCH / "learned_eval.py"),

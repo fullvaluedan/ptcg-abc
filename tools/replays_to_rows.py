@@ -37,6 +37,7 @@ from agents import heuristics as H  # noqa: E402
 from agents import imitation_features  # noqa: E402
 from analysis.replay_trace import episode_id_of  # noqa: E402
 from ptcg_agent.features import FEATURE_NAMES, extract_features  # noqa: E402
+from search import learned_eval  # noqa: E402
 from tools.scout import load_replay  # noqa: E402
 
 DEFAULT_SRC_DIR = _ROOT / "data" / "replays"
@@ -153,6 +154,87 @@ def move_rows_from_replay(replay, game_id: str) -> list:
     return rows
 
 
+def outcome_rows_from_replay(replay, game_id: str) -> list:
+    """One row per MAIN decision, the CHOSEN option only, labeled with whether
+    the seat that faced the decision won the game (the "chosen-option outcome
+    model": analysis/ranker_outcome_model.md documents the exact formulation
+    and rationale; this is its row builder).
+
+    Every other row-builder in this file is an IMITATION target: move_rows_
+    from_replay labels every legal option (chosen and not) with is_chosen,
+    restricted to the eventual WINNER's seat only, so the label answers "what
+    would the winner do here" regardless of whether that seat's play was
+    actually strong at this particular decision. This function answers a
+    different question instead: P(win | this option's features, actually
+    taken), estimated from realized game outcomes rather than imitation. It
+    therefore walks BOTH seats (not winner-only, so both win-labeled and
+    loss-labeled rows exist) but keeps exactly one row per qualifying
+    decision: the option that was actually chosen. A non-chosen option is
+    never labeled with the outcome: there is no counterfactual evidence that
+    a different pick would have changed the result, so folding an untaken
+    option into the outcome-labeled set would attribute a game-level result
+    to an action that never happened. is_chosen is still written as a column
+    (constant 1 in every row here) purely for schema comparison against
+    move_rows_from_replay's is_chosen-varying rows and for dataset QA; it
+    carries no information for a model fit on this file's rows and is
+    dropped from the feature matrix at training time (tools/train_ranker.py
+    only reads imitation_features.FEATURE_NAMES columns).
+
+    Also records state_eval_p, the existing search/learned_eval.py state-level
+    win-probability estimate (search/eval_model.json's prize-diff-anchored
+    logistic model) for the decision's board state, from the deciding seat's
+    point of view. This is identical across every option within one decision
+    (it is a function of the state, not the option), so it is not itself a
+    per-option ranking signal, but it lets tools/train_ranker.py report the
+    existing eval_model heuristic's AUC on these exact held-out rows as a
+    second baseline without re-parsing replays.
+
+    Same walk as move_rows_from_replay (ACTIVE entries with a real select and
+    current state, SEL_MAIN decisions where imitation_features.decision_features
+    returns >=2 options), but over both seats and gated by _seat_labels rather
+    than winner_seat only. Draws and games whose outcome cannot be determined
+    are dropped entirely, matching every other row-builder here.
+    """
+    labels = _seat_labels(replay)
+    if labels is None:
+        return []
+    rows = []
+    decision_id = 0
+    for step in replay.get("steps") or []:
+        if not isinstance(step, (list, tuple)):
+            continue
+        for p, entry in enumerate(step):
+            if not isinstance(entry, dict) or entry.get("status") != "ACTIVE":
+                continue
+            obs = entry.get("observation") or {}
+            sel = obs.get("select")
+            current = obs.get("current")
+            if sel is None or current is None:
+                continue  # deck handshake
+            seat = current.get("yourIndex", p)
+            if seat not in (0, 1):
+                continue
+            if sel.get("type") != H.SEL_MAIN:
+                continue
+            feat_rows = imitation_features.decision_features(obs)
+            if feat_rows is None:
+                continue  # <=1 option: no ranking signal
+            n_options = len(feat_rows)
+            this_decision_id = decision_id
+            decision_id += 1
+            action = entry.get("action")
+            chosen = (action[0] if isinstance(action, list) and len(action) == 1
+                      and 0 <= action[0] < n_options else None)
+            if chosen is None:
+                continue  # the taken option cannot be identified: no outcome row
+            state_p = learned_eval.predict_win_probability(current, seat)
+            rows.append(
+                [game_id, seat, this_decision_id, n_options, chosen, 1,
+                 *feat_rows[chosen], state_p, labels[seat]]
+            )
+    return rows
+
+
 def convert_dir(src_dir=None) -> list:
     """Rows from every replay JSON in src_dir. Malformed files are skipped."""
     src_dir = Path(src_dir) if src_dir else DEFAULT_SRC_DIR
@@ -242,6 +324,27 @@ def write_move_csv(rows, out_path) -> Path:
         )
         for row in rows:
             writer.writerow([*row, SOURCE])
+    return out_path
+
+
+def write_outcome_csv(rows, out_path, source=SOURCE) -> Path:
+    """Write outcome_rows_from_replay rows (the chosen-option outcome model).
+
+    `source` tags every row (default SOURCE, "ladder"); tools/build_outcome_
+    dataset.py passes "top50" for rows extracted from the top-50 harvest
+    episodes so tools/train_ranker.py can distinguish sources the same way
+    tools/train_eval.py already does for eval_model.json's rows.
+    """
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(out_path, "w", newline="") as fh:
+        writer = csv.writer(fh)
+        writer.writerow(
+            ["game_id", "seat", "decision_id", "n_options", "option_index", "is_chosen",
+             *imitation_features.FEATURE_NAMES, "state_eval_p", "outcome", "source"]
+        )
+        for row in rows:
+            writer.writerow([*row, source])
     return out_path
 
 
