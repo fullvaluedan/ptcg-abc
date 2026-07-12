@@ -1,0 +1,92 @@
+{
+  "arm_keys": [
+    "plain",
+    "ability",
+    "threat_retreat",
+    "both"
+  ],
+  "baseline_key": "plain",
+  "opponent_ring_size": 35,
+  "requested_n_per_arm": 700,
+  "jobs": 16,
+  "completed_shards": 8,
+  "shard_errors": [
+    "shard 2: timed out after 240.0s (killed)",
+    "shard 3: timed out after 240.0s (killed)",
+    "shard 5: timed out after 240.0s (killed)",
+    "shard 6: timed out after 240.0s (killed)",
+    "shard 7: timed out after 240.0s (killed)",
+    "shard 12: timed out after 240.0s (killed)",
+    "shard 13: timed out after 240.0s (killed)",
+    "shard 14: timed out after 240.0s (killed)"
+  ],
+  "shortfall_per_arm": 349,
+  "arms": {
+    "plain": {
+      "wins": 255,
+      "draws": 1,
+      "losses": 95,
+      "n": 351,
+      "win_rate": 0.7264957264957265,
+      "se": 0.023792771405738662
+    },
+    "ability": {
+      "wins": 264,
+      "draws": 0,
+      "losses": 87,
+      "n": 351,
+      "win_rate": 0.7521367521367521,
+      "se": 0.023046284299329006
+    },
+    "threat_retreat": {
+      "wins": 268,
+      "draws": 0,
+      "losses": 83,
+      "n": 351,
+      "win_rate": 0.7635327635327636,
+      "se": 0.022680141956322283
+    },
+    "both": {
+      "wins": 258,
+      "draws": 0,
+      "losses": 93,
+      "n": 351,
+      "win_rate": 0.7350427350427351,
+      "se": 0.023555409169656653
+    }
+  },
+  "same_run_deltas_pp": {
+    "plain": {
+      "delta_pp": 0.0,
+      "se_pp": 3.364806000843839,
+      "ci95_pp": [
+        -6.595019761653925,
+        6.595019761653925
+      ]
+    },
+    "ability": {
+      "delta_pp": 2.564102564102566,
+      "se_pp": 3.312441986165545,
+      "ci95_pp": [
+        -3.9282837287819024,
+        9.056488856987034
+      ]
+    },
+    "threat_retreat": {
+      "delta_pp": 3.703703703703709,
+      "se_pp": 3.287072877690219,
+      "ci95_pp": [
+        -2.7389591365691204,
+        10.146366543976539
+      ]
+    },
+    "both": {
+      "delta_pp": 0.8547008547008628,
+      "se_pp": 3.3480640261435863,
+      "ci95_pp": [
+        -5.707504636540566,
+        7.416906345942293
+      ]
+    }
+  }
+}

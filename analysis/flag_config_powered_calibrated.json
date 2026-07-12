@@ -1,0 +1,83 @@
+{
+  "arm_keys": [
+    "plain",
+    "ability",
+    "threat_retreat",
+    "both"
+  ],
+  "baseline_key": "plain",
+  "opponent_ring_size": 9,
+  "requested_n_per_arm": 200,
+  "jobs": 16,
+  "completed_shards": 16,
+  "shard_errors": [],
+  "shortfall_per_arm": 0,
+  "arms": {
+    "plain": {
+      "wins": 174,
+      "draws": 0,
+      "losses": 26,
+      "n": 200,
+      "win_rate": 0.87,
+      "se": 0.02378024390118823
+    },
+    "ability": {
+      "wins": 172,
+      "draws": 0,
+      "losses": 28,
+      "n": 200,
+      "win_rate": 0.86,
+      "se": 0.024535688292770596
+    },
+    "threat_retreat": {
+      "wins": 181,
+      "draws": 0,
+      "losses": 19,
+      "n": 200,
+      "win_rate": 0.905,
+      "se": 0.02073342711661533
+    },
+    "both": {
+      "wins": 179,
+      "draws": 0,
+      "losses": 21,
+      "n": 200,
+      "win_rate": 0.895,
+      "se": 0.021676600286945368
+    }
+  },
+  "same_run_deltas_pp": {
+    "plain": {
+      "delta_pp": 0.0,
+      "se_pp": 3.363034344160047,
+      "ci95_pp": [
+        -6.591547314553692,
+        6.591547314553692
+      ]
+    },
+    "ability": {
+      "delta_pp": -1.0000000000000009,
+      "se_pp": 3.4168699126539774,
+      "ci95_pp": [
+        -7.697065028801797,
+        5.697065028801795
+      ]
+    },
+    "threat_retreat": {
+      "delta_pp": 3.500000000000003,
+      "se_pp": 3.1549564180825067,
+      "ci95_pp": [
+        -2.6837145794417103,
+        9.683714579441716
+      ]
+    },
+    "both": {
+      "delta_pp": 2.500000000000002,
+      "se_pp": 3.217724351152534,
+      "ci95_pp": [
+        -3.806739728258965,
+        8.80673972825897
+      ]
+    }
+  }
+}
