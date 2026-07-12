@@ -1,122 +1,65 @@
-# Pre-Registration Discipline and Offline-to-Ladder Transfer: A Kaggle Strategy Prize Report
+# Trustworthy Measurement Under Extreme Noise
 
-**Track:** Strategy (Model Approach)  
-**Word Count:** 1,979
+**Subtitle:** How a Pokemon TCG agent earned, audited, and repeatedly overruled its own instruments, and the honest boundary of what learning could close.
 
-## Executive Summary
+**Track:** Strategy (Model Approach)
 
-This report documents one thesis: disciplined offline proxy development, where proxies must retrodict known ladder outcomes before earning decision authority, can produce trustworthy signals where single-read ladder A/Bs cannot. The project built and gate-checked four structurally distinct offline proxies against six known ladder scores. Three failed with named, specific diagnoses. The fourth passed by fixing a diagnosed flaw. The passing proxy then correctly predicted direction on two real ladder transfers, while misdiagnosing transfer "failures" that were actually noise bands at work—the core finding this project can report with evidence.
+## Executive summary
 
----
+This is not a report about a clever agent. It is a report about the measurement system that decided, under noise large enough to swamp every real effect we could produce, which changes to a Pokemon TCG agent were true. The shipped player is a pure-Python heuristic; its ceiling is not the story. The story is the instrument: a bracket-matched clone ring that had to retrodict known ladder results before it earned any authority. Around that instrument sits a discipline that treats its own tools as suspects. Proxies are refused by default and earn authority only by calibration. Instruments that lie are caught by positive controls, by decontamination, and by a power audit we ran against ourselves. A clean oracle falsifier closed the search lane. A powered flag reversal proved our best-validated lever is deck- and opponent-conditional, not general. And we name, rather than paper over, the exact boundary where learning stopped helping. That is the model approach: quantifiable, adversarial, and honest about its own error floor.
 
-## Machine-Enforced Pre-Registration: The Proxy Gate Rule
+## 1. Measurement under extreme noise
 
-Every offline proxy in this project started refused by default. None earned the right to make ladder decisions without first clearing a pre-registered gate: **retrodict the ordering of six known ladder scores (heuristic+trolley 569.6, heuristic+benchguard 554.5, search+trolley 514.7, meta_grimmsnarl 510.1, trolley_thick 446.2, meta_archaludon 382.5) at Kendall tau >= 0.7**.
+The binding fact of this competition is not skill, it is noise. The public ladder re-scores every submission by replaying it, and a byte-identical build drifts enormously between reads. Pooling every reading of our king build across five refs (`findings.md` section 3, `analysis/noise_model_refit.md`), the same code spanned 396.7 to 691.5, a range of roughly 295 rating points with no change at all. Our true gap to the leader is about +672 points (`findings.md` section 6). The consequence is stark: every real improvement we can build is smaller than the noise on a single ladder read, so a one-shot ladder A/B cannot confirm anything.
 
-This rule is machine-enforced, not advisory: `tools/loop_state.py check-gate --proxy <name>` returns refused unless a passing calibration report exists. The gate survived unchanged across all four attempts because it measures something simple and hard to game: can the proxy reproduce a real ladder result we already know the answer to? If yes, it has earned the right to block (refuse to ship) a new candidate. If no, it stays refused regardless of other virtues. Proxies only refuse, after proving they retrodict known facts.
+We under-modeled this twice before believing it. The first estimate (90 to 130 points) sized our confirmation margin at M=60; two openly recorded corrections widened it to M=150 and then M=240 (`state/current.md`, `analysis/noise_model_refit.md`), each time wider, never narrower. The direction of the error was itself the finding.
 
----
+Pre-registration is machine-enforced, not a habit. `tools/loop_state.py` holds each experiment's direction, margin, sample size, and settle-by date as JSON, and a proxy returns refused unless a committed calibration report clears its gate. That enforcement caught a real breach: the yushin pre-registration row was silently deleted by a prose regeneration and restored intact (`findings.md`), after which pre-registration writes were locked to JSON-only.
 
-## The Four Attempts: Refutation, Diagnosis, Repair
+## 2. Proxy instruments, earned and audited
 
-### Attempt 1: Weak-Bot Gauntlet (Refused by Construction)
+If the ladder cannot decide, something else must, and it has to prove itself first. The standing rule (`analysis/proxy_calibration.md`): no offline proxy may gate a decision until it retrodicts the ordering of six known ladder builds at Kendall tau at least 0.7. A passing proxy earns only the right to block a candidate, never to promote one.
 
-The weakest option available—run a candidate against built-in opponents or self-mirrors—was never allowed to try the gate. The loop brief codes this as non-predictive by construction: a candidate that beats weak built-in bots tells nothing about real-player field performance. No gate run was spent on it; the pre-registered rule blocks it outright. It stands as a guard rail: this is the kind of proxy we do not trust, regardless of tau.
+Four structurally distinct proxies met this bar in sequence, and the first three failed with named diagnoses. A weak-bot gauntlet was refused by construction. A move-ranking validator measured real expert agreement but was never calibrated as a gate. The most rigorous early attempt, a top-20 clone ring, landed at tau 0.429 (`analysis/ring_calibration.md`); the postmortem named the cause precisely, the ring cloned the top-20 leaderboard rather than the 450 to 750 band the ladder actually pairs us against. The fourth attempt changed exactly that one variable, harvesting opponents from our own bracket, and re-ran the identical gate math to tau 0.857 (`analysis/ring_calibration.md`). Matching the proxy's opponent distribution to the field that produced the ladder scores mattered more than any model sophistication.
 
-### Attempt 2: Move-Ranking Validator (Real Signal, Never Calibrated)
+That success carried a hidden defect we later surfaced ourselves: the calibrated ring saturates. Its opponents are clones of our own band, the live stack already reads about 0.91 on it, and a strategic audit (`analysis/path_above_1000.md`) showed the remaining headroom is worth roughly zero rating. A saturated instrument can point the wrong way. So we built a genuinely harder instrument, an elite ring of 35 top-50 clones (`tools/top50_ring.py`), and that is where the most important reversal appears (Section 5).
 
-`analysis/move_ranking_diverges_ability_gap.md` measured a different question: does our pilot choose the same move a top player would? Over 4,524 real MAIN-phase decisions from expert games, the heuristic agreed with expert exact choice only 21.2% overall. It revealed a 0/554 blindspot on ABILITY decisions (the pilot had no code path to choose one); fixing it shipped (+4.0pp on ladder). But the validator itself was never calibrated as a gate. It measures relative agreement, not absolute skill; offline agreement is not the ladder. It remained a useful filter but never blocked a slot.
+## 3. Instruments that lie, and how we caught them
 
-### Attempt 3: Top-20 Clone Ring (tau 0.429, Clear Failure)
+The heart of the approach is distrust of our own tools. Three arcs show it working.
 
-The most rigorous attempt yet: clone top-20 teams' recorded play, pilot each clone's deck, round-robin all six known builds, measure tau against the real ladder. Result: **tau 0.429** (10 concordant, 4 discordant, 1 tie; all 6 builds covered), failing the 0.7 gate clearly. It ranked the top right (heuristic+trolley first in both real and ring) but inverted the middle: it overrated trolley_thick (ring rank 2, real rank 5) and badly missed meta_grimmsnarl (ring rank 6, real rank 4). Post-hoc diagnosis in `analysis/ring_calibration.md` found the cause: the ring's opponent pool was clones of the top-20 leaderboard, not the ~450–750 rating band the ladder actually pairs us against, and one of three ring opponents happened to pilot the exact same decklist as a build under test, so that build's third of games were an accidental mirror, dragging its measured win rate toward 50% regardless of true quality.
+The broken probe. Before a lever earns a ring slot it must pass a fires-vs-inert check: does it change any real decision? A threat-aware retreat lever read INERT on every captured position and was closed (`analysis/u105_threat_prize_inert_check.md`). A later audit found the zeros were a bug, not a fact: `_opponent_best_attack_damage` passed raw attack IDs into a damage function whose `getattr(int, "damage", 0)` is always zero, so the OHKO condition was unsatisfiable for all 1057 cards, and the unit test masked it by monkeypatching that exact function to return 100. Fixed and re-run with a non-mocked regression test (953 of 1057 attackers nonzero), the lever flipped 3 of 12 threatened trolley positions and 7 of 25 on yushin, and then passed its ring gate at +6.0pp (`analysis/u105b_threat_retreat_ring_ab.md`). The durable lesson: a fires-vs-inert gate is itself an instrument that needs a positive control, because zeros from a working probe and zeros from a broken one are indistinguishable.
 
-### Attempt 4: Bracket-Band Clone Ring (tau 0.857, PASS)
+The contaminated classifier. Our archetype labels drove the entire matchup analysis, and they were wrong. `classify_family` at its default 0.35 coverage threshold let generic format staples (Boss's Orders, Buddy-Buddy Poffin, and others) alone clear the bar, pulling unrelated decks into named archetypes (`analysis/beat_the_meta_plan.md`). The distortion was not cosmetic: 94 of 98 decklists labeled meta_archaludon (95.9%) never ran Duraludon or Archaludon ex at all. Stripping staples from the coverage math split the contaminated buckets into their real archetypes and, notably, made the corrected field slower than the contaminated read implied, widening our aggro clock's true advantage. We trust the regenerated numbers, not the earlier hand-run ones.
 
-U81 tested the diagnosis directly: harvest real opponents from our own ~450–750 rating bracket instead of the top-20, build a nine-clone ring (six bracket clones plus the original three), re-run the identical gate math. **tau = 0.857** (13 concordant, 1 discordant, all 6 covered), clearing 0.7 decisively with one variable changed and no other tweaks to the math. The single miss (trolley_thick ranked one spot too high) is much smaller than Attempt 3's badly inverted middle.
+The power correction, run on ourselves. An ML expert review (`analysis/ml_expert_review.md`) delivered a hard verdict: exemplary discipline bolted onto underpowered instruments. At n=100 and p about 0.85 the two-arm difference has a standard error near 5pp, so a +5pp gate ran at roughly one standard error, about 26 to 32 percent power; the n=40 screens were worse. The whipsaw history was the fingerprint, not bad luck: U104 read +15.0pp at n=40 and collapsed to +9.0pp at n=100 (`analysis/u112_stacked_ring_confirmation.md`), and a +4.0pp ability gauntlet result went to zero under isolation (`analysis/ability_isolated_confound_check.md`). The required samples for 80 percent power (one-sided alpha 0.05) are about 710 per arm for +5pp gates and 195 for +10pp. The fix was nearly free: `tools/parallel_gauntlet.py` already had a 16-worker sharding pattern that every ring runner ignored, turning a fully powered A/B from minutes into roughly 90 seconds. We import the correction as method, not as a rescued result.
 
-This is the first offline proxy in the project's history to earn gate authority. It can block (refuse) a candidate after proving it can reproduce real ladder facts.
+## 4. A clean falsifier: the oracle bound
 
----
+Not every question needs 700 games; some collapse cleanly. The one mechanism rated to reach the top tier was opponent-model search. We tested its ceiling directly (`analysis/u109_oracle_bound_test.md`): give a determinized search agent the opponent's true 60-card decklist as a perfect prior, the best information any learned model could ever approximate. Against the incumbent at n=40 per arm, both arms landed on the identical record, 33-0-7, delta +0.000. A learned prior cannot beat an oracle prior, and the oracle prior buys nothing. This is a falsifier, not an ambiguous read: even under our own demonstrated run-to-run noise, a true +5pp effect essentially never yields a dead-even same-run tie. Combined with the structural fact that the grader withholds the `search_*` forward model, so our force-loaded search scored 431.4 against the heuristic's 569.6 (`analysis/ladder_search_inert.md`, `analysis/search_recovered_on_ladder.md`), the search lane closed on evidence, freeing capacity for measurement work.
 
-## Transfer Lesson: From Offline Ring to Ladder, and What Noise Teaches
+## 5. Deck-conditional transfer: the powered flag reversal
 
-The bracket ring identified a new candidate via deck mining (U39): top-rated public player decks from episode data, deduped against known test decks by full 60-card signature. One candidate, yushin_ito, scored 20/20 (+0.100 delta vs trolley). Two confirmation runs (n=40 each) sustained this delta, confirming it was not a luck artifact.
+Our best-validated lever taught the sharpest lesson. The once-per-turn ability lever came from a real capability gap (the pilot activated abilities 0 times in 554 expert ability decisions, `analysis/move_ranking_diverges_ability_gap.md`), passed its calibrated-ring gate at +20.0pp (`analysis/ability_ring_check.md`), and looked general. It is not. Run at n=100 on the elite 35-clone ring, same-run and alternating seats (`analysis/top50_flag_config.md`), plain yushin reads 0.850 while the live flags reverse to net negative: ability alone reads 0.690 (-16.0pp), threat-aware retreat alone 0.720 (-13.0pp), and the shipped stack of both 0.740 (-11.0pp). Every flag that won on the saturated bracket ring loses against genuine top-play. This is the exact trap the strategic audit named (`analysis/path_above_1000.md`): a lever helps one deck against one ring and is generalized, when in truth effects are deck-conditional and opponent-conditional. The powered elite-ring read is now the governing evidence, and it recommends the plainest configuration against strong opposition, not the decorated one. That reversal, caught by a harder and properly-powered instrument, is the single most decision-relevant result in the project.
 
-On the ladder, yushin_ito read 496.4 vs 520.5, initially flagged as a "transfer failure." Converting to win rates: 47.1% vs 46.2% is 0.9pp, z ≈ 0.08—pure noise. Observed same-build resubmissions span 396.7–691.5 on ladder (~295 points); single-read A/Bs cannot confirm levers smaller than this band. The ring's decision held: when ladder results are normalized by noise, both agreed (~47%). The escalated response: the bracket ring is now the primary gate for discovery. Ladder slots are for confirmation and endgame lock-the-pair execution, not candidate hunting (per `state/current.md`, L9 recalibration, 2026-07-04).
+## 6. The deck, and the honest ML boundary
 
----
+The deck (the 20 percent criterion) is a Mega Starmie ex aggro-tank, `candidate_yushin_ito`, chosen by the ring rather than by taste. Its plan is a timing plan, not a card-tech plan: reach first attack around turn 2.5, close the prize race by turn 5 to 7, tank the fastest opposing clock with Hero's Cape plus Wally's Compassion (full heal and energy recovery on a 330 HP attacker), deny setup tempo with Crushing Hammer, and survive our own draw engine against the deckout tail (`analysis/beat_the_meta_plan.md`). Deck substitution is a four-times-refuted lever: the same heuristic scores 570 on trolley but 451 and 409 on copied meta lists (`findings.md` 4C), so the roughly 900-point gap to those decks' real owners is pilot execution, not the 60 cards. The deck is the best the ring could find, and it earns its slot by measurement.
 
-## The Comprehension Turn: Why the Clone Failed, What It Taught, and What Shipped
+The ML boundary is stated plainly. Per-decision imitation is closed four independent ways (two model families, two feature sets, and finally a pairwise ranking objective), each tying the first-legal baseline within 0.0015 (`analysis/clone_quality.md`, `analysis/rank_clone_killtest.md`); the seam the data does hold (the option played is first within its own action category 53 to 72 percent of the time versus 33 to 45 percent overall) is real but not recoverable by that objective. Search is closed structurally (no forward model) and empirically (the oracle tie). What that closure did produce were two audited flag levers (`agents/card_effects.py`, `agents/heuristics.py`) and a decontaminated matchup map. One deployable ML cell remains genuinely open and honest either way (`analysis/ml_expert_review.md`): an outcome-labeled per-option ranker, P(win given this option) trained on the 708k-row corpus plus episode outcomes and shipped through the proven `search/learned_eval.py` JSON template, under one second per game. It needs neither imitation labels nor a forward model, and it closes the ML question rather than leaving it rhetorical.
 
-A prior attempt at learning top-player move patterns (`analysis/clone_quality.md`, U71) collapsed: three different model families (linear, boosted tree, richer features) all picked the first legal option 100% of the time. The recorded verdict: "top-20 play is too subtle to imitate." An autopsy found three independent instrument defects, not unlearnable skill:
+## Bottom line
 
-1. The training objective's zero-risk optimum *was already first-legal*. Every attempt used pointwise log-loss. First-legal clears 33–45% accuracy per family before any fitting, so deviating from position only looks worse. Verified: meta_grimmsnarl output 0 of 13,019 times; coefficients powerless vs position weight. Intrinsic ceiling, not failure.
+The differentiator for the Strategy prize is not a model. It is a measurement culture that survived contact with its own mistakes. We built a machine-enforced pre-registration gate; earned one trustworthy proxy after three diagnosed failures; then caught that proxy saturating and built a harder one; caught a fires-vs-inert probe lying and fixed it with a positive control; caught our archetype labels contaminated and decontaminated them; caught our gates underpowered and re-derived the required samples; closed a hopeful lane on a clean oracle falsifier; and let a powered elite-ring reversal overrule our own best-loved lever. In a +672-point race, the temptation to ship a ring-positive build on a lucky read is real, and the record shows us refusing it every time. The approach is disciplined, quantified, adversarial toward its own instruments, and honest about the boundary it could not cross.
 
-2. The baseline (opt_is_first, opt_index_norm) was a feature while the gate measured margin over that baseline. The model was given a direct representation of what it was trying to outperform.
+## Sources and evidence chain
 
-3. Features were semantically blind: eight regex tags, no card identity, no energy costs, no evolution lines. Boss's Orders and all named effects were invisible to the model.
-
-Re-examining the same data revealed structure: top players pick the *first option within their action category* 53–72% of the time vs 33–45% overall. END_TURN: 0 in predictions, 556 in play (4.3%). The data had learnable structure; the objective and features did not expose it.
-
-This insight flowed into two shipped improvements:
-
-1. **Card-semantics expansion** (`agents/card_effects.py`): Extended TAG_VOCAB with all previously untagged effect cards on meta decklists.
-
-2. **Attack-first sequencing rule** (`agents/heuristics.py`, PTCG_ATTACK_FIRST): Take positive-value attacks this decision without further attach. Cleared both gates: weak-bot +5.5pp, bracket-ring +10.0pp (ring evidence independent of ladder noise).
-
----
-
-## The Field-Prior Arc: Stretch Tier Ceiling Closed by Oracle Constraint (U109, 2026-07-07)
-
-The one mechanism rated to reach stretch-tier performance (800–950 rating) was opponent-model search: a learned prior over the opponent's deck, fed into determinized lookahead. A pre-registered oracle test (U109) checked whether even *perfect* opponent information—true decklist as prior—could beat the incumbent. Result: **delta +0.000** (33-0-7 record on both oracle-search and heuristic arms, n=40 each). An oracle prior ties; no learned prior can exceed it. This is not evidence opponent modeling is unimportant, only that the bottleneck lies elsewhere: the leaf evaluator, rollout policy, time allocation, or architectural ceiling. Improving the opponent model from "wrong" to "perfect" buys zero rating. The search lane is closed for this competition per the pre-registered kill criterion. Weeks 2–3 capacity reroutes to rule mining (U105–U107, complete), mirror-deck validation (U103, design-gated), and writeup focus. This finding (a methodological constraint, not a promotion) completes the measured account of what blocks further improvment.
-
----
-
-## Parallel Investigation: Category Mining Closes with Archetype Awareness
-
-While comprehension diagnosed clone defects and shipped two rules, a parallel mining effort (U82) tested single-field gaps on the move-ranking validator's low-agreement categories: RETREAT, PROMOTE post-knockout, and deck-search picks. Systematic expert-corpus checks on each:
-
-- **RETREAT** (163 decisions): 89.1% of expert retreats are active-HP misses, not position-dependent. No bench-matchup signal found.
-- **PROMOTE post-knockout** (91 decisions): no consistent signal ranked promoted benches above the pilot's first choice.
-- **Deck-search picks**: already explained by existing rules.
-
-All three pointed independently to the same gap: high-level game-plan/archetype awareness. Context-dependent decisions require understanding the game's arc, not isolated fields.
-
-Archetype capability was tested separately: a pre-registered classifier cleared +5.0pp held-out margin. Result: +4.3pp. Gate missed. This full convergence—autopsy → playbook mining → single-field testing → archetype validation—all pointing to one gap, then failing validation, is reportable evidence the implementation did not clear the bar. The discipline: record failures and move on, do not force implementation through a failed gate.
-
----
-
-## Robustness Check: Sample Size and Gate Stability
-
-U104 (stacked ring run, three arms testing yushin+ability+attack_first variants) cleared a gate at n=40 per arm. The confirmation run (U112, n=100 per arm) read +9.0pp vs +15.0pp at n=40, falling below the +10.0pp threshold. A ring-positive read at n=40 can be partially luck-driven and requires verification at larger scale (n=100) before ladder investment. This pattern—confirmation runs catching luck-driven variations—is itself reportable evidence that disciplined gate verification makes failures visible rather than costly.
-
----
-
-## Bottom Line: Discipline Over Luck
-
-Three distinct offline designs, of increasing sophistication and cost, were checked against the same ladder-truth bar and none cleared it—until the third failure's diagnosis was fixed and re-tested. The core reportable claim: matching the offline proxy's opponent distribution to the actual distribution the ladder scores came from mattered more than added model sophistication. The most expensive and theoretically justified proxies landed at tau 0.429 because they were measuring against the wrong field.
-
-This only has teeth paired with disciplined measurement on the ladder side: the same-build noise model (396.7–691.5 span, ~295 points) showed that single ladder reads cannot distinguish small deltas. The ring provides an independent signal (a proxy retrodicting real ladder outcomes against known opponents at a known rating band) valid even when ladder noise swamps confirmation. The U104/U112 pattern further teaches that ring-positive reads at modest sample size (n=40) require verification at larger scale (n=100) before ladder investment. The compound lesson: offline proxies need pre-registered gates, gate failures need diagnosis not dismissal, and confirmation runs exist to prevent luck from becoming mistaken belief.
-
-The differentiator for the Strategy prize is not "we built an offline proxy." It is: we built a machine-enforced pre-registration gate, enforced it across four structurally distinct designs, diagnosed and fixed failure modes at the instrument level rather than tuning around them, and learned that the biggest lever—opponent-pool match—was found only by diagnosing why an intuitive-sounding design failed. We further learned when and how that gate itself could fail at scale. The Strategy prize asks for model approach. This is the approach: disciplined, quantifiable, failure-focused, traceable, and self-checking.
-
----
-
-## Implication: How Honest Measurement Compounds
-
-The four-attempt arc—three failures with specific diagnoses, one pass via diagnosis-driven repair, then validation that collapsed to noise—represents the outcome-driven work the Strategy prize measures. The "model approach" is not architectural novelty; it is: measuring what transfers, admitting when it does not, fixing only the diagnosed flaw, and documenting the chain for future use.
-
-In a 672-point race to the leader, the temptation to ship ring-positive builds on first reads or skip gate verification is real. This project's approach—machine-enforced gates, diagnosis-driven repair, honest record-keeping, noise-aware settlement rules—distinguishes trustworthy work from noise-chasing. The differentiator is not "we built a proxy" but "we built one that must prove it retrodicts known outcomes before it decides anything new."
-
----
-
-## Sources and Evidence Chain
-
-- **Pre-registration and gate math**: `analysis/proxy_calibration.md`, `tools/loop_state.py`, `findings.md`
-- **Move-decision validator**: `analysis/move_ranking_diverges_ability_gap.md` (4,524-decision expert agreement)
-- **Ring calibration**: `analysis/ring_calibration.md` (tau=0.857), `analysis/candidate_decks_ring_gate.md` (U39 yushin_ito promotion)
-- **Noise model and ladder ledger**: `findings.md`, `state/current.md` (pre-registration and L9 recalibration)
-- **Clone autopsy and shipped rules**: `analysis/clone_quality.md`, `analysis/gameplan_claims_bracket_4.md`, `agents/heuristics.py` (PTCG_ATTACK_FIRST)
-- **Field-prior oracle bound**: `analysis/u109_oracle_bound_test.md` (opponent-prior search ties heuristic, delta +0.000)
-
+- Pre-registration and gate math: `analysis/proxy_calibration.md`, `tools/loop_state.py`, `findings.md`
+- Noise model (M=240): `analysis/noise_model_refit.md`, `state/current.md`
+- Ring calibration (tau 0.429 to 0.857) and saturation: `analysis/ring_calibration.md`, `analysis/path_above_1000.md`, `tools/ring_calibrate.py`
+- Broken-probe arc and positive control: `analysis/u105_threat_prize_inert_check.md`, `analysis/u105b_threat_retreat_ring_ab.md`
+- Classifier decontamination: `analysis/beat_the_meta_plan.md`
+- Power correction: `analysis/ml_expert_review.md`, `analysis/u112_stacked_ring_confirmation.md`, `analysis/ability_isolated_confound_check.md`, `tools/parallel_gauntlet.py`
+- Oracle falsifier and search closure: `analysis/u109_oracle_bound_test.md`, `analysis/ladder_search_inert.md`, `analysis/search_recovered_on_ladder.md`
+- Powered flag reversal: `analysis/top50_flag_config.md`, `tools/top50_ring.py`, `analysis/ability_ring_check.md`, `analysis/move_ranking_diverges_ability_gap.md`
+- Imitation closure and the open ML cell: `analysis/clone_quality.md`, `analysis/rank_clone_killtest.md`, `search/learned_eval.py`, `agents/card_effects.py`, `agents/heuristics.py`

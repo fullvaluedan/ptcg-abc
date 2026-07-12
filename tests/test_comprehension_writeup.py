@@ -10,8 +10,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DOC_PATH = ROOT / "docs" / "writeup" / "comprehension.md"
+SYNTH_PATH = ROOT / "docs" / "writeup" / "final_synthesis.md"
 
 PATH_RE = re.compile(r"`([\w./\\-]+\.(?:md|py|json))`")
+
+# The Strategy writeup is one Kaggle Writeup with a hard 2000-word ceiling; the
+# repo holds it in a 1900-1990 band so 2000 is never a target (findings.md,
+# second blindspot audit). Word count = whitespace tokens over the whole file.
+SYNTH_WORD_MIN = 1900
+SYNTH_WORD_MAX = 1990
 
 
 def _ledger_rows():
@@ -47,3 +54,37 @@ def test_every_cited_source_exists():
             if not (ROOT / path).exists():
                 missing.append(path)
     assert not missing, f"claims ledger cites source paths that do not exist: {missing}"
+
+
+# ---------------------------------------------------------------------------
+# final_synthesis.md: the model-approach story. Its whole claim is that every
+# cited source file is real, so this audits EVERY backticked path in the file
+# (not just a table), keeps the word count in the hard-ceiling band, and
+# enforces the repo-wide no-dash rule on the submission text itself.
+# ---------------------------------------------------------------------------
+
+
+def test_synthesis_exists():
+    assert SYNTH_PATH.exists()
+
+
+def test_synthesis_word_count_in_band():
+    words = len(SYNTH_PATH.read_text(encoding="utf-8").split())
+    assert SYNTH_WORD_MIN <= words <= SYNTH_WORD_MAX, (
+        f"final_synthesis.md is {words} words, outside "
+        f"[{SYNTH_WORD_MIN}, {SYNTH_WORD_MAX}]"
+    )
+
+
+def test_synthesis_every_cited_source_exists():
+    text = SYNTH_PATH.read_text(encoding="utf-8")
+    missing = sorted(
+        {p for p in PATH_RE.findall(text) if not (ROOT / p).exists()}
+    )
+    assert not missing, f"final_synthesis.md cites paths that do not exist: {missing}"
+
+
+def test_synthesis_has_no_em_or_en_dashes():
+    text = SYNTH_PATH.read_text(encoding="utf-8")
+    assert "—" not in text, "final_synthesis.md contains an em dash"
+    assert "–" not in text, "final_synthesis.md contains an en dash"
